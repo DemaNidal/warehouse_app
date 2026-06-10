@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}
+لوحة التحكم
+{% endblock %}
+
+{% block content %}
+
+<h1 class="mb-4">
+    لوحة التحكم
+</h1>
+
+<div class="row g-3">
+
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+
+                <h2>{{ product_count }}</h2>
+
+                <p class="mb-0">
+                    المنتجات
+                </p>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+
+                <h2>{{ color_count }}</h2>
+
+                <p class="mb-0">
+                    الألوان
+                </p>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+
+                <h2>{{ warehouse_count }}</h2>
+
+                <p class="mb-0">
+                    المستودعات
+                </p>
+
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-3">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+
+                <h2>{{ location_count }}</h2>
+
+                <p class="mb-0">
+                    المواقع
+                </p>
+
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="row mt-4">
+
+    <div class="col-md-6">
+
+        <div class="card border-success shadow-sm">
+
+            <div class="card-body text-center">
+
+                <h1 class="text-success">
+                    {{ total_quantity }}
+                </h1>
+
+                <h5>
+                    إجمالي الكمية بالمستودعات
+                </h5>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

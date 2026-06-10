@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}
+إضافة حركة مخزون
+{% endblock %}
+
+{% block content %}
+
+
+<h2>{{ product.name }}</h2>
+
+<hr>
+
+<form method="POST">
+
+    <div class="mb-3">
+
+        <label>الموقع</label>
+
+        <select
+            name="location_id"
+            class="form-select"
+            required
+        >
+
+            {% for location in locations %}
+
+            <option value="{{ location.id }}">
+                {{ location.warehouse.name }}
+                -
+                {{ location.location }}
+            </option>
+
+            {% endfor %}
+
+        </select>
+
+    </div>
+
+    <div class="mb-3">
+
+        <label>نوع الحركة</label>
+
+<select
+    name="transaction_type"
+    class="form-select"
+    required
+>
+
+    {% for t in transaction_types %}
+
+    <option value="{{ t }}">
+        {{ transaction_labels[t] }}
+    </option>
+
+    {% endfor %}
+
+</select>
+
+    </div>
+
+    <div class="mb-3">
+
+        <label>الكمية</label>
+
+        <input
+            type="number"
+            name="quantity"
+            class="form-control"
+            required
+        >
+
+    </div>
+
+    <div class="mb-3">
+
+        <label>ملاحظات</label>
+
+        <textarea
+            name="notes"
+            class="form-control"
+        ></textarea>
+
+    </div>
+
+    <button class="btn btn-success">
+        حفظ الحركة
+    </button>
+
+</form>
+
+{% endblock %}

@@ -1,0 +1,272 @@
+{% extends "base.html" %} {% block title %} تفاصيل المنتج {% endblock %} {%
+block content %}
+
+<div class="card shadow-sm">
+  <div class="card-body">
+    <div class="row">
+      <div class="col-md-4 text-center">
+        {% if product.image %}
+
+        <img
+          src="{{ url_for('uploaded_file', filename=product.image) }}"
+          class="img-fluid rounded border"
+          style="max-height: 350px"
+        />
+
+        {% else %}
+
+        <div class="alert alert-secondary">لا توجد صورة</div>
+
+        {% endif %}
+      </div>
+
+      <div class="col-md-8">
+        <h2 class="mb-3 fw-bold">{{ product.name }}</h2>
+
+        <div class="card bg-light border-0 mb-3">
+          <div class="card-body py-2">
+            <small class="text-muted">
+              <strong>تاريخ الإنشاء:</strong>
+              {{ product.created_at.strftime('%Y-%m-%d %H:%M') }}
+            </small>
+
+            <br />
+
+            <small class="text-muted">
+              <strong>آخر تحديث:</strong>
+              {{ product.updated_at.strftime('%Y-%m-%d %H:%M') }}
+            </small>
+          </div>
+        </div>
+
+        <table class="table table-bordered">
+          <tr>
+            <th width="150">اللون</th>
+
+            <td>{{ product.color.name }}</td>
+          </tr>
+
+          <tr>
+            <th>الحجم</th>
+
+            <td>{{ product.size }}</td>
+          </tr>
+
+          <tr>
+            <th>إجمالي الكمية</th>
+
+            <td>
+              <span class="badge bg-success fs-6"> {{ total_quantity }} </span>
+            </td>
+          </tr>
+        </table>
+
+        <div class="mt-4">
+          <!-- <a href="/product/{{ product.id }}/edit" class="btn btn-warning">
+            تعديل المنتج
+          </a> -->
+          <a class="btn btn-warning"
+          href="/product/{{ product.id }}/edit">
+            <i class="bi bi-pencil-square"></i>
+            تعديل
+          </a>
+
+          <!-- <a
+            href="/product/{{ product.id }}/add-location"
+            class="btn btn-success"
+          >
+            إضافة موقع
+          </a> -->
+          <a class="btn btn-success"
+          href="/product/{{ product.id }}/add-location">
+            <i class="bi bi-plus-circle"></i> اضافة موقع
+          </a>
+          <a
+            href="/product/{{ product.id }}/transaction/add"
+            class="btn btn-primary"
+          >
+            حركة مخزون
+          </a>
+          <a href="/product/{{ product.id }}/transfer" class="btn btn-info">
+            تحويل بين المواقع
+          </a>
+
+          <a href="/" class="btn btn-secondary"> رجوع </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<hr class="my-4" />
+
+<h3>المواقع</h3>
+
+{% if locations %}
+
+<table class="table table-bordered table-striped">
+  <thead>
+    <tr>
+      <th>المستودع</th>
+
+      <th>الموقع</th>
+
+      <th>الكمية</th>
+
+      <th>إجراءات</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {% for location in locations %}
+
+    <tr>
+      <td>{{ location.warehouse.name }}</td>
+
+      <td>{{ location.location }}</td>
+
+      <td>
+        <span class="badge bg-primary"> {{ location.quantity }} </span>
+      </td>
+
+      <td>
+        <a
+          href="/location/{{ location.id }}/edit"
+          class="btn btn-warning btn-sm"
+        >
+          تعديل
+        </a>
+
+        <form
+          method="POST"
+          action="/location/{{ location.id }}/delete"
+          style="display: inline"
+          onsubmit="return confirm('هل تريد حذف هذا الموقع؟');"
+        >
+          <button type="submit" class="btn btn-danger btn-sm">حذف</button>
+        </form>
+      </td>
+    </tr>
+
+    {% endfor %}
+  </tbody>
+</table>
+
+{% else %}
+
+<div class="alert alert-info">لا توجد مواقع مسجلة لهذا المنتج بعد.</div>
+
+{% endif %}
+<h3 class="mt-5 mb-3">سجل الحركات</h3>
+
+{% if transactions %}
+
+<div class="table-responsive">
+  <table class="table table-hover align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>التاريخ</th>
+        <th>النوع</th>
+        <th>الموقع</th>
+        <th>الكمية</th>
+        <th>ملاحظات</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      {% for transaction in transactions %}
+
+      <tr>
+        <td>{{ transaction.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+
+        <td>
+          {% if transaction.transaction_type == "IN" %}
+
+          <span class="badge bg-success">
+            <i class="bi bi-box-arrow-in-down"></i>
+            إدخال
+          </span>
+
+          {% elif transaction.transaction_type == "OUT" %}
+
+          <span class="badge bg-danger">
+            <i class="bi bi-box-arrow-up-right"></i>
+            إخراج
+          </span>
+
+          {% elif transaction.transaction_type == "ADJUSTMENT" %}
+
+          <span class="badge bg-warning text-dark">
+            <i class="bi bi-sliders"></i>
+            تسوية
+          </span>
+
+          {% elif transaction.transaction_type == "TRANSFER" %}
+
+          <!-- <span class="badge bg-info text-dark"> تحويل </span> -->
+          <a href="/product/{{ product.id }}/transfer" class="btn btn-info">
+            <i class="bi bi-arrow-left-right me-1"></i>
+            تحويل
+          </a>
+
+          {% endif %}
+        </td>
+
+        <td>
+          {% if transaction.transaction_type == "TRANSFER" %} {{
+          transaction.location.warehouse.name }} - {{
+          transaction.location.location }}
+
+          <img
+            src="{{ url_for('static', filename='icons/arrow.png') }}"
+            width="24"
+            height="24"
+          />
+
+          {{ transaction.destination_location.warehouse.name }} - {{
+          transaction.destination_location.location }} {% else %} {{
+          transaction.location.warehouse.name }} - {{
+          transaction.location.location }} {% endif %}
+        </td>
+
+        <td>
+          {% if transaction.transaction_type == "IN" %}
+
+          <span class="text-success fw-bold">
+            +{{ transaction.quantity }}
+          </span>
+
+          {% elif transaction.transaction_type == "OUT" %}
+
+          <span class="text-danger fw-bold"> -{{ transaction.quantity }} </span>
+
+          {% elif transaction.transaction_type == "TRANSFER" %}
+
+          <span class="text-info fw-bold"> {{ transaction.quantity }} </span>
+
+          {% else %}
+
+          <span class="fw-bold"> {{ transaction.quantity }} </span>
+
+          {% endif %}
+        </td>
+
+        <td>
+          {% if transaction.notes %} {{ transaction.notes }} {% else %}
+
+          <span class="text-muted"> لا يوجد </span>
+
+          {% endif %}
+        </td>
+      </tr>
+
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% else %}
+
+<div class="alert alert-info">لا توجد حركات مخزون لهذا المنتج.</div>
+
+{% endif %} {% endblock %}

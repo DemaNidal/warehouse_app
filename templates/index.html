@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}
+الرئيسية
+{% endblock %}
+
+{% block content %}
+
+<div class="card border-0 shadow-lg">
+
+    <div class="card-body p-5">
+
+        <div class="text-center mb-5">
+
+            <h1 class="fw-bold">
+                نظام إدارة المستودعات
+            </h1>
+
+            <p class="text-muted fs-5">
+                ابحث عن المنتجات حسب الاسم أو اللون أو الحجم أو الموقع
+            </p>
+
+        </div>
+
+        <form action="/search" method="GET">
+
+            <div class="row g-3">
+
+                <div class="col-md-6">
+
+                    <label class="form-label fw-bold">
+                        البحث
+                    </label>
+
+                    <input
+                        type="text"
+                        name="q"
+                        class="form-control form-control-lg"
+                        placeholder="مثال: هاندوش أو 24/410 أو رف 50"
+                    >
+
+                </div>
+
+                <div class="col-md-4">
+
+                    <label class="form-label fw-bold">
+                        المستودع
+                    </label>
+
+                    <select
+                        name="warehouse_id"
+                        class="form-select form-select-lg"
+                    >
+
+                        <option value="">
+                            جميع المستودعات
+                        </option>
+
+                        {% for warehouse in warehouses %}
+
+                        <option value="{{ warehouse.id }}">
+                            {{ warehouse.name }}
+                        </option>
+
+                        {% endfor %}
+
+                    </select>
+
+                </div>
+
+                <div class="col-md-2 d-flex align-items-end">
+
+                    <button
+                        class="btn btn-primary btn-lg w-100"
+                        type="submit"
+                    >
+                                  <img
+            src="{{ url_for('static', filename='icons/search.png') }}"
+            width="24"
+            height="24"
+          /> بحث
+                    </button>
+
+                </div>
+
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+<div class="row mt-4">
+
+    <div class="col-md-4">
+
+        <div class="card border-0 shadow-sm text-center">
+
+            <div class="card-body">
+
+                <div style="font-size:40px">
+                             <img
+            src="{{ url_for('static', filename='icons/box.png') }}"
+            width="40"
+            height="40"
+          />
+                </div>
+
+                <h5 class="mt-2">
+                    المنتجات
+                </h5>
+
+                <p class="text-muted mb-0">
+                    البحث حسب الاسم والحجم واللون
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-4">
+
+        <div class="card border-0 shadow-sm text-center">
+
+            <div class="card-body">
+
+                <div style="font-size:40px">
+                              <img
+            src="{{ url_for('static', filename='icons/warehouse (2).png') }}"
+            width="50"
+            height="50"
+          />
+                </div>
+
+                <h5 class="mt-2">
+                    المستودعات
+                </h5>
+
+                <p class="text-muted mb-0">
+                    تصفية النتائج حسب المستودع
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-md-4">
+
+        <div class="card border-0 shadow-sm text-center">
+
+            <div class="card-body">
+
+                <div style="font-size:40px">
+                              <img
+            src="{{ url_for('static', filename='icons/pin.png') }}"
+            width="40"
+            height="40"
+          />
+                </div>
+
+                <h5 class="mt-2">
+                    المواقع
+                </h5>
+
+                <p class="text-muted mb-0">
+                    البحث حسب الرف أو الخانة
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+{% endblock %}

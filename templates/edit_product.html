@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}
+تعديل المنتج
+{% endblock %}
+
+{% block content %}
+
+<div class="card shadow-sm">
+
+    <div class="card-body">
+
+        <h2 class="mb-4">
+            تعديل المنتج
+        </h2>
+
+        <form
+            method="POST"
+            enctype="multipart/form-data"
+        >
+
+            <div class="mb-3">
+
+                <label>
+                    اسم المنتج
+                </label>
+
+                <input
+                    type="text"
+                    name="name"
+                    value="{{ product.name }}"
+                    class="form-control"
+                    required
+                >
+
+            </div>
+
+            <div class="mb-3">
+
+                <label>
+                    اللون
+                </label>
+
+                <select
+                    name="color_id"
+                    class="form-select"
+                    required
+                >
+
+                    {% for color in colors %}
+
+                    <option
+                        value="{{ color.id }}"
+                        {% if color.id == product.color_id %}
+                        selected
+                        {% endif %}
+                    >
+                        {{ color.name }}
+                    </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+            <div class="mb-3">
+
+                <label>
+                    الحجم
+                </label>
+
+                <input
+                    type="text"
+                    name="size"
+                    value="{{ product.size }}"
+                    class="form-control"
+                >
+
+            </div>
+
+            <div class="mb-3">
+
+                <label>
+                    صورة جديدة (اختياري)
+                </label>
+
+                <input
+                    type="file"
+                    name="image"
+                    class="form-control"
+                >
+
+            </div>
+
+            <button class="btn btn-success">
+                حفظ التعديلات
+            </button>
+
+            <a
+                href="/product/{{ product.id }}"
+                class="btn btn-secondary"
+            >
+                إلغاء
+            </a>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}
