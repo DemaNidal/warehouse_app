@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block title %}
+نتائج البحث
+{% endblock %}
+
+{% block content %}
+
+<div class="bg-light border rounded-3 p-4 mb-4">
+
+    <div class="d-flex justify-content-between align-items-center">
+
+        <div>
+
+            <h2 class="fw-bold mb-1">
+                نتائج البحث
+            </h2>
+
+            <div class="text-secondary">
+
+                {% if q %}
+                    البحث: <strong>{{ q }}</strong>
+                {% else %}
+                    عرض جميع المنتجات
+                {% endif %}
+
+            </div>
+
+        </div>
+
+        <div class="text-center">
+
+            <div class="text-muted small">
+                المنتجات المطابقة
+            </div>
+
+            <div
+                class="fw-bold"
+                style="
+                    font-size:40px;
+                    color:#198754;
+                "
+            >
+                {{ products|length }}
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<hr>
+
+{% if products %}
+
+<div class="row">
+
+    {% for product in products %}
+
+    <div class="col-lg-4 col-md-6 mb-4">
+
+        <div class="card h-100 shadow-sm border-0">
+
+            {% if product.image %}
+
+            <img
+                src="{{ url_for('uploaded_file', filename=product.image) }}"
+                class="card-img-top"
+                style="height:260px; object-fit:cover;"
+            >
+
+            {% else %}
+
+            <div
+                class="bg-light d-flex align-items-center justify-content-center"
+                style="height:260px;"
+            >
+                <span class="text-muted">
+                    لا توجد صورة
+                </span>
+            </div>
+
+            {% endif %}
+
+            <div class="card-body">
+
+                <h5 class="fw-bold mb-3">
+                    {{ product.name }}
+                </h5>
+
+                <div class="mb-2">
+
+                    <span class="badge bg-danger">
+                        {{ product.color.name }}
+                    </span>
+
+                </div>
+
+                <p class="mb-2">
+
+                    <strong>الحجم:</strong>
+
+                    {{ product.size or "-" }}
+
+                </p>
+
+                {% set total =
+                    product.locations
+                    | sum(attribute='quantity')
+                %}
+
+                <div class="row text-center mt-3">
+
+                    <div class="col-6">
+
+                        <div class="border rounded p-2">
+
+                            <div class="text-muted small">
+                                الكمية
+                            </div>
+
+                            <div class="fw-bold text-success fs-5">
+                                {{ total }}
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                    <div class="col-6">
+
+                        <div class="border rounded p-2">
+
+                            <div class="text-muted small">
+                                المواقع
+                            </div>
+
+                            <div class="fw-bold fs-5">
+                                {{ product.locations|length }}
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="card-footer bg-white border-0">
+
+                <a
+                    href="/product/{{ product.id }}"
+                    class="btn btn-primary w-100"
+                >
+                    عرض التفاصيل
+                </a>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    {% endfor %}
+
+</div>
+
+{% else %}
+
+<div class="alert alert-warning text-center">
+
+    <h5>
+        لا توجد نتائج
+    </h5>
+
+    <p class="mb-0">
+        حاول البحث باسم المنتج أو الحجم أو اللون أو الموقع.
+    </p>
+
+</div>
+
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>تعديل موقع</h2>
+
+<form method="POST">
+
+    <div class="mb-3">
+
+        <label>الموقع</label>
+
+        <input
+            type="text"
+            name="location"
+            value="{{ location.location }}"
+            class="form-control"
+        >
+
+    </div>
+
+    <button class="btn btn-success">
+        حفظ
+    </button>
+
+</form>
+
+{% endblock %}

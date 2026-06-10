@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}
+إضافة منتج
+{% endblock %}
+
+{% block content %}
+
+<h1>إضافة منتج</h1>
+
+<form method="POST" enctype="multipart/form-data">
+
+    <div class="mb-3">
+        <label>اسم المنتج</label>
+        <input
+            type="text"
+            name="name"
+            class="form-control"
+            required
+        >
+    </div>
+
+    <div class="mb-3">
+        <label>اللون</label>
+
+        <select
+            name="color_id"
+            class="form-select"
+            required
+        >
+            <option value="">
+                اختر اللون
+            </option>
+
+            {% for color in colors %}
+                <option value="{{ color.id }}">
+                    {{ color.name }}
+                </option>
+            {% endfor %}
+
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label>الحجم</label>
+        <input
+            type="text"
+            name="size"
+            class="form-control"
+        >
+    </div>
+
+    <div class="mb-3">
+        <label>الصورة</label>
+        <input
+            type="file"
+            name="image"
+            class="form-control"
+        >
+    </div>
+
+    <button class="btn btn-success">
+        حفظ المنتج
+    </button>
+
+</form>
+
+{% endblock %}

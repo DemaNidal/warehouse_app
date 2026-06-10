@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}
+إضافة لون
+{% endblock %}
+
+{% block content %}
+
+<h1>إضافة لون</h1>
+
+<form method="POST">
+
+    <div class="mb-3">
+
+        <label>اسم اللون</label>
+
+        <input
+            type="text"
+            name="name"
+            class="form-control"
+            required
+        >
+
+    </div>
+
+    <button class="btn btn-success">
+        حفظ
+    </button>
+
+</form>
+
+<hr>
+
+<h3>الألوان الحالية</h3>
+
+<ul class="list-group">
+
+{% for color in colors %}
+
+    <li class="list-group-item">
+        {{ color.name }}
+    </li>
+
+{% endfor %}
+
+</ul>
+
+{% endblock %}

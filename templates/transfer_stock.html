@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}
+تحويل بين المواقع
+{% endblock %}
+
+{% block content %}
+
+<div class="card shadow-sm">
+
+    <div class="card-body">
+
+        <h2 class="mb-3">
+            تحويل مخزون
+        </h2>
+
+        <h5 class="text-muted">
+            {{ product.name }}
+        </h5>
+
+        <hr>
+
+        <form method="POST">
+
+            <div class="mb-3">
+
+                <label class="form-label">
+                    من الموقع
+                </label>
+
+                <select
+                    name="source_location_id"
+                    class="form-select"
+                    required
+                >
+
+                    {% for location in locations %}
+
+                    <option value="{{ location.id }}">
+
+                        {{ location.warehouse.name }}
+                        -
+                        {{ location.location }}
+                        (
+                        {{ location.quantity }}
+                        )
+
+                    </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+            <div class="mb-3">
+
+                <label class="form-label">
+                    إلى الموقع
+                </label>
+
+                <select
+                    name="destination_location_id"
+                    class="form-select"
+                    required
+                >
+
+                    {% for location in locations %}
+
+                    <option value="{{ location.id }}">
+
+                        {{ location.warehouse.name }}
+                        -
+                        {{ location.location }}
+                        (
+                        {{ location.quantity }}
+                        )
+
+                    </option>
+
+                    {% endfor %}
+
+                </select>
+
+            </div>
+
+            <div class="mb-3">
+
+                <label class="form-label">
+                    الكمية
+                </label>
+
+                <input
+                    type="number"
+                    name="quantity"
+                    min="1"
+                    class="form-control"
+                    required
+                >
+
+            </div>
+
+            <div class="mb-3">
+
+                <label class="form-label">
+                    ملاحظات
+                </label>
+
+                <textarea
+                    name="notes"
+                    class="form-control"
+                    rows="3"
+                ></textarea>
+
+            </div>
+
+            <button
+                type="submit"
+                class="btn btn-info"
+            >
+                تنفيذ التحويل
+            </button>
+
+            <a
+                href="/product/{{ product.id }}"
+                class="btn btn-secondary"
+            >
+                رجوع
+            </a>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}
