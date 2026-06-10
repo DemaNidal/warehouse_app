@@ -13,27 +13,68 @@
   rel="stylesheet"
   href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
 />
+
+<style>
+.navbar-brand {
+    font-size: 1.3rem;
+}
+
+.navbar .btn {
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+.navbar .btn:hover {
+    transform: translateY(-2px);
+    transition: 0.2s;
+}
+
+
+</style>
   </head>
 
   <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
-      <div class="container">
-        <a class="navbar-brand fw-bold" href="/">           <img
-            src="{{ url_for('static', filename='icons/box.png') }}"
-            width="28"
-            height="28"
-          /> نظام المستودعات </a>
+   <nav
+  class="navbar navbar-expand-lg navbar-dark shadow-sm"
+  style="background: linear-gradient(135deg, #0f172a, #1e293b);"
+>
+  <div class="container">
 
-        <div class="d-flex gap-2">
-          <a class="btn btn-light" href="/dashboard"> لوحة التحكم </a>
+    <a class="navbar-brand fw-bold text-warning" href="/">
+      <img
+        src="{{ url_for('static', filename='icons/box.png') }}"
+        width="30"
+        height="30"
+      />
+      نظام المستودعات
+    </a>
 
-          <a class="btn btn-warning" href="/add-product"> إضافة منتج </a>
+    <div class="d-flex gap-2">
 
-          <a class="btn btn-outline-light" href="/add-color"> الألوان </a>
-          <a class="btn btn-light" href="/products"> المنتجات </a>
-        </div>
-      </div>
-    </nav>
+      <a class="btn btn-outline-light" href="/dashboard">
+        <i class="bi bi-speedometer2"></i>
+        لوحة التحكم
+      </a>
+
+      <a class="btn btn-warning" href="/add-product">
+        <i class="bi bi-plus-circle"></i>
+        إضافة منتج
+      </a>
+
+      <a class="btn btn-success" href="/products">
+        <i class="bi bi-box-seam"></i>
+        المنتجات
+      </a>
+
+      <a class="btn btn-outline-info" href="/add-color">
+        <i class="bi bi-palette"></i>
+        الألوان
+      </a>
+
+    </div>
+
+  </div>
+</nav>
 
     <div class="container mt-4">{% with messages = get_flashed_messages(with_categories=true) %}
 
