@@ -10,6 +10,7 @@ from models import (
     InventoryTransaction
 )
 from flask_login import login_required
+from utils.permissions import admin_required
 
 def register_product_routes(app):
 
@@ -17,6 +18,7 @@ def register_product_routes(app):
 
     @app.route("/add-product", methods=["GET", "POST"])
     @login_required
+    @admin_required
     def add_product():
 
         if request.method == "POST":
@@ -103,6 +105,7 @@ def register_product_routes(app):
     methods=["GET", "POST"]
     )
     @login_required
+    @admin_required
     def edit_product(product_id):
 
         product = Product.query.get_or_404(

@@ -92,6 +92,7 @@
   </head>
 
   <body>
+    
     <nav class="navbar navbar-expand-lg bg-white shadow-sm border-bottom">
       <div class="container">
         <!-- Logo -->
@@ -131,6 +132,9 @@
               المنتجات
             </a>
 
+            {% if current_user.is_authenticated and current_user.role == "ADMIN"
+            %}
+
             <a class="btn nav-btn" href="/add-product">
               <i class="bi bi-plus-circle"></i>
               إضافة منتج
@@ -140,6 +144,8 @@
               <i class="bi bi-palette"></i>
               الألوان
             </a>
+
+            {% endif %}
           </div>
 
           <!-- Right Side -->
@@ -166,7 +172,10 @@
                 <i class="bi bi-person-circle me-1"></i>
 
                 {% if current_user.is_authenticated %} {{ current_user.username
-                }} {% else %} مستخدم {% endif %}
+                }} {% if current_user.is_authenticated and current_user.role ==
+                "ADMIN" %}
+                <span class="badge bg-danger"> Admin </span>
+                {% endif %} {% else %} مستخدم {% endif %}
               </button>
 
               <ul class="dropdown-menu">
