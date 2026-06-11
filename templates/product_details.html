@@ -65,11 +65,13 @@ block content %}
           <!-- <a href="/product/{{ product.id }}/edit" class="btn btn-warning">
             تعديل المنتج
           </a> -->
-          <a class="btn btn-warning"
-          href="/product/{{ product.id }}/edit">
+          {% if current_user.is_authenticated and current_user.role == "ADMIN"
+          %}
+          <a class="btn btn-warning" href="/product/{{ product.id }}/edit">
             <i class="bi bi-pencil-square"></i>
             تعديل
           </a>
+          {% endif %}
 
           <!-- <a
             href="/product/{{ product.id }}/add-location"
@@ -77,10 +79,15 @@ block content %}
           >
             إضافة موقع
           </a> -->
-          <a class="btn btn-success"
-          href="/product/{{ product.id }}/add-location">
+          {% if current_user.is_authenticated and current_user.role == "ADMIN"
+          %}
+          <a
+            class="btn btn-success"
+            href="/product/{{ product.id }}/add-location"
+          >
             <i class="bi bi-plus-circle"></i> اضافة موقع
           </a>
+          {% endif %}
           <a
             href="/product/{{ product.id }}/transaction/add"
             class="btn btn-primary"

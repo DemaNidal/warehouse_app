@@ -1,11 +1,13 @@
 from flask import render_template, request, redirect
 from models import db, Color
 from flask_login import login_required
+from utils.permissions import admin_required
 
 def register_color_routes(app):
 
     @app.route("/add-color", methods=["GET", "POST"])
     @login_required
+    @admin_required
     def add_color():
 
         if request.method == "POST":

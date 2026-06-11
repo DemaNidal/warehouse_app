@@ -1,150 +1,82 @@
-{% extends "base.html" %}
-
-{% block title %}
-المنتجات
-{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block title %} المنتجات {% endblock %} {% block
+content %}
 
 <div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="fw-bold">قائمة المنتجات</h2>
 
-    <div>
+    <p class="text-muted">جميع المنتجات المسجلة</p>
+  </div>
 
-        <h2 class="fw-bold">
-            قائمة المنتجات
-        </h2>
-
-        <p class="text-muted">
-            جميع المنتجات المسجلة
-        </p>
-
-    </div>
-
-    <a
-        href="/add-product"
-        class="btn btn-success"
-    >
-        + إضافة منتج
-    </a>
-
+  {% if current_user.is_authenticated and current_user.role == "ADMIN" %}
+  <a href="/add-product" class="btn btn-success"> + إضافة منتج </a>
+  {% endif %}
 </div>
 
 <div class="card shadow-sm">
+  <div class="card-body">
+    <table class="table table-hover align-middle">
+      <thead>
+        <tr>
+          <th>الصورة</th>
 
-    <div class="card-body">
+          <th>المنتج</th>
 
-        <table class="table table-hover align-middle">
+          <th>اللون</th>
 
-            <thead>
+          <th>الحجم</th>
 
-                <tr>
+          <th>الكمية</th>
 
-                    <th>
-                        الصورة
-                    </th>
+          <th>إجراءات</th>
+        </tr>
+      </thead>
 
-                    <th>
-                        المنتج
-                    </th>
+      <tbody>
+        {% for product in products %}
 
-                    <th>
-                        اللون
-                    </th>
+        <tr>
+          <td width="90">
+            {% if product.image %}
 
-                    <th>
-                        الحجم
-                    </th>
+            <img
+              src="{{ url_for('uploaded_file', filename=product.image) }}"
+              width="70"
+              height="70"
+              style="object-fit: cover"
+              class="rounded border"
+            />
 
-                    <th>
-                        الكمية
-                    </th>
+            {% endif %}
+          </td>
 
-                    <th>
-                        إجراءات
-                    </th>
+          <td>
+            <strong> {{ product.name }} </strong>
+          </td>
 
-                </tr>
+          <td>
+            <span class="badge bg-danger"> {{ product.color.name }} </span>
+          </td>
 
-            </thead>
+          <td>{{ product.size }}</td>
 
-            <tbody>
+          <td>
+            {% set total = product.locations | sum(attribute='quantity') %}
 
-                {% for product in products %}
+            <span class="badge bg-success"> {{ total }} </span>
+          </td>
 
-                <tr>
+          <td>
+            <a href="/product/{{ product.id }}" class="btn btn-primary btn-sm">
+              عرض
+            </a>
+          </td>
+        </tr>
 
-                    <td width="90">
-
-                        {% if product.image %}
-
-                        <img
-                            src="{{ url_for('uploaded_file', filename=product.image) }}"
-                            width="70"
-                            height="70"
-                            style="object-fit:cover"
-                            class="rounded border"
-                        >
-
-                        {% endif %}
-
-                    </td>
-
-                    <td>
-
-                        <strong>
-                            {{ product.name }}
-                        </strong>
-
-                    </td>
-
-                    <td>
-
-                        <span class="badge bg-danger">
-                            {{ product.color.name }}
-                        </span>
-
-                    </td>
-
-                    <td>
-                        {{ product.size }}
-                    </td>
-
-                    <td>
-
-                        {% set total =
-                            product.locations
-                            | sum(attribute='quantity')
-                        %}
-
-                        <span class="badge bg-success">
-
-                            {{ total }}
-
-                        </span>
-
-                    </td>
-
-                    <td>
-
-                        <a
-                            href="/product/{{ product.id }}"
-                            class="btn btn-primary btn-sm"
-                        >
-                            عرض
-                        </a>
-
-                    </td>
-
-                </tr>
-
-                {% endfor %}
-
-            </tbody>
-
-        </table>
-
-    </div>
-
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
 </div>
 
 {% endblock %}

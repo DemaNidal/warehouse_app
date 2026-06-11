@@ -1,10 +1,12 @@
 from models import db, Warehouse
 from flask_login import login_required
+from utils.permissions import admin_required
 
 def register_setup_routes(app):
 
     @app.route("/setup")
     @login_required
+    @admin_required
     def setup():
 
         warehouses = [
