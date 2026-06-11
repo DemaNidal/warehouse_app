@@ -3,93 +3,210 @@
   <head>
     <meta charset="UTF-8" />
 
-    <title>{% block title %}{% endblock %}</title>
+    <title>{% block title %}{% endblock %} | الابراهيم بلاست</title>
 
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
       rel="stylesheet"
     />
     <link
-  rel="stylesheet"
-  href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
-/>
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    />
+    <link
+      rel="icon"
+      type="image/png"
+      href="{{ url_for('static', filename='images/favicon.ico') }}"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-<style>
-.navbar-brand {
-    font-size: 1.3rem;
-}
+    <style>
+      body {
+        background: #f8fafc;
+      }
 
-.navbar .btn {
-    border-radius: 10px;
-    font-weight: 600;
-}
+      .navbar {
+        padding-top: 12px;
+        padding-bottom: 12px;
+      }
 
-.navbar .btn:hover {
-    transform: translateY(-2px);
-    transition: 0.2s;
-}
+      .nav-btn {
+        border-radius: 12px;
+        color: #334155;
+        font-weight: 600;
+        padding: 8px 14px;
+        transition: 0.2s;
+      }
 
+      .nav-btn:hover {
+        background: #f1f5f9;
+        color: #c89b3c;
+        transform: translateY(-2px);
+      }
 
-</style>
+      .icon-btn {
+        color: #334155;
+        text-decoration: none;
+        transition: 0.2s;
+      }
+
+      .icon-btn:hover {
+        color: #c89b3c;
+      }
+
+      .user-btn {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        background: white;
+        font-weight: 600;
+      }
+
+      .user-btn:hover {
+        background: #f8fafc;
+      }
+
+      .navbar-brand img {
+        object-fit: contain;
+      }
+
+      @media (max-width: 991px) {
+        .navbar-nav {
+          margin-top: 15px;
+        }
+
+        .nav-btn {
+          width: 100%;
+          text-align: center;
+        }
+
+        .dropdown,
+        .user-btn {
+          width: 100%;
+        }
+
+        .user-btn {
+          text-align: center;
+        }
+      }
+    </style>
   </head>
 
   <body>
-   <nav
-  class="navbar navbar-expand-lg navbar-dark shadow-sm"
-  style="background: linear-gradient(135deg, #0f172a, #1e293b);"
->
-  <div class="container">
+    <nav class="navbar navbar-expand-lg bg-white shadow-sm border-bottom">
+      <div class="container">
+        <!-- Logo -->
+        <a class="navbar-brand d-flex align-items-center gap-2" href="/">
+          <img
+            src="{{ url_for('static', filename='icons/Logo.png') }}"
+            height="45"
+          />
 
-    <a class="navbar-brand fw-bold text-warning" href="/">
-      <img
-        src="{{ url_for('static', filename='icons/box.png') }}"
-        width="30"
-        height="30"
-      />
-      نظام المستودعات
-    </a>
+          <div>
+            <div class="fw-bold text-dark">نظام المستودعات</div>
+            <small class="text-muted">الابراهيم بلاست</small>
+          </div>
+        </a>
 
-    <div class="d-flex gap-2">
+        <!-- Mobile Toggle -->
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#mainNavbar"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
 
-      <a class="btn btn-outline-light" href="/dashboard">
-        <i class="bi bi-speedometer2"></i>
-        لوحة التحكم
-      </a>
+        <!-- Collapsible Content -->
+        <div class="collapse navbar-collapse" id="mainNavbar">
+          <!-- Menu -->
+          <div class="navbar-nav mx-auto gap-2 mt-3 mt-lg-0">
+            <a class="btn nav-btn" href="/dashboard">
+              <i class="bi bi-speedometer2"></i>
+              لوحة التحكم
+            </a>
 
-      <a class="btn btn-warning" href="/add-product">
-        <i class="bi bi-plus-circle"></i>
-        إضافة منتج
-      </a>
+            <a class="btn nav-btn" href="/products">
+              <i class="bi bi-box-seam"></i>
+              المنتجات
+            </a>
 
-      <a class="btn btn-success" href="/products">
-        <i class="bi bi-box-seam"></i>
-        المنتجات
-      </a>
+            <a class="btn nav-btn" href="/add-product">
+              <i class="bi bi-plus-circle"></i>
+              إضافة منتج
+            </a>
 
-      <a class="btn btn-outline-info" href="/add-color">
-        <i class="bi bi-palette"></i>
-        الألوان
-      </a>
+            <a class="btn nav-btn" href="/add-color">
+              <i class="bi bi-palette"></i>
+              الألوان
+            </a>
+          </div>
 
-    </div>
+          <!-- Right Side -->
+          <div
+            class="d-flex align-items-center gap-3 mt-3 mt-lg-0 justify-content-lg-end"
+          >
+            <!-- Notifications -->
+            <a href="#" class="icon-btn position-relative">
+              <i class="bi bi-bell fs-5"></i>
 
-  </div>
-</nav>
+              <span
+                class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
+              >
+                0
+              </span>
+            </a>
 
-    <div class="container mt-4">{% with messages = get_flashed_messages(with_categories=true) %}
+            <!-- User Dropdown -->
+            <div class="dropdown">
+              <button
+                class="btn user-btn dropdown-toggle"
+                data-bs-toggle="dropdown"
+              >
+                <i class="bi bi-person-circle me-1"></i>
 
-    {% if messages %}
+                {% if current_user.is_authenticated %} {{ current_user.username
+                }} {% else %} مستخدم {% endif %}
+              </button>
 
-        {% for category, message in messages %}
+              <ul class="dropdown-menu">
+                <li>
+                  <a class="dropdown-item" href="#">
+                    <i class="bi bi-person"></i>
+                    الملف الشخصي
+                  </a>
+                </li>
 
-            <div class="alert alert-{{ category }}">
-                {{ message }}
+                <li>
+                  <a class="dropdown-item" href="#">
+                    <i class="bi bi-gear"></i>
+                    الإعدادات
+                  </a>
+                </li>
+
+                <li>
+                  <hr class="dropdown-divider" />
+                </li>
+
+                <li>
+                  <a class="dropdown-item text-danger" href="/logout">
+                    <i class="bi bi-box-arrow-right"></i>
+                    تسجيل الخروج
+                  </a>
+                </li>
+              </ul>
             </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+    <div class="container mt-4">
+      {% with messages = get_flashed_messages(with_categories=true) %} {% if
+      messages %} {% for category, message in messages %}
 
-        {% endfor %}
+      <div class="alert alert-{{ category }}">{{ message }}</div>
 
-    {% endif %}
-
-{% endwith %}{% block content %} {% endblock %}</div>
+      {% endfor %} {% endif %} {% endwith %}{% block content %} {% endblock %}
+    </div>
   </body>
 </html>
