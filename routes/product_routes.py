@@ -10,6 +10,7 @@ from models import (
     InventoryTransaction,
     Size
 )
+from sqlalchemy.orm import joinedload
 from flask_login import login_required
 from utils.permissions import admin_required
 
@@ -75,26 +76,37 @@ def register_product_routes(app):
     @login_required
     def product_details(product_id):
 
-        product = Product.query.get_or_404(product_id)
+        product = (
+            Product.query
+            .options(
+                joinedload(Product.color),
+                joinedload(Product.size_data),
 
-        locations = InventoryLocation.query.filter_by(
-            product_id=product.id
-        ).all()
+                joinedload(Product.locations)
+                .joinedload(InventoryLocation.warehouse),
 
-        total_quantity = sum(
-        location.quantity
-        for location in locations
-        )
+                joinedload(Product.transactions)
+                .joinedload(InventoryTransaction.location)
+                .joinedload(InventoryLocation.warehouse),
 
-        transactions = (
-            InventoryTransaction.query
-            .filter_by(product_id=product.id)
-            .order_by(
-                InventoryTransaction.created_at.desc()
+                joinedload(Product.transactions)
+                .joinedload(InventoryTransaction.destination_location)
+                .joinedload(InventoryLocation.warehouse),
             )
-            .all()
+            .filter_by(id=product_id)
+            .first_or_404()
         )
-        
+
+        locations = product.locations
+
+        total_quantity = sum(l.quantity for l in locations)
+
+        transactions = sorted(
+            product.transactions,
+            key=lambda t: t.created_at,
+            reverse=True
+        )
+
         return render_template(
             "product_details.html",
             product=product,
@@ -187,9 +199,21 @@ def register_product_routes(app):
     @login_required
     def product_list():
 
-        products = Product.query.order_by(
-            Product.id.desc()
-        ).all()
+        page = request.args.get("page", 1, type=int)
+
+        products = (
+            Product.query
+            .options(
+                joinedload(Product.color),
+                joinedload(Product.size_data)
+            )
+            .order_by(Product.id.desc())
+            .paginate(
+                page=page,
+                per_page=20,
+                error_out=False
+            )
+        )
 
         return render_template(
             "product_list.html",

@@ -11,46 +11,27 @@
     <div class="d-flex justify-content-between align-items-center">
 
         <div>
-
-            <h2 class="fw-bold mb-1">
-                نتائج البحث
-            </h2>
+            <h2 class="fw-bold mb-1">نتائج البحث</h2>
 
             <div class="text-secondary">
-
                 {% if q %}
                     البحث: <strong>{{ q }}</strong>
                 {% else %}
                     عرض جميع المنتجات
                 {% endif %}
-
             </div>
-
         </div>
 
         <div class="text-center">
+            <div class="text-muted small">النتائج</div>
 
-            <div class="text-muted small">
-                المنتجات المطابقة
+            <div class="fw-bold" style="font-size:40px; color:#198754;">
+                {{ total_count }}
             </div>
-
-            <div
-                class="fw-bold"
-                style="
-                    font-size:40px;
-                    color:#198754;
-                "
-            >
-                {{ products|length }}
-            </div>
-
         </div>
 
     </div>
-
 </div>
-
-<hr>
 
 {% if products %}
 
@@ -63,85 +44,51 @@
         <div class="card h-100 shadow-sm border-0">
 
             {% if product.image %}
-
             <img
                 src="{{ url_for('uploaded_file', filename=product.image) }}"
                 class="card-img-top"
                 style="height:260px; object-fit:cover;"
             >
-
             {% else %}
-
-            <div
-                class="bg-light d-flex align-items-center justify-content-center"
-                style="height:260px;"
-            >
-                <span class="text-muted">
-                    لا توجد صورة
-                </span>
+            <div class="bg-light d-flex align-items-center justify-content-center"
+                 style="height:260px;">
+                <span class="text-muted">لا توجد صورة</span>
             </div>
-
             {% endif %}
 
             <div class="card-body">
 
-                <h5 class="fw-bold mb-3">
-                    {{ product.name }}
-                </h5>
+                <h5 class="fw-bold mb-2">{{ product.name }}</h5>
 
-                <div class="mb-2">
-
-                    <span class="badge bg-danger">
-                        {{ product.color.name }}
-                    </span>
-
-                </div>
+                <span class="badge bg-danger mb-2">
+                    {{ product.color.name }}
+                </span>
 
                 <p class="mb-2">
-
                     <strong>الحجم:</strong>
-
                     {{ product.size_data.name if product.size_data else "-" }}
-
                 </p>
 
-                {% set total =
-                    product.locations
-                    | sum(attribute='quantity')
-                %}
+                {% set total = product.locations | sum(attribute='quantity') %}
 
                 <div class="row text-center mt-3">
 
                     <div class="col-6">
-
                         <div class="border rounded p-2">
-
-                            <div class="text-muted small">
-                                الكمية
-                            </div>
-
+                            <div class="text-muted small">الكمية</div>
                             <div class="fw-bold text-success fs-5">
                                 {{ total }}
                             </div>
-
                         </div>
-
                     </div>
 
                     <div class="col-6">
-
                         <div class="border rounded p-2">
-
-                            <div class="text-muted small">
-                                المواقع
-                            </div>
-
+                            <div class="text-muted small">المواقع</div>
                             <div class="fw-bold fs-5">
                                 {{ product.locations|length }}
                             </div>
-
                         </div>
-
                     </div>
 
                 </div>
@@ -149,14 +96,10 @@
             </div>
 
             <div class="card-footer bg-white border-0">
-
-                <a
-                    href="/product/{{ product.id }}"
-                    class="btn btn-primary w-100"
-                >
+                <a href="/product/{{ product.id }}"
+                   class="btn btn-primary w-100">
                     عرض التفاصيل
                 </a>
-
             </div>
 
         </div>
@@ -167,18 +110,42 @@
 
 </div>
 
+<!-- ================= PAGINATION ================= -->
+<nav>
+  <ul class="pagination">
+
+    {% if pagination.has_prev %}
+      <li class="page-item">
+        <a class="page-link"
+           href="?q={{ q }}&warehouse_id={{ selected_warehouse }}&page={{ pagination.prev_num }}">
+          السابق
+        </a>
+      </li>
+    {% endif %}
+
+    <li class="page-item active">
+      <span class="page-link">
+        {{ pagination.page }}
+      </span>
+    </li>
+
+    {% if pagination.has_next %}
+      <li class="page-item">
+        <a class="page-link"
+           href="?q={{ q }}&warehouse_id={{ selected_warehouse }}&page={{ pagination.next_num }}">
+          التالي
+        </a>
+      </li>
+    {% endif %}
+
+  </ul>
+</nav>
+
 {% else %}
 
 <div class="alert alert-warning text-center">
-
-    <h5>
-        لا توجد نتائج
-    </h5>
-
-    <p class="mb-0">
-        حاول البحث باسم المنتج أو الحجم أو اللون أو الموقع.
-    </p>
-
+    <h5>لا توجد نتائج</h5>
+    <p class="mb-0">جرّب كلمة مختلفة أو فلتر آخر.</p>
 </div>
 
 {% endif %}

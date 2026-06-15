@@ -33,7 +33,7 @@ content %}
       </thead>
 
       <tbody>
-        {% for product in products %}
+        {% for product in products.items %}
 
         <tr>
           <td width="90">
@@ -76,6 +76,33 @@ content %}
         {% endfor %}
       </tbody>
     </table>
+    <nav class="mt-4">
+  <ul class="pagination justify-content-center">
+
+    {% if products.has_prev %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ products.prev_num }}">
+          السابق
+        </a>
+      </li>
+    {% endif %}
+
+    <li class="page-item disabled">
+      <span class="page-link">
+        صفحة {{ products.page }} من {{ products.pages }}
+      </span>
+    </li>
+
+    {% if products.has_next %}
+      <li class="page-item">
+        <a class="page-link" href="?page={{ products.next_num }}">
+          التالي
+        </a>
+      </li>
+    {% endif %}
+
+  </ul>
+</nav>
   </div>
 </div>
 
