@@ -92,7 +92,6 @@
   </head>
 
   <body>
-    
     <nav class="navbar navbar-expand-lg bg-white shadow-sm border-bottom">
       <div class="container">
         <!-- Logo -->
@@ -135,15 +134,38 @@
             {% if current_user.is_authenticated and current_user.role == "ADMIN"
             %}
 
-            <a class="btn nav-btn" href="/add-product">
-              <i class="bi bi-plus-circle"></i>
-              إضافة منتج
-            </a>
+            <div class="dropdown">
+              <button
+                class="btn nav-btn dropdown-toggle"
+                data-bs-toggle="dropdown"
+              >
+                <i class="bi bi-gear"></i>
+                الإدارة
+              </button>
 
-            <a class="btn nav-btn" href="/add-color">
-              <i class="bi bi-palette"></i>
-              الألوان
-            </a>
+              <ul class="dropdown-menu">
+                <li>
+                  <a class="dropdown-item" href="/add-product">
+                    <i class="bi bi-plus-circle"></i>
+                    إضافة منتج
+                  </a>
+                </li>
+
+                <li>
+                  <a class="dropdown-item" href="/add-color">
+                    <i class="bi bi-palette"></i>
+                    إدارة الألوان
+                  </a>
+                </li>
+
+                <li>
+                  <a class="dropdown-item" href="/add-size">
+                    <i class="bi bi-rulers"></i>
+                    إدارة الأحجام
+                  </a>
+                </li>
+              </ul>
+            </div>
 
             {% endif %}
           </div>

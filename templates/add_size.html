@@ -1,18 +1,18 @@
 {% extends "base.html" %}
 
 {% block title %}
-إدارة الألوان
+إدارة الأحجام
 {% endblock %}
 
 {% block content %}
 
-<!-- ================= ADD COLOR ================= -->
+<!-- ================= ADD SIZE ================= -->
 <div class="card shadow-sm mb-4">
     <div class="card-body">
 
-        <h2 class="mb-4">إدارة الألوان</h2>
+        <h2 class="mb-4">إدارة الأحجام</h2>
 
-        <form method="POST" action="{{ url_for('add_color') }}">
+        <form method="POST" action="{{ url_for('add_size') }}">
             <div class="row">
 
                 <div class="col-md-10">
@@ -20,7 +20,7 @@
                         type="text"
                         name="name"
                         class="form-control"
-                        placeholder="أدخل اللون"
+                        placeholder="أدخل الحجم"
                         required
                     >
                 </div>
@@ -42,36 +42,36 @@
 <div class="card shadow-sm">
     <div class="card-body">
 
-        <h4 class="mb-3">الألوان الحالية</h4>
+        <h4 class="mb-3">الأحجام الحالية</h4>
 
-        {% if colors %}
+        {% if sizes %}
 
         <table class="table table-hover align-middle">
 
             <thead>
                 <tr>
                     <th>#</th>
-                    <th>اللون</th>
+                    <th>الحجم</th>
                     <th width="200">إجراءات</th>
                 </tr>
             </thead>
 
             <tbody>
 
-                {% for color in colors %}
+                {% for size in sizes %}
                 <tr>
 
-                    <td>{{ color.id }}</td>
-                    <td>{{ color.name }}</td>
+                    <td>{{ size.id }}</td>
+                    <td>{{ size.name }}</td>
 
                     <td>
 
                         <!-- EDIT BUTTON -->
                         <button
                             class="btn btn-warning btn-sm"
-                            data-id="{{ color.id }}"
-                            data-name="{{ color.name }}"
-                            onclick="openColorModal(this)"
+                            data-id="{{ size.id }}"
+                            data-name="{{ size.name }}"
+                            onclick="openEditModal(this)"
                         >
                             تعديل
                         </button>
@@ -79,9 +79,9 @@
                         <!-- DELETE -->
                         <form
                             method="POST"
-                            action="{{ url_for('delete_color', color_id=color.id) }}"
+                            action="{{ url_for('delete_size', size_id=size.id) }}"
                             style="display:inline"
-                            onsubmit="return confirm('هل تريد حذف هذا اللون؟');"
+                            onsubmit="return confirm('هل تريد حذف هذا الحجم؟');"
                         >
                             <button class="btn btn-danger btn-sm">
                                 حذف
@@ -99,7 +99,7 @@
 
         {% else %}
         <div class="alert alert-info">
-            لا توجد ألوان مضافة بعد
+            لا توجد أحجام مضافة بعد
         </div>
         {% endif %}
 
@@ -108,26 +108,26 @@
 
 
 <!-- ================= MODAL ================= -->
-<div class="modal fade" id="editColorModal" tabindex="-1">
+<div class="modal fade" id="editSizeModal" tabindex="-1">
     <div class="modal-dialog">
 
         <div class="modal-content">
 
-            <form method="POST" id="editColorForm">
+            <form method="POST" id="editSizeForm">
 
                 <div class="modal-header">
-                    <h5 class="modal-title">تعديل اللون</h5>
+                    <h5 class="modal-title">تعديل الحجم</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
 
                 <div class="modal-body">
 
-                    <label class="form-label">اسم اللون</label>
+                    <label class="form-label">اسم الحجم</label>
 
                     <input
                         type="text"
                         name="name"
-                        id="color_name"
+                        id="size_name"
                         class="form-control"
                         required
                     >
@@ -156,18 +156,18 @@
 
 <!-- ================= JS ================= -->
 <script>
-function openColorModal(btn) {
+function openEditModal(btn) {
 
     const id = btn.getAttribute("data-id");
     const name = btn.getAttribute("data-name");
 
-    document.getElementById("color_name").value = name;
+    document.getElementById("size_name").value = name;
 
-    document.getElementById("editColorForm").action =
-        "/color/" + id + "/edit";
+    document.getElementById("editSizeForm").action =
+        "/size/" + id + "/edit";
 
     new bootstrap.Modal(
-        document.getElementById('editColorModal')
+        document.getElementById('editSizeModal')
     ).show();
 }
 </script>

@@ -16,42 +16,32 @@ def register_search_routes(app):
     @login_required
     def search():
 
-        q = request.args.get(
-            "q",
-            ""
-        ).strip()
+        q = request.args.get("q", "").strip()
 
-        warehouse_id = request.args.get(
-            "warehouse_id",
-            ""
-        )
+        warehouse_id = request.args.get("warehouse_id", "")
 
-        warehouses = Warehouse.query.order_by(
-            Warehouse.name
-        ).all()
+        warehouses = Warehouse.query.order_by(Warehouse.name).all()
 
         query = (
             Product.query
             .join(Color)
-            .join(InventoryLocation)
+            .outerjoin(InventoryLocation)
         )
 
+        # filter by warehouse
         if warehouse_id:
-
             query = query.filter(
-                InventoryLocation.warehouse_id == int(
-                    warehouse_id
-                )
+                InventoryLocation.warehouse_id == int(warehouse_id)
             )
 
+        # search filters
         if q:
-
             query = query.filter(
                 or_(
-                    Product.name.contains(q),
-                    Product.size.contains(q),
-                    Color.name.contains(q),
-                    InventoryLocation.location.contains(q)
+                    Product.name.ilike(f"%{q}%"),
+                    Product.size.ilike(f"%{q}%"),   # ✅ FIX HERE
+                    Color.name.ilike(f"%{q}%"),
+                    InventoryLocation.location.ilike(f"%{q}%")
                 )
             )
 

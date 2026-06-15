@@ -1,68 +1,43 @@
-{% extends "base.html" %}
-
-{% block title %}
-إضافة منتج
-{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block title %} إضافة منتج {% endblock %} {% block
+content %}
 
 <h1>إضافة منتج</h1>
 
 <form method="POST" enctype="multipart/form-data">
+  <div class="mb-3">
+    <label>اسم المنتج</label>
+    <input type="text" name="name" class="form-control" required />
+  </div>
 
-    <div class="mb-3">
-        <label>اسم المنتج</label>
-        <input
-            type="text"
-            name="name"
-            class="form-control"
-            required
-        >
-    </div>
+  <div class="mb-3">
+    <label>اللون</label>
 
-    <div class="mb-3">
-        <label>اللون</label>
+    <select name="color_id" class="form-select" required>
+      <option value="">اختر اللون</option>
 
-        <select
-            name="color_id"
-            class="form-select"
-            required
-        >
-            <option value="">
-                اختر اللون
-            </option>
+      {% for color in colors %}
+      <option value="{{ color.id }}">{{ color.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
 
-            {% for color in colors %}
-                <option value="{{ color.id }}">
-                    {{ color.name }}
-                </option>
-            {% endfor %}
+  <div class="mb-3">
+    <label>الحجم</label>
+    <select name="size_id" class="form-select" required>
+      <option value="">اختر الحجم</option>
 
-        </select>
-    </div>
+      {% for size in sizes %}
+      <option value="{{ size.id }}">{{ size.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
 
-    <div class="mb-3">
-        <label>الحجم</label>
-        <input
-            type="text"
-            name="size"
-            class="form-control"
-        >
-    </div>
+  <div class="mb-3">
+    <label>الصورة</label>
+    <input type="file" name="image" class="form-control" />
+  </div>
 
-    <div class="mb-3">
-        <label>الصورة</label>
-        <input
-            type="file"
-            name="image"
-            class="form-control"
-        >
-    </div>
-
-    <button class="btn btn-success">
-        حفظ المنتج
-    </button>
-
+  <button class="btn btn-success">حفظ المنتج</button>
 </form>
 
 {% endblock %}
