@@ -47,7 +47,7 @@
     required
 >
 
-    {% for t in transaction_types %}
+    {% for t in transaction_types if t != "TRANSFER" %}
 
     <option value="{{ t }}">
         {{ transaction_labels[t] }}

@@ -5,7 +5,8 @@ from models import (
     Product,
     Color,
     Warehouse,
-    InventoryLocation
+    InventoryLocation,
+    Size
 )
 from flask_login import login_required
 
@@ -25,6 +26,7 @@ def register_search_routes(app):
         query = (
             Product.query
             .join(Color)
+            .join(Size)
             .outerjoin(InventoryLocation)
         )
 
@@ -39,7 +41,7 @@ def register_search_routes(app):
             query = query.filter(
                 or_(
                     Product.name.ilike(f"%{q}%"),
-                    Product.size.ilike(f"%{q}%"),   # ✅ FIX HERE
+                    Size.name.ilike(f"%{q}%"),
                     Color.name.ilike(f"%{q}%"),
                     InventoryLocation.location.ilike(f"%{q}%")
                 )

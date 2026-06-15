@@ -101,7 +101,7 @@
 
                     <strong>الحجم:</strong>
 
-                    {{ product.size or "-" }}
+                    {{ product.size_data.name if product.size_data else "-" }}
 
                 </p>
 
