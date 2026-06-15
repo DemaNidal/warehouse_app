@@ -28,6 +28,25 @@ class Color(db.Model):
         nullable=False
     )
 
+class Size(db.Model):
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    name = db.Column(
+        db.String(100),
+        unique=True,
+        nullable=False
+    )
+
+    products = db.relationship(
+        "Product",
+        backref="size_data",
+        lazy=True
+    )
+
 
 class Product(db.Model):
 
@@ -41,8 +60,9 @@ class Product(db.Model):
         nullable=False
     )
 
-    size = db.Column(
-        db.String(100)
+    size_id = db.Column(
+        db.Integer,
+        db.ForeignKey("size.id")
     )
 
     image = db.Column(

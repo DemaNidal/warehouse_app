@@ -58,7 +58,7 @@ content %}
             <span class="badge bg-danger"> {{ product.color.name }} </span>
           </td>
 
-          <td>{{ product.size }}</td>
+          <td>{{ product.size_data.name }}</td>
 
           <td>
             {% set total = product.locations | sum(attribute='quantity') %}

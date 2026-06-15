@@ -7,7 +7,8 @@ from models import (
     Product,
     Color,
     InventoryLocation,
-    InventoryTransaction
+    InventoryTransaction,
+    Size
 )
 from flask_login import login_required
 from utils.permissions import admin_required
@@ -45,7 +46,7 @@ def register_product_routes(app):
 
             product = Product(
                 name=request.form["name"],
-                size=request.form["size"],
+                size_id=request.form["size_id"],
                 image=filename,
                 color_id=request.form["color_id"]
             )
@@ -61,10 +62,12 @@ def register_product_routes(app):
             )
 
         colors = Color.query.order_by(Color.name).all()
+        sizes = Size.query.order_by(Size.name).all()
 
         return render_template(
             "add_product.html",
-            colors=colors
+            colors=colors,
+            sizes=sizes
         )
 
 
