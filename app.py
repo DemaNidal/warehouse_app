@@ -5,7 +5,7 @@ from flask import (
 )
 
 from models import db, Warehouse, User
-from flask_login import LoginManager
+from flask_login import LoginManager, login_required
 from routes.auth_routes import (
     register_auth_routes
 )
@@ -57,6 +57,7 @@ def load_user(user_id):
 
 
 @app.route("/")
+@login_required
 def home():
 
     warehouses = Warehouse.query.order_by(
