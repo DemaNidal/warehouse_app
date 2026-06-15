@@ -46,9 +46,16 @@ def register_transfer_routes(app):
                 request.form["destination_location_id"]
             )
 
-            quantity = int(
-                request.form["quantity"]
-            )
+            try:
+                quantity = int(request.form["quantity"])
+            except ValueError:
+                flash("الكمية غير صحيحة", "danger")
+                return redirect(
+                    url_for(
+                        "transfer_stock",
+                        product_id=product.id
+                    )
+                )
 
             notes = request.form.get(
                 "notes",

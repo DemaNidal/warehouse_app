@@ -1,111 +1,80 @@
-{% extends "base.html" %}
-
-{% block title %}
-تعديل المنتج
-{% endblock %}
-
-{% block content %}
+{% extends "base.html" %} {% block title %} تعديل المنتج {% endblock %} {% block
+content %}
 
 <div class="card shadow-sm">
+  <div class="card-body">
+    <h2 class="mb-4">تعديل المنتج</h2>
 
-    <div class="card-body">
+    <form method="POST" enctype="multipart/form-data">
+      <div class="mb-3">
+        <label> اسم المنتج </label>
 
-        <h2 class="mb-4">
-            تعديل المنتج
-        </h2>
+        <input
+          type="text"
+          name="name"
+          value="{{ product.name }}"
+          class="form-control"
+          required
+        />
+      </div>
 
-        <form
-            method="POST"
-            enctype="multipart/form-data"
+<div class="mb-3">
+    <label>اللون</label>
+
+    <select name="color_id" class="form-select" required>
+
+        {% for color in colors %}
+
+        <option
+            value="{{ color.id }}"
+            {% if color.id == product.color_id %}
+            selected
+            {% endif %}
         >
+            {{ color.name }}
+        </option>
 
-            <div class="mb-3">
+        {% endfor %}
 
-                <label>
-                    اسم المنتج
-                </label>
+    </select>
+</div>
 
-                <input
-                    type="text"
-                    name="name"
-                    value="{{ product.name }}"
-                    class="form-control"
-                    required
-                >
+<div class="mb-3">
+    <label>الحجم</label>
 
-            </div>
+    <select name="size_id" class="form-select" required>
 
-            <div class="mb-3">
+        <option value="">
+            اختر الحجم
+        </option>
 
-                <label>
-                    اللون
-                </label>
+        {% for size in sizes %}
 
-                <select
-                    name="color_id"
-                    class="form-select"
-                    required
-                >
+        <option
+            value="{{ size.id }}"
+            {% if size.id == product.size_id %}
+            selected
+            {% endif %}
+        >
+            {{ size.name }}
+        </option>
 
-                    {% for color in colors %}
+        {% endfor %}
 
-                    <option
-                        value="{{ color.id }}"
-                        {% if color.id == product.color_id %}
-                        selected
-                        {% endif %}
-                    >
-                        {{ color.name }}
-                    </option>
+    </select>
+</div>
 
-                    {% endfor %}
+      <div class="mb-3">
+        <label> صورة جديدة (اختياري) </label>
 
-                </select>
+        <input type="file" name="image" class="form-control" />
+      </div>
 
-            </div>
+      <button class="btn btn-success">حفظ التعديلات</button>
 
-            <div class="mb-3">
-
-                <label>
-                    الحجم
-                </label>
-
-                <select
-    name="size_id"
-    class="form-select"
->
-
-            </div>
-
-            <div class="mb-3">
-
-                <label>
-                    صورة جديدة (اختياري)
-                </label>
-
-                <input
-                    type="file"
-                    name="image"
-                    class="form-control"
-                >
-
-            </div>
-
-            <button class="btn btn-success">
-                حفظ التعديلات
-            </button>
-
-            <a
-                href="/product/{{ product.id }}"
-                class="btn btn-secondary"
-            >
-                إلغاء
-            </a>
-
-        </form>
-
-    </div>
-
+      <a href="/product/{{ product.id }}" class="btn btn-secondary"> إلغاء </a>
+    </form>
+  </div>
 </div>
 
 {% endblock %}

@@ -46,9 +46,9 @@ def register_product_routes(app):
 
             product = Product(
                 name=request.form["name"],
-                size_id=request.form["size_id"],
+                size_id=int(request.form["size_id"]),
                 image=filename,
-                color_id=request.form["color_id"]
+                color_id=int(request.form["color_id"])
             )
 
             db.session.add(product)
@@ -119,7 +119,7 @@ def register_product_routes(app):
 
             product.name = request.form["name"]
 
-            product.size = request.form["size"]
+            product.size_id = int(request.form["size_id"])
 
             product.color_id = int(
                 request.form["color_id"]
@@ -171,10 +171,15 @@ def register_product_routes(app):
             Color.name
         ).all()
 
+        sizes = Size.query.order_by(
+            Size.name
+        ).all()
+
         return render_template(
             "edit_product.html",
             product=product,
-            colors=colors
+            colors=colors,
+            sizes=sizes
         )
     
 

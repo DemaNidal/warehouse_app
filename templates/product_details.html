@@ -49,7 +49,7 @@ block content %}
           <tr>
             <th>الحجم</th>
 
-            <td>{{ product.size_data.name }}</td>
+            <td>{{ product.size_data.name if product.size_data else "-" }}</td>
           </tr>
 
           <tr>
@@ -210,11 +210,10 @@ block content %}
 
           {% elif transaction.transaction_type == "TRANSFER" %}
 
-          <!-- <span class="badge bg-info text-dark"> تحويل </span> -->
-          <a href="/product/{{ product.id }}/transfer" class="btn btn-info">
-            <i class="bi bi-arrow-left-right me-1"></i>
+          <span class="badge bg-info text-dark">
+            <i class="bi bi-arrow-left-right"></i>
             تحويل
-          </a>
+          </span>
 
           {% endif %}
         </td>
@@ -224,11 +223,7 @@ block content %}
           transaction.location.warehouse.name }} - {{
           transaction.location.location }}
 
-          <img
-            src="{{ url_for('static', filename='icons/arrow.png') }}"
-            width="24"
-            height="24"
-          />
+          <i class="bi bi-arrow-left-right text-primary mx-2"></i>
 
           {{ transaction.destination_location.warehouse.name }} - {{
           transaction.destination_location.location }} {% else %} {{
