@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="card shadow-sm">
+
+    <div class="card-body">
+
+        <h2>
+            تعديل المستخدم
+        </h2>
+
+        <form method="POST">
+
+            <div class="mb-3">
+
+                <label>
+                    اسم المستخدم
+                </label>
+
+                <input
+                    type="text"
+                    name="username"
+                    class="form-control"
+                    value="{{ user.username }}"
+                    required
+                >
+
+            </div>
+
+            <div class="mb-3">
+
+                <label>
+                    الصلاحية
+                </label>
+
+                <select
+                    name="role"
+                    class="form-select"
+                >
+
+                    <option
+                        value="ADMIN"
+                        {% if user.role == "ADMIN" %}
+                        selected
+                        {% endif %}
+                    >
+                        ADMIN
+                    </option>
+
+                    <option
+                        value="EMPLOYEE"
+                        {% if user.role == "EMPLOYEE" %}
+                        selected
+                        {% endif %}
+                    >
+                        EMPLOYEE
+                    </option>
+
+                </select>
+
+            </div>
+
+            <button
+                class="btn btn-success"
+            >
+                حفظ
+            </button>
+
+        </form>
+
+    </div>
+
+</div>
+
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>إضافة مستخدم</h2>
+
+<form method="POST">
+
+    <div class="mb-3">
+
+        <label>اسم المستخدم</label>
+
+        <input
+            type="text"
+            name="username"
+            class="form-control"
+            required
+        >
+
+    </div>
+
+    <div class="mb-3">
+
+        <label>كلمة المرور</label>
+
+        <input
+            type="password"
+            name="password"
+            class="form-control"
+            required
+        >
+
+    </div>
+
+    <div class="mb-3">
+
+        <label>الصلاحية</label>
+
+        <select
+            name="role"
+            class="form-select"
+        >
+
+            <option value="ADMIN">
+                ADMIN
+            </option>
+
+            <option value="EMPLOYEE">
+                EMPLOYEE
+            </option>
+
+        </select>
+
+    </div>
+
+    <button class="btn btn-success">
+        حفظ
+    </button>
+
+</form>
+
+{% endblock %}

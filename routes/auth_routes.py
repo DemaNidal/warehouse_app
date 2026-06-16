@@ -38,13 +38,22 @@ def register_auth_routes(app):
                 user.check_password(password)
             ):
 
+                if not user.is_active_user:
+
+                    flash(
+                        "الحساب معطل",
+                        "danger"
+                    )
+
+                    return redirect(
+                        url_for("login")
+                    )
+
                 session.permanent = True
 
                 login_user(user)
 
-                return redirect(
-                    "/dashboard"
-                )
+                return redirect("/dashboard")
 
             flash(
                 "بيانات الدخول غير صحيحة",

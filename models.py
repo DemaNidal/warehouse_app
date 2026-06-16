@@ -247,6 +247,11 @@ class User( UserMixin, db.Model):
         db.DateTime,
         default=db.func.now()
     )
+    is_active_user = db.Column(
+        db.Boolean,
+        default=True,
+        nullable=False
+    )
 
     def set_password(
         self,
