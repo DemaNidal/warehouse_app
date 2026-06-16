@@ -1,0 +1,133 @@
+{% extends "base.html" %} {% block content %}
+
+<div class="d-flex justify-content-between mb-3">
+  <h2>المستخدمون</h2>
+
+  <a href="/user/add" class="btn btn-success"> إضافة مستخدم </a>
+</div>
+
+<table class="table table-hover align-middle">
+
+    <thead class="table-dark">
+
+        <tr>
+
+            <th>#</th>
+
+            <th>اسم المستخدم</th>
+
+            <th>الصلاحية</th>
+
+            <th>الحالة</th>
+
+            <th>إجراءات</th>
+
+        </tr>
+
+    </thead>
+
+    <tbody>
+
+        {% for user in users %}
+
+        <tr>
+
+            <td>{{ user.id }}</td>
+
+            <td>{{ user.username }}</td>
+
+            <td>
+
+                {% if user.role == "ADMIN" %}
+
+                <span class="badge bg-danger">
+                    مدير
+                </span>
+
+                {% else %}
+
+                <span class="badge bg-primary">
+                    موظف
+                </span>
+
+                {% endif %}
+
+            </td>
+
+            <td>
+
+                {% if user.is_active_user %}
+
+                <span class="badge bg-success">
+                    فعال
+                </span>
+
+                {% else %}
+
+                <span class="badge bg-secondary">
+                    معطل
+                </span>
+
+                {% endif %}
+
+            </td>
+
+            <td>
+
+                <a
+                    href="/user/{{ user.id }}/edit"
+                    class="btn btn-warning btn-sm"
+                >
+                    تعديل
+                </a>
+
+                {% if user.id != current_user.id %}
+
+                    {% if user.is_active_user %}
+
+                    <form
+                        method="POST"
+                        action="/user/{{ user.id }}/disable"
+                        style="display:inline"
+                    >
+
+                        <button
+                            class="btn btn-danger btn-sm"
+                            onclick="return confirm('تعطيل هذا المستخدم؟')"
+                        >
+                            تعطيل
+                        </button>
+
+                    </form>
+
+                    {% else %}
+
+                    <form
+                        method="POST"
+                        action="/user/{{ user.id }}/enable"
+                        style="display:inline"
+                    >
+
+                        <button
+                            class="btn btn-success btn-sm"
+                        >
+                            تفعيل
+                        </button>
+
+                    </form>
+
+                    {% endif %}
+
+                {% endif %}
+
+            </td>
+
+        </tr>
+
+        {% endfor %}
+
+    </tbody>
+
+</table>
+
+{% endblock %}

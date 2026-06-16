@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="card shadow-sm">
+
+    <div class="card-body">
+
+        <h2>
+            الملف الشخصي
+        </h2>
+
+        <hr>
+
+        <p>
+            <strong>
+                اسم المستخدم:
+            </strong>
+
+            {{ user.username }}
+        </p>
+
+        <p>
+            <strong>
+                الصلاحية:
+            </strong>
+
+            {{ user.role }}
+        </p>
+
+        <p>
+            <strong>
+                تاريخ الإنشاء:
+            </strong>
+
+            {{ user.created_at }}
+        </p>
+
+        <a
+            href="/profile/change-password"
+            class="btn btn-primary"
+        >
+            تغيير كلمة المرور
+        </a>
+
+    </div>
+
+</div>
+
+{% endblock %}
