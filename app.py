@@ -25,6 +25,10 @@ from routes.create_admin_route import (
 from routes.user_routes import register_user_routes
 from routes.transfer_routes import register_transfer_routes
 from routes.size_routes import register_size_routes
+from routes.activity_routes import register_activity_routes
+from routes.backup_routes import (
+    register_backup_routes
+)
 
 app = Flask(__name__)
 
@@ -92,5 +96,7 @@ register_size_routes(app)
 register_auth_routes(app)
 register_create_admin_route(app)
 register_user_routes(app)
+register_activity_routes(app)
+register_backup_routes(app)
 if __name__ == "__main__":
     app.run(host="0.0.0.0")

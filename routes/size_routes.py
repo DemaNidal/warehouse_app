@@ -7,7 +7,8 @@ from flask import (
 )
 
 from models import db, Size
-from flask_login import login_required
+from flask_login import current_user, login_required
+from utils.activity_logger import log_activity
 from utils.permissions import admin_required
 
 
@@ -39,8 +40,16 @@ def register_size_routes(app):
                 flash("هذا الحجم موجود مسبقاً", "warning")
                 return redirect(url_for("add_size"))
 
-            db.session.add(Size(name=name))
+            size = Size(name=name)
+
+            db.session.add(size)
             db.session.commit()
+
+            log_activity(
+                current_user.id,
+                "ADD_SIZE",
+                f"Added size: {size.name}"
+            )
 
             flash("تمت إضافة الحجم بنجاح", "success")
             return redirect(url_for("add_size"))
@@ -83,6 +92,11 @@ def register_size_routes(app):
         db.session.commit()
 
         flash("تم تعديل الحجم بنجاح", "success")
+        log_activity(
+            current_user.id,
+            "EDIT_SIZE",
+            f"Edited size: {size.name}"
+        )
         return redirect(url_for("add_size"))
 
 
@@ -100,5 +114,10 @@ def register_size_routes(app):
         db.session.commit()
 
         flash("تم حذف الحجم بنجاح", "success")
+        log_activity(
+            current_user.id,
+            "DELETE_SIZE",
+            f"Deleted size: {size.name}"
+        )
 
         return redirect(url_for("add_size"))

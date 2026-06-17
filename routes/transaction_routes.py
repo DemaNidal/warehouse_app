@@ -17,7 +17,9 @@ from models import (
     InventoryTransaction,
     TRANSACTION_TYPES
 )
-from flask_login import login_required
+from flask_login import login_required, current_user
+
+from utils.activity_logger import log_activity
 
 
 def register_transaction_routes(app):
@@ -66,7 +68,8 @@ def register_transaction_routes(app):
                 location_id=location.id,
                 transaction_type=transaction_type,
                 quantity=quantity,
-                notes=notes
+                notes=notes,
+                user_id=current_user.id
             )
 
             if transaction_type == "IN":
@@ -103,6 +106,17 @@ def register_transaction_routes(app):
             )
 
             db.session.commit()
+
+            log_activity(
+                current_user.id,
+                "STOCK_TRANSACTION",
+                (
+                    f"{transaction_type} | "
+                    f"Product: {product.name} | "
+                    f"Location: {location.location} | "
+                    f"Qty: {quantity}"
+                )
+            )
 
             return redirect(
                 url_for(

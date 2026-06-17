@@ -2,132 +2,114 @@
 
 <div class="d-flex justify-content-between mb-3">
   <h2>المستخدمون</h2>
-
-  <a href="/user/add" class="btn btn-success"> إضافة مستخدم </a>
 </div>
+<div class="card shadow-sm">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h3>
+        <i class="bi bi-people-fill"></i>
+        إدارة المستخدمين
+      </h3>
 
-<table class="table table-hover align-middle">
-
-    <thead class="table-dark">
-
+      <a href="/user/add" class="btn btn-success">
+        <i class="bi bi-person-plus-fill"></i>
+        إضافة مستخدم
+      </a>
+    </div>
+    <table class="table table-hover align-middle">
+      <thead class="table-dark">
         <tr>
+          <th>#</th>
 
-            <th>#</th>
+          <th>اسم المستخدم</th>
 
-            <th>اسم المستخدم</th>
+          <th>الصلاحية</th>
 
-            <th>الصلاحية</th>
+          <th>الحالة</th>
 
-            <th>الحالة</th>
-
-            <th>إجراءات</th>
-
+          <th>إجراءات</th>
         </tr>
+      </thead>
 
-    </thead>
-
-    <tbody>
-
+      <tbody>
         {% for user in users %}
 
         <tr>
+          <td>{{ user.id }}</td>
 
-            <td>{{ user.id }}</td>
+          <td>{{ user.username }}</td>
 
-            <td>{{ user.username }}</td>
+          <td>
+            {% if user.role == "ADMIN" %}
 
-            <td>
+            <span class="badge bg-danger"> مدير </span>
 
-                {% if user.role == "ADMIN" %}
+            {% else %}
 
-                <span class="badge bg-danger">
-                    مدير
-                </span>
+            <span class="badge bg-primary"> موظف </span>
 
-                {% else %}
+            {% endif %}
+          </td>
 
-                <span class="badge bg-primary">
-                    موظف
-                </span>
+          <td>
+            {% if user.is_active_user %}
 
-                {% endif %}
+            <span class="badge bg-success"> فعال </span>
 
-            </td>
+            {% else %}
 
-            <td>
+            <span class="badge bg-secondary"> معطل </span>
 
-                {% if user.is_active_user %}
+            {% endif %}
+          </td>
 
-                <span class="badge bg-success">
-                    فعال
-                </span>
+          <td class="text-nowrap">
+            <a href="/user/{{ user.id }}/edit" class="btn btn-warning btn-sm">
+              <i class="bi bi-pencil-square"></i>
+            </a>
 
-                {% else %}
+            <a
+              href="/user/{{ user.id }}/reset-password"
+              class="btn btn-info btn-sm"
+            >
+              <i class="bi bi-key-fill"></i>
+            </a>
 
-                <span class="badge bg-secondary">
-                    معطل
-                </span>
+            {% if user.id != current_user.id %} {% if user.is_active_user %}
 
-                {% endif %}
+            <form
+              method="POST"
+              action="/user/{{ user.id }}/disable"
+              class="d-inline"
+            >
+              <button
+                class="btn btn-danger btn-sm"
+                onclick="return confirm('تعطيل المستخدم؟');"
+              >
+                <i class="bi bi-person-x-fill"></i>
+              </button>
+            </form>
 
-            </td>
+            {% else %}
 
-            <td>
+            <form
+              method="POST"
+              action="/user/{{ user.id }}/enable"
+              class="d-inline"
+            >
+              <button class="btn btn-success btn-sm">
+                <i class="bi bi-person-check-fill"></i>
+              </button>
+            </form>
 
-                <a
-                    href="/user/{{ user.id }}/edit"
-                    class="btn btn-warning btn-sm"
-                >
-                    تعديل
-                </a>
-
-                {% if user.id != current_user.id %}
-
-                    {% if user.is_active_user %}
-
-                    <form
-                        method="POST"
-                        action="/user/{{ user.id }}/disable"
-                        style="display:inline"
-                    >
-
-                        <button
-                            class="btn btn-danger btn-sm"
-                            onclick="return confirm('تعطيل هذا المستخدم؟')"
-                        >
-                            تعطيل
-                        </button>
-
-                    </form>
-
-                    {% else %}
-
-                    <form
-                        method="POST"
-                        action="/user/{{ user.id }}/enable"
-                        style="display:inline"
-                    >
-
-                        <button
-                            class="btn btn-success btn-sm"
-                        >
-                            تفعيل
-                        </button>
-
-                    </form>
-
-                    {% endif %}
-
-                {% endif %}
-
-            </td>
-
+            {% endif %} {% endif %}
+          </td>
         </tr>
 
         {% endfor %}
-
-    </tbody>
-
-</table>
+      </tbody>
+    </table>
+  </div>
+</div>
 
 {% endblock %}

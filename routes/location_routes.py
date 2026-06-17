@@ -11,7 +11,9 @@ from models import (
     Warehouse,
     InventoryLocation
 )
-from flask_login import login_required
+from flask_login import current_user, login_required
+
+from utils.activity_logger import log_activity
 
 
 def register_location_routes(app):
@@ -49,6 +51,11 @@ def register_location_routes(app):
             db.session.add(location)
 
             db.session.commit()
+            log_activity(
+                current_user.id,
+                "ADD_LOCATION",
+                f"Added location {location.location} for {product.name}"
+            )
 
             return redirect(
                 f"/product/{product.id}"
@@ -84,12 +91,19 @@ def register_location_routes(app):
 
             db.session.commit()
 
+            log_activity(
+                current_user.id,
+                "EDIT_LOCATION",
+                f"Edited location {location.location}"
+            )
+
             return redirect(
                 url_for(
                     "product_details",
                     product_id=location.product_id
                 )
             )
+        
 
         return render_template(
             "edit_location.html",
@@ -130,6 +144,11 @@ def register_location_routes(app):
         flash(
             "تم حذف الموقع بنجاح",
             "success"
+        )
+        log_activity(
+            current_user.id,
+            "DELETE_LOCATION",
+            f"Deleted location {location.location}"
         )
 
         return redirect(

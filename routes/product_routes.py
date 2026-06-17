@@ -11,7 +11,8 @@ from models import (
     Size
 )
 from sqlalchemy.orm import joinedload
-from flask_login import login_required
+from flask_login import login_required, current_user
+from utils.activity_logger import log_activity
 from utils.permissions import admin_required
 
 def register_product_routes(app):
@@ -54,7 +55,11 @@ def register_product_routes(app):
 
             db.session.add(product)
             db.session.commit()
-
+            log_activity(
+                current_user.id,
+                "ADD_PRODUCT",
+                f"Added product: {product.name}"
+            )
             return redirect(
                 url_for(
                     "product_details",
@@ -64,6 +69,7 @@ def register_product_routes(app):
 
         colors = Color.query.order_by(Color.name).all()
         sizes = Size.query.order_by(Size.name).all()
+        
 
         return render_template(
             "add_product.html",
@@ -92,6 +98,9 @@ def register_product_routes(app):
                 joinedload(Product.transactions)
                 .joinedload(InventoryTransaction.destination_location)
                 .joinedload(InventoryLocation.warehouse),
+
+                joinedload(Product.transactions)
+                .joinedload(InventoryTransaction.user)
             )
             .filter_by(id=product_id)
             .first_or_404()
@@ -169,8 +178,14 @@ def register_product_routes(app):
 
                     if os.path.exists(old_path):
                         os.remove(old_path)
+            
 
             db.session.commit()
+            log_activity(
+                current_user.id,
+                "EDIT_PRODUCT",
+                f"Edited product: {product.name}"
+            )
 
             return redirect(
                 url_for(

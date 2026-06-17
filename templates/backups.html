@@ -1,0 +1,87 @@
+{% extends "base.html" %} {% block content %}
+
+<div class="card shadow-sm">
+  <div class="card-header bg-dark text-white d-flex justify-content-between">
+    <h4 class="mb-0">
+      <i class="bi bi-database"></i>
+      النسخ الاحتياطية
+    </h4>
+    <h5>
+      عدد النسخ:
+      <span class="badge bg-primary"> {{ files|length }} </span>
+    </h5>
+     <form
+            method="POST"
+            action="/backup/create"
+        >
+
+            <button
+                class="btn btn-success"
+            >
+                إنشاء نسخة احتياطية
+            </button>
+
+        </form>
+  </div>
+
+  <div class="card-body">
+    {% if files %}
+
+    <table class="table table-hover">
+      <thead>
+        <tr>
+          <th>الملف</th>
+
+          <th>الحجم</th>
+
+          <th>تحميل</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for file in files %}
+
+        <tr>
+          <td>
+            <i class="bi bi-file-earmark-zip"></i>
+
+            {{ file.name }}
+          </td>
+
+          <td>{{ file.size }} KB</td>
+
+          <td>
+            <a
+              href="/backup/download/{{ file.name }}"
+              class="btn btn-success btn-sm"
+            >
+              <i class="bi bi-download"></i>
+              تحميل
+            </a>
+            <form
+                method="POST"
+                action="{{ url_for('delete_backup', filename=file.name) }}"
+                style="display:inline"
+                onsubmit="return confirm('هل تريد حذف النسخة الاحتياطية؟')"
+            >
+                <button class="btn btn-danger btn-sm">
+                    <i class="bi bi-trash"></i>
+                    حذف
+                </button>
+            </form>
+          </td>
+        </tr>
+
+        {% endfor %}
+      </tbody>
+    </table>
+
+    {% else %}
+
+    <div class="alert alert-info">لا توجد نسخ احتياطية</div>
+
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}

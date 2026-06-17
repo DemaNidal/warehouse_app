@@ -9,6 +9,7 @@ from flask import (
 from flask_login import login_required, current_user
 
 from models import db, User
+from utils.activity_logger import log_activity
 from utils.permissions import admin_required
 
 
@@ -78,6 +79,11 @@ def register_user_routes(app):
             db.session.add(user)
 
             db.session.commit()
+            log_activity(
+                current_user.id,
+                "ADD_USER",
+                f"Created user: {user.username}"
+            )
 
             flash(
                 "تم إنشاء المستخدم",
@@ -118,6 +124,11 @@ def register_user_routes(app):
         user.is_active_user = False
 
         db.session.commit()
+        log_activity(
+            current_user.id,
+            "DISABLE_USER",
+            f"Disabled user: {user.username}"
+        )
 
         flash(
             "تم تعطيل المستخدم",
@@ -142,6 +153,11 @@ def register_user_routes(app):
         user.is_active_user = True
 
         db.session.commit()
+        log_activity(
+            current_user.id,
+            "ENABLE_USER",
+            f"Enabled user: {user.username}"
+        )
 
         flash(
             "تم تفعيل المستخدم",
@@ -193,7 +209,11 @@ def register_user_routes(app):
             user.role = role
 
             db.session.commit()
-
+            log_activity(
+                current_user.id,
+                "EDIT_USER",
+                f"Edited user: {user.username}"
+            )
             flash(
                 "تم تعديل المستخدم",
                 "success"
@@ -262,7 +282,11 @@ def register_user_routes(app):
             )
 
             db.session.commit()
-
+            log_activity(
+                current_user.id,
+                "CHANGE_PASSWORD",
+                f"User {current_user.username} changed password"
+            )
             flash(
                 "تم تغيير كلمة المرور",
                 "success"
@@ -317,7 +341,11 @@ def register_user_routes(app):
             )
 
             db.session.commit()
-
+            log_activity(
+                current_user.id,
+                "RESET_PASSWORD",
+                f"Reset password for: {user.username}"
+            )
             flash(
                 "تم إعادة تعيين كلمة المرور",
                 "success"
