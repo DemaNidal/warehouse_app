@@ -7,7 +7,8 @@ from flask import (
 )
 
 from models import db, Color
-from flask_login import login_required
+from flask_login import current_user, login_required
+from utils.activity_logger import log_activity
 from utils.permissions import admin_required
 
 
@@ -39,8 +40,16 @@ def register_color_routes(app):
                 flash("هذا اللون موجود مسبقاً", "warning")
                 return redirect(url_for("add_color"))
 
-            db.session.add(Color(name=name))
+            color = Color(name=name)
+
+            db.session.add(color)
             db.session.commit()
+
+            log_activity(
+                current_user.id,
+                "ADD_COLOR",
+                f"Added color: {color.name}"
+            )
 
             flash("تمت إضافة اللون بنجاح", "success")
             return redirect(url_for("add_color"))
@@ -81,6 +90,11 @@ def register_color_routes(app):
 
         color.name = name
         db.session.commit()
+        log_activity(
+            current_user.id,
+            "EDIT_COLOR",
+            f"Edited color: {color.name}"
+        )
 
         flash("تم تعديل اللون بنجاح", "success")
         return redirect(url_for("add_color"))
@@ -100,5 +114,10 @@ def register_color_routes(app):
         db.session.commit()
 
         flash("تم حذف اللون بنجاح", "success")
+        log_activity(
+            current_user.id,
+            "DELETE_COLOR",
+            f"Deleted color: {color.name}"
+        )
 
         return redirect(url_for("add_color"))

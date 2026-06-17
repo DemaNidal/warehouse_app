@@ -8,12 +8,14 @@ from flask import (
 )
 
 from flask_login import (
+    current_user,
     login_user,
     logout_user,
     login_required
 )
 
 from models import User
+from utils.activity_logger import log_activity
 
 
 def register_auth_routes(app):
@@ -53,6 +55,12 @@ def register_auth_routes(app):
 
                 login_user(user)
 
+                log_activity(
+                    user.id,
+                    "LOGIN",
+                    "User logged in"
+                )
+
                 return redirect("/dashboard")
 
             flash(
@@ -67,6 +75,15 @@ def register_auth_routes(app):
     @app.route("/logout")
     @login_required
     def logout():
+
+        user_id = current_user.id
+        username = current_user.username
+
+        log_activity(
+            user_id,
+            "LOGOUT",
+            f"User {username} logged out"
+        )
 
         logout_user()
 

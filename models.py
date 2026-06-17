@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import (
@@ -82,8 +84,8 @@ class Product(db.Model):
 
     updated_at = db.Column(
         db.DateTime,
-        default=db.func.now(),
-        onupdate=db.func.now(),
+        default=datetime.now,
+        onupdate=datetime.now,
         nullable=False
     )
 
@@ -196,6 +198,13 @@ class InventoryTransaction(db.Model):
         db.String(255)
     )
 
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("user.id")
+    )
+    user = db.relationship(
+        "User"
+    )
     created_at = db.Column(
         db.DateTime,
         default=db.func.now(),
@@ -217,6 +226,7 @@ class InventoryTransaction(db.Model):
         "InventoryLocation",
         foreign_keys=[destination_location_id]
     )
+
 
 
 class User( UserMixin, db.Model):
@@ -245,7 +255,7 @@ class User( UserMixin, db.Model):
 
     created_at = db.Column(
         db.DateTime,
-        default=db.func.now()
+        default=datetime.now
     )
     is_active_user = db.Column(
         db.Boolean,
@@ -269,3 +279,35 @@ class User( UserMixin, db.Model):
             self.password_hash,
             password
         )
+    
+class ActivityLog(db.Model):
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("user.id"),
+        nullable=False
+    )
+
+    action = db.Column(
+        db.String(255),
+        nullable=False
+    )
+
+    description = db.Column(
+        db.String(500)
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        default=datetime.now,
+        nullable=False
+    )
+
+    user = db.relationship(
+        "User"
+    )

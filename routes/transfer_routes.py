@@ -7,7 +7,7 @@ from flask import (
     url_for,
     flash
 )
-from flask_login import login_required
+from flask_login import login_required, current_user
 
 from models import (
     db,
@@ -15,6 +15,7 @@ from models import (
     InventoryLocation,
     InventoryTransaction
 )
+from utils.activity_logger import log_activity
 
 
 def register_transfer_routes(app):
@@ -144,7 +145,8 @@ def register_transfer_routes(app):
                 destination_location_id=destination_location.id,
                 transaction_type="TRANSFER",
                 quantity=quantity,
-                notes=notes
+                notes=notes,
+                user_id=current_user.id
             )
 
             product.updated_at = datetime.utcnow()
@@ -152,6 +154,17 @@ def register_transfer_routes(app):
             db.session.add(transaction)
 
             db.session.commit()
+            log_activity(
+                current_user.id,
+                "STOCK_TRANSFER",
+                (
+                    f"TRANSFER | "
+                    f"{product.name} | "
+                    f"{source_location.location} -> "
+                    f"{destination_location.location} | "
+                    f"Qty={quantity}"
+                )
+            )
 
             flash(
                 "تم التحويل بنجاح",
