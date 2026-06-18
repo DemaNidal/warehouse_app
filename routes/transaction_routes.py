@@ -19,7 +19,9 @@ from models import (
 )
 from flask_login import login_required, current_user
 
+from routes.backup_routes import RESTORE_IN_PROGRESS
 from utils.activity_logger import log_activity
+from utils.permissions import admin_required, manager_required
 
 
 def register_transaction_routes(app):
@@ -29,7 +31,11 @@ def register_transaction_routes(app):
         methods=["GET", "POST"]
     )
     @login_required
+    @manager_required
     def add_transaction(product_id):
+        if RESTORE_IN_PROGRESS:
+            flash("System is restoring backup. Try again later.", "warning")
+            return redirect(url_for("dashboard"))
 
         product = Product.query.get_or_404(
             product_id

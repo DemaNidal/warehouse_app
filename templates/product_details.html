@@ -1,3 +1,5 @@
+
+{% from "macros.html" import csrf %}
 {% extends "base.html" %} {% block title %} تفاصيل المنتج {% endblock %} {%
 block content %}
 
@@ -79,16 +81,16 @@ block content %}
           >
             إضافة موقع
           </a> -->
-          {% if current_user.is_authenticated and current_user.role == "ADMIN"
-          %}
+          {% if current_user.is_authenticated and  current_user.role in ["ADMIN","STORE_MANAGER"] %}
+          
           <a
             class="btn btn-success"
             href="/product/{{ product.id }}/add-location"
           >
             <i class="bi bi-plus-circle"></i> اضافة موقع
           </a>
-          {% endif %}
-          <a
+
+           <a
             href="/product/{{ product.id }}/transaction/add"
             class="btn btn-primary"
           >
@@ -97,6 +99,8 @@ block content %}
           <a href="/product/{{ product.id }}/transfer" class="btn btn-info">
             تحويل بين المواقع
           </a>
+          {% endif %}
+         
 
           <a href="/" class="btn btn-secondary"> رجوع </a>
         </div>
@@ -120,7 +124,9 @@ block content %}
 
       <th>الكمية</th>
 
+      {% if current_user.role in ["ADMIN","STORE_MANAGER"] %}
       <th>إجراءات</th>
+      {% endif %}
     </tr>
   </thead>
 
@@ -135,7 +141,7 @@ block content %}
       <td>
         <span class="badge bg-primary"> {{ location.quantity }} </span>
       </td>
-
+{% if current_user.role in ["ADMIN","STORE_MANAGER"] %}
       <td>
         <a
           href="/location/{{ location.id }}/edit"
@@ -150,9 +156,11 @@ block content %}
           style="display: inline"
           onsubmit="return confirm('هل تريد حذف هذا الموقع؟');"
         >
+          {{ csrf() }}
           <button type="submit" class="btn btn-danger btn-sm">حذف</button>
         </form>
       </td>
+      {% endif %}
     </tr>
 
     {% endfor %}
@@ -164,6 +172,7 @@ block content %}
 <div class="alert alert-info">لا توجد مواقع مسجلة لهذا المنتج بعد.</div>
 
 {% endif %}
+{% if current_user.role in ["ADMIN","STORE_MANAGER"] %}
 <h3 class="mt-5 mb-3">سجل الحركات</h3>
 
 {% if transactions %}
@@ -286,5 +295,5 @@ block content %}
 {% else %}
 
 <div class="alert alert-info">لا توجد حركات مخزون لهذا المنتج.</div>
-
+{% endif %}
 {% endif %} {% endblock %}

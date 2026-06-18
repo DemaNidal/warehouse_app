@@ -1,3 +1,5 @@
+{% from "macros.html" import csrf %}
+
 {% extends "base.html" %}
 
 {% block title %}
@@ -21,7 +23,7 @@
         <hr>
 
         <form method="POST">
-
+            {{ csrf() }}
             <div class="mb-3">
 
                 <label class="form-label">

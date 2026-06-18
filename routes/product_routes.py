@@ -1,4 +1,4 @@
-from flask import render_template, request, redirect, url_for
+from flask import flash, render_template, request, redirect, url_for
 from werkzeug.utils import secure_filename
 import os
 import uuid
@@ -14,6 +14,22 @@ from sqlalchemy.orm import joinedload
 from flask_login import login_required, current_user
 from utils.activity_logger import log_activity
 from utils.permissions import admin_required
+from config import RESTORE_IN_PROGRESS
+ALLOWED_EXTENSIONS = {
+    "png",
+    "jpg",
+    "jpeg",
+    "webp"
+}
+def allowed_file(filename):
+
+    return (
+        "." in filename
+        and filename.rsplit(
+            ".",
+            1
+        )[1].lower() in ALLOWED_EXTENSIONS
+    )
 
 def register_product_routes(app):
 
@@ -23,13 +39,15 @@ def register_product_routes(app):
     @login_required
     @admin_required
     def add_product():
-
+        if RESTORE_IN_PROGRESS:
+            flash("System is restoring backup. Try again later.", "warning")
+            return redirect(url_for("dashboard"))
         if request.method == "POST":
 
             image = request.files["image"]
-
+            
             filename = ""
-
+            
             if image and image.filename:
                 filename = (
                     str(uuid.uuid4())
@@ -38,6 +56,19 @@ def register_product_routes(app):
                         image.filename
                     )
                 )
+               
+                if image and image.filename:
+
+                    if not allowed_file(image.filename):
+
+                        flash(
+                            "صيغة الصورة غير مدعومة",
+                            "danger"
+                        )
+
+                        return redirect(
+                            url_for("add_product")
+                        )
 
                 image.save(
                     os.path.join(
@@ -131,7 +162,9 @@ def register_product_routes(app):
     @login_required
     @admin_required
     def edit_product(product_id):
-
+        if RESTORE_IN_PROGRESS:
+            flash("System is restoring backup. Try again later.", "warning")
+            return redirect(url_for("dashboard"))
         product = Product.query.get_or_404(
             product_id
         )
@@ -159,6 +192,20 @@ def register_product_routes(app):
                         image.filename
                     )
                 )
+                
+                if image and image.filename:
+
+                    if not allowed_file(image.filename):
+
+                        flash(
+                            "صيغة الصورة غير مدعومة",
+                            "danger"
+                        )
+
+                        return redirect(
+                            url_for("add_product")
+                        )
+
 
                 image.save(
                     os.path.join(

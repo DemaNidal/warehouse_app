@@ -28,3 +28,21 @@ def admin_required(func):
         )
 
     return wrapper
+
+def manager_required(func):
+
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+
+        if not current_user.is_authenticated:
+            abort(403)
+
+        if current_user.role not in [
+            "ADMIN",
+            "STORE_MANAGER"
+        ]:
+            abort(403)
+
+        return func(*args, **kwargs)
+
+    return wrapper

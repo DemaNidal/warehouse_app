@@ -1,76 +1,75 @@
-{% extends "base.html" %}
+{% from "macros.html" import csrf %}
 
-{% block content %}
+{% extends "base.html" %} {% block content %}
 
 <div class="card shadow-sm">
+  <div class="card-body">
+    <h2>تعديل المستخدم</h2>
 
-    <div class="card-body">
+    <form method="POST">
+      {{ csrf() }}
+      <div class="mb-3">
+        <label> اسم المستخدم </label>
 
-        <h2>
-            تعديل المستخدم
-        </h2>
+        <input
+          type="text"
+          name="username"
+          class="form-control"
+          value="{{ user.username }}"
+          required
+        />
+      </div>
 
-        <form method="POST">
+      <div class="mb-3">
+        <label> الصلاحية </label>
 
-            <div class="mb-3">
+        <select name="role" class="form-select">
 
-                <label>
-                    اسم المستخدم
-                </label>
-
-                <input
-                    type="text"
-                    name="username"
-                    class="form-control"
-                    value="{{ user.username }}"
-                    required
-                >
-
-            </div>
-
-            <div class="mb-3">
-
-                <label>
-                    الصلاحية
-                </label>
-
-                <select
-                    name="role"
-                    class="form-select"
-                >
-
-                    <option
-                        value="ADMIN"
-                        {% if user.role == "ADMIN" %}
-                        selected
-                        {% endif %}
-                    >
-                        ADMIN
-                    </option>
-
-                    <option
-                        value="EMPLOYEE"
-                        {% if user.role == "EMPLOYEE" %}
-                        selected
-                        {% endif %}
-                    >
-                        EMPLOYEE
-                    </option>
-
-                </select>
-
-            </div>
-
-            <button
-                class="btn btn-success"
+            <option
+              value="ADMIN"
+              {%
+              if
+              user.role=""
+              ="ADMIN"
+              %}selected{%
+              endif
+              %}
             >
-                حفظ
-            </button>
+              مدير
+            </option>
 
-        </form>
+            <option
+              value="STORE_MANAGER"
+              {%
+              if
+              user.role=""
+              ="STORE_MANAGER"
+              %}selected{%
+              endif
+              %}
+            >
+              مسؤول مخازن
+            </option>
 
-    </div>
+            <option
+              value="EMPLOYEE"
+              {%
+              if
+              user.role=""
+              ="EMPLOYEE"
+              %}selected{%
+              endif
+              %}
+            >
+              موظف
+            </option>
 
+        </select>
+      </div>
+
+      <button class="btn btn-success">حفظ</button>
+    </form>
+  </div>
 </div>
 
 {% endblock %}

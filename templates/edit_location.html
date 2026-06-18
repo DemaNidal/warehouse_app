@@ -1,3 +1,5 @@
+{% from "macros.html" import csrf %}
+
 {% extends "base.html" %}
 
 {% block content %}
@@ -5,7 +7,7 @@
 <h2>تعديل موقع</h2>
 
 <form method="POST">
-
+    {{ csrf() }}
     <div class="mb-3">
 
         <label>الموقع</label>

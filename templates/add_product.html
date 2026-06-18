@@ -1,9 +1,12 @@
+{% from "macros.html" import csrf %}
+
 {% extends "base.html" %} {% block title %} إضافة منتج {% endblock %} {% block
 content %}
 
 <h1>إضافة منتج</h1>
 
 <form method="POST" enctype="multipart/form-data">
+  {{ csrf() }}
   <div class="mb-3">
     <label>اسم المنتج</label>
     <input type="text" name="name" class="form-control" required />

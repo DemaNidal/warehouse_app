@@ -1,5 +1,5 @@
+{% from "macros.html" import csrf %}
 {% extends "base.html" %}
-
 {% block title %}
 إدارة الألوان
 {% endblock %}
@@ -13,6 +13,7 @@
         <h2 class="mb-4">إدارة الألوان</h2>
 
         <form method="POST" action="{{ url_for('add_color') }}">
+            {{ csrf() }}
             <div class="row">
 
                 <div class="col-md-10">
@@ -76,17 +77,6 @@
                             تعديل
                         </button>
 
-                        <!-- DELETE -->
-                        <form
-                            method="POST"
-                            action="{{ url_for('delete_color', color_id=color.id) }}"
-                            style="display:inline"
-                            onsubmit="return confirm('هل تريد حذف هذا اللون؟');"
-                        >
-                            <button class="btn btn-danger btn-sm">
-                                حذف
-                            </button>
-                        </form>
 
                     </td>
 
