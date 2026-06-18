@@ -1,3 +1,5 @@
+{% from "macros.html" import csrf %}
+
 {% extends "base.html" %}
 
 {% block title %}
@@ -13,6 +15,7 @@
         <h2 class="mb-4">إدارة الأحجام</h2>
 
         <form method="POST" action="{{ url_for('add_size') }}">
+            {{ csrf() }}
             <div class="row">
 
                 <div class="col-md-10">
@@ -76,17 +79,6 @@
                             تعديل
                         </button>
 
-                        <!-- DELETE -->
-                        <form
-                            method="POST"
-                            action="{{ url_for('delete_size', size_id=size.id) }}"
-                            style="display:inline"
-                            onsubmit="return confirm('هل تريد حذف هذا الحجم؟');"
-                        >
-                            <button class="btn btn-danger btn-sm">
-                                حذف
-                            </button>
-                        </form>
 
                     </td>
 

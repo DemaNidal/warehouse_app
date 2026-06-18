@@ -1,4 +1,4 @@
-from flask import render_template
+from flask import render_template, request
 from flask_login import login_required
 
 from models import ActivityLog
@@ -12,12 +12,22 @@ def register_activity_routes(app):
     @admin_required
     def activity_logs():
 
+        page = request.args.get(
+            "page",
+            1,
+            type=int
+        )
+
         logs = (
             ActivityLog.query
             .order_by(
                 ActivityLog.created_at.desc()
             )
-            .all()
+            .paginate(
+                page=page,
+                per_page=50,
+                error_out=False
+            )
         )
 
         return render_template(

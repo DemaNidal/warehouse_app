@@ -1,62 +1,36 @@
-{% extends "base.html" %}
+{% from "macros.html" import csrf %}
 
-{% block content %}
+{% extends "base.html" %} {% block content %}
 
 <h2>إضافة مستخدم</h2>
 
 <form method="POST">
+  {{ csrf() }}
+  <div class="mb-3">
+    <label>اسم المستخدم</label>
 
-    <div class="mb-3">
+    <input type="text" name="username" class="form-control" required />
+  </div>
 
-        <label>اسم المستخدم</label>
+  <div class="mb-3">
+    <label>كلمة المرور</label>
 
-        <input
-            type="text"
-            name="username"
-            class="form-control"
-            required
-        >
+    <input type="password" name="password" class="form-control" required />
+  </div>
 
-    </div>
+  <div class="mb-3">
+    <label>الصلاحية</label>
 
-    <div class="mb-3">
+    <select name="role" class="form-select">
+      <option value="ADMIN">مدير</option>
 
-        <label>كلمة المرور</label>
+      <option value="STORE_MANAGER">مسؤول مخازن</option>
 
-        <input
-            type="password"
-            name="password"
-            class="form-control"
-            required
-        >
+      <option value="EMPLOYEE">موظف</option>
+    </select>
+  </div>
 
-    </div>
-
-    <div class="mb-3">
-
-        <label>الصلاحية</label>
-
-        <select
-            name="role"
-            class="form-select"
-        >
-
-            <option value="ADMIN">
-                ADMIN
-            </option>
-
-            <option value="EMPLOYEE">
-                EMPLOYEE
-            </option>
-
-        </select>
-
-    </div>
-
-    <button class="btn btn-success">
-        حفظ
-    </button>
-
+  <button class="btn btn-success">حفظ</button>
 </form>
 
 {% endblock %}

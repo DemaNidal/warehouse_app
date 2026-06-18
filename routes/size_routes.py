@@ -8,6 +8,7 @@ from flask import (
 
 from models import db, Size
 from flask_login import current_user, login_required
+from routes.backup_routes import RESTORE_IN_PROGRESS
 from utils.activity_logger import log_activity
 from utils.permissions import admin_required
 
@@ -21,7 +22,9 @@ def register_size_routes(app):
     @login_required
     @admin_required
     def add_size():
-
+        if RESTORE_IN_PROGRESS:
+            flash("System is restoring backup. Try again later.", "warning")
+            return redirect(url_for("dashboard"))
         if request.method == "POST":
 
             name = request.form.get("name", "").strip()
@@ -66,7 +69,9 @@ def register_size_routes(app):
     @login_required
     @admin_required
     def edit_size(size_id):
-
+        if RESTORE_IN_PROGRESS:
+            flash("System is restoring backup. Try again later.", "warning")
+            return redirect(url_for("dashboard"))
         size = Size.query.get_or_404(size_id)
 
         name = request.form.get("name", "").strip()
@@ -103,21 +108,21 @@ def register_size_routes(app):
     # =========================
     # DELETE
     # =========================
-    @app.route("/size/<int:size_id>/delete", methods=["POST"])
-    @login_required
-    @admin_required
-    def delete_size(size_id):
+    # @app.route("/size/<int:size_id>/delete", methods=["POST"])
+    # @login_required
+    # @admin_required
+    # def delete_size(size_id):
 
-        size = Size.query.get_or_404(size_id)
+    #     size = Size.query.get_or_404(size_id)
 
-        db.session.delete(size)
-        db.session.commit()
+    #     db.session.delete(size)
+    #     db.session.commit()
 
-        flash("تم حذف الحجم بنجاح", "success")
-        log_activity(
-            current_user.id,
-            "DELETE_SIZE",
-            f"Deleted size: {size.name}"
-        )
+    #     flash("تم حذف الحجم بنجاح", "success")
+    #     log_activity(
+    #         current_user.id,
+    #         "DELETE_SIZE",
+    #         f"Deleted size: {size.name}"
+    #     )
 
-        return redirect(url_for("add_size"))
+    #     return redirect(url_for("add_size"))

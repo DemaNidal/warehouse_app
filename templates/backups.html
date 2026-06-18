@@ -1,3 +1,5 @@
+{% from "macros.html" import csrf %}
+
 {% extends "base.html" %} {% block content %}
 
 <div class="card shadow-sm">
@@ -14,6 +16,7 @@
             method="POST"
             action="/backup/create"
         >
+            {{ csrf() }}
 
             <button
                 class="btn btn-success"
@@ -81,6 +84,26 @@
     <div class="alert alert-info">لا توجد نسخ احتياطية</div>
 
     {% endif %}
+    <hr>
+
+<form method="POST" action="/backup/restore" enctype="multipart/form-data">
+
+    {{ csrf() }}
+
+    <input type="file" name="backup_file" required>
+
+    <input type="password"
+           name="restore_secret"
+           class="form-control mt-2"
+           placeholder="Developer restore key"
+           required>
+
+    <button class="btn btn-danger mt-2"
+            onclick="return confirm('This will overwrite the database. Continue?')">
+        Restore Backup
+    </button>
+
+</form>
   </div>
 </div>
 

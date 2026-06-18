@@ -1,3 +1,6 @@
+import os
+import shutil
+
 from flask import (
     Flask,
     render_template,
@@ -9,7 +12,7 @@ from flask_login import LoginManager, login_required
 from routes.auth_routes import (
     register_auth_routes
 )
-from datetime import timedelta
+from datetime import datetime, timedelta
 from routes.product_routes import register_product_routes
 from routes.color_routes import register_color_routes
 from routes.setup_routes import register_setup_routes
@@ -29,7 +32,15 @@ from routes.activity_routes import register_activity_routes
 from routes.backup_routes import (
     register_backup_routes
 )
+from flask_wtf.csrf import CSRFProtect
+import config
 
+from dotenv import load_dotenv
+
+
+
+
+csrf = CSRFProtect()
 app = Flask(__name__)
 
 login_manager = LoginManager()
@@ -39,7 +50,7 @@ login_manager.init_app(app)
 login_manager.login_view = "login"
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=8)
 app.secret_key = "f8b7e3d4a9c1e2f6b8a4d7e9c3f1a5b2"
-
+csrf.init_app(app)
 app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///warehouse.db"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["UPLOAD_FOLDER"] = "uploads"
@@ -59,7 +70,22 @@ def load_user(user_id):
         int(user_id)
     )
     
+@app.errorhandler(404)
+def not_found(error):
 
+    return render_template(
+        "404.html"
+    ), 404
+
+
+@app.errorhandler(500)
+def server_error(error):
+
+    db.session.rollback()
+
+    return render_template(
+        "500.html"
+    ), 500
 
 @app.route("/")
 @login_required
@@ -83,6 +109,50 @@ def uploaded_file(filename):
         filename
     )
 
+def create_auto_backup():
+
+    os.makedirs(
+        "backups",
+        exist_ok=True
+    )
+
+    backup_name = (
+        "startup_backup_"
+        + datetime.now().strftime(
+            "%Y%m%d_%H%M%S"
+        )
+        + ".db"
+    )
+
+    shutil.copy2(
+        "instance/warehouse.db",
+        os.path.join(
+            "backups",
+            backup_name
+        )
+    )
+
+    # الاحتفاظ بآخر 10 نسخ فقط
+
+    files = sorted(
+        [
+            f for f in os.listdir("backups")
+            if f.endswith(".db")
+        ]
+    )
+
+    while len(files) > 10:
+
+        oldest = files[0]
+
+        os.remove(
+            os.path.join(
+                "backups",
+                oldest
+            )
+        )
+
+        files.pop(0)
 
 register_product_routes(app)
 register_color_routes(app)
@@ -99,4 +169,5 @@ register_user_routes(app)
 register_activity_routes(app)
 register_backup_routes(app)
 if __name__ == "__main__":
+    # create_auto_backup()
     app.run(host="0.0.0.0")

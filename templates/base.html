@@ -215,9 +215,18 @@
                 <i class="bi bi-person-circle me-1"></i>
 
                 {% if current_user.is_authenticated %} {{ current_user.username
-                }} {% if current_user.is_authenticated and current_user.role ==
-                "ADMIN" %}
-                <span class="badge bg-danger"> Admin </span>
+                }} {% if current_user.role == "ADMIN" %}
+
+                <span class="badge bg-danger"> مدير </span>
+
+                {% elif current_user.role == "STORE_MANAGER" %}
+
+                <span class="badge bg-warning text-dark"> مسؤول مخازن </span>
+
+                {% else %}
+
+                <span class="badge bg-primary"> موظف </span>
+
                 {% endif %} {% else %} مستخدم {% endif %}
               </button>
 

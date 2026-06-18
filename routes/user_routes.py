@@ -9,6 +9,7 @@ from flask import (
 from flask_login import login_required, current_user
 
 from models import db, User
+from routes.backup_routes import RESTORE_IN_PROGRESS
 from utils.activity_logger import log_activity
 from utils.permissions import admin_required
 
@@ -45,7 +46,9 @@ def register_user_routes(app):
     @login_required
     @admin_required
     def add_user():
-
+        if RESTORE_IN_PROGRESS:
+            flash("System is restoring backup. Try again later.", "warning")
+            return redirect(url_for("dashboard"))
         if request.method == "POST":
 
             username = request.form["username"]
@@ -105,7 +108,9 @@ def register_user_routes(app):
     @login_required
     @admin_required
     def disable_user(user_id):
-
+        if RESTORE_IN_PROGRESS:
+            flash("System is restoring backup. Try again later.", "warning")
+            return redirect(url_for("dashboard"))
         user = User.query.get_or_404(
             user_id
         )
@@ -148,6 +153,10 @@ def register_user_routes(app):
     @admin_required
     def enable_user(user_id):
 
+        if RESTORE_IN_PROGRESS:
+            flash("System is restoring backup. Try again later.", "warning")
+            return redirect(url_for("dashboard"))
+
         user = User.query.get_or_404(user_id)
 
         user.is_active_user = True
@@ -175,7 +184,9 @@ def register_user_routes(app):
     @login_required
     @admin_required
     def edit_user(user_id):
-
+        if RESTORE_IN_PROGRESS:
+            flash("System is restoring backup. Try again later.", "warning")
+            return redirect(url_for("dashboard"))
         user = User.query.get_or_404(
             user_id
         )
@@ -234,6 +245,10 @@ def register_user_routes(app):
     )
     @login_required
     def change_password():
+
+        if RESTORE_IN_PROGRESS:
+            flash("System is restoring backup. Try again later.", "warning")
+            return redirect(url_for("dashboard"))
 
         if request.method == "POST":
 
@@ -307,6 +322,10 @@ def register_user_routes(app):
     @login_required
     @admin_required
     def reset_user_password(user_id):
+
+        if RESTORE_IN_PROGRESS:
+            flash("System is restoring backup. Try again later.", "warning")
+            return redirect(url_for("dashboard"))
 
         user = User.query.get_or_404(
             user_id
