@@ -1,4 +1,5 @@
 {% from "macros.html" import csrf %}
+
 {% extends "base.html" %}
 {% block title %}
 إدارة الألوان
@@ -15,7 +16,7 @@
         <form method="POST" action="{{ url_for('add_color') }}">
             {{ csrf() }}
             <div class="row">
-
+                
                 <div class="col-md-10">
                     <input
                         type="text"
@@ -104,7 +105,7 @@
         <div class="modal-content">
 
             <form method="POST" id="editColorForm">
-
+                {{ csrf() }}
                 <div class="modal-header">
                     <h5 class="modal-title">تعديل اللون</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>

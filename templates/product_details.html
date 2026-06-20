@@ -55,12 +55,72 @@ block content %}
           </tr>
 
           <tr>
-            <th>إجمالي الكمية</th>
+    <th>إجمالي الكمية</th>
 
-            <td>
-              <span class="badge bg-success fs-6"> {{ total_quantity }} </span>
-            </td>
-          </tr>
+    <td>
+        {% if stock_status == STOCK_CRITICAL %}
+
+        <span class="badge bg-danger fs-6">
+            {{ total_quantity }}
+        </span>
+
+        {% elif stock_status == STOCK_LOW %}
+
+        <span class="badge bg-warning text-dark fs-6">
+            {{ total_quantity }}
+        </span>
+
+        {% else %}
+
+        <span class="badge bg-success fs-6">
+            {{ total_quantity }}
+        </span>
+
+        {% endif %}
+    </td>
+</tr>
+<tr>
+    <th> الحد الأدنى</th>
+
+    <td>
+
+        {{ product.minimum_stock }}
+
+    </td>
+</tr>
+<tr>
+    <th>حالة المخزون</th>
+
+    <td>
+
+        {% if stock_status == "CRITICAL" %}
+
+        <span class="badge bg-danger">
+
+            🔴 نفد المخزون
+
+        </span>
+
+        {% elif stock_status == "LOW" %}
+
+        <span class="badge bg-warning text-dark">
+
+            🟡 مخزون منخفض
+
+        </span>
+
+        {% else %}
+
+        <span class="badge bg-success">
+
+            🟢 متوفر
+
+        </span>
+
+        {% endif %}
+
+    </td>
+</tr>
         </table>
 
         <div class="mt-4">

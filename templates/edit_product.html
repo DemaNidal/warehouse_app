@@ -1,7 +1,5 @@
-{% from "macros.html" import csrf %}
-
-{% extends "base.html" %} {% block title %} تعديل المنتج {% endblock %} {% block
-content %}
+{% from "macros.html" import csrf %} {% extends "base.html" %} {% block title %}
+تعديل المنتج {% endblock %} {% block content %}
 
 <div class="card shadow-sm">
   <div class="card-body">
@@ -21,51 +19,52 @@ content %}
         />
       </div>
 
-<div class="mb-3">
-    <label>اللون</label>
+      <div class="mb-3">
+        <label>اللون</label>
 
-    <select name="color_id" class="form-select" required>
+        <select name="color_id" class="form-select" required>
+          {% for color in colors %}
 
-        {% for color in colors %}
+          <option
+    value="{{ color.id }}"
+    {% if color.id == product.color_id %}selected{% endif %}
+>
+    {{ color.name }}
+</option>
 
-        <option
-            value="{{ color.id }}"
-            {% if color.id == product.color_id %}
-            selected
-            {% endif %}
-        >
-            {{ color.name }}
-        </option>
+          {% endfor %}
+        </select>
+      </div>
 
-        {% endfor %}
+      <div class="mb-3">
+        <label>الحجم</label>
 
-    </select>
-</div>
+        <select name="size_id" class="form-select" required>
+          <option value="">اختر الحجم</option>
 
-<div class="mb-3">
-    <label>الحجم</label>
+          {% for size in sizes %}
+<option
+    value="{{ size.id }}"
+    {% if size.id == product.size_id %}selected{% endif %}
+>
+    {{ size.name }}
+</option>
 
-    <select name="size_id" class="form-select" required>
+          {% endfor %}
+        </select>
+        <div class="mb-3">
+          <label>الحد الأدنى من المخزون</label>
 
-        <option value="">
-            اختر الحجم
-        </option>
-
-        {% for size in sizes %}
-
-        <option
-            value="{{ size.id }}"
-            {% if size.id == product.size_id %}
-            selected
-            {% endif %}
-        >
-            {{ size.name }}
-        </option>
-
-        {% endfor %}
-
-    </select>
-</div>
+          <input
+            type="number"
+            name="minimum_stock"
+            value="{{ product.minimum_stock }}"
+            class="form-control"
+            min="0"
+            required
+          />
+        </div>
+      </div>
 
       <div class="mb-3">
         <label> صورة جديدة (اختياري) </label>
