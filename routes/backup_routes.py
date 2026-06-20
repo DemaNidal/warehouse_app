@@ -14,6 +14,7 @@ from flask_login import (
 )
 
 
+from utils.backup import create_backup_zip, get_backup_files
 from utils.permissions import (
     admin_required
 )
@@ -40,40 +41,7 @@ def register_backup_routes(app):
     @admin_required
     def backups():
 
-        backup_folder = "backups"
-
-        os.makedirs(
-            backup_folder,
-            exist_ok=True
-        )
-
-        files = []
-
-        for filename in os.listdir(
-            backup_folder
-        ):
-
-            filepath = os.path.join(
-                backup_folder,
-                filename
-            )
-
-            files.append({
-                "name": filename,
-                "size": round(
-                    os.path.getsize(filepath)
-                    / 1024,
-                    2
-                ),
-                "date": datetime.fromtimestamp(
-                    os.path.getmtime(filepath)
-                )
-            })
-
-        files.sort(
-            key=lambda x: x["date"],
-            reverse=True
-        )
+        files = get_backup_files()
 
         return render_template(
             "backups.html",
@@ -81,33 +49,13 @@ def register_backup_routes(app):
         )
 
 
-    import zipfile
 
     @app.route("/backup/create", methods=["POST"])
     @login_required
     @admin_required
     def create_backup():
 
-        os.makedirs("backups", exist_ok=True)
-
-        backup_name = f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
-        backup_path = os.path.join("backups", backup_name)
-
-        with zipfile.ZipFile(backup_path, "w", zipfile.ZIP_DEFLATED) as zipf:
-
-            # DB
-            zipf.write(
-                "instance/warehouse.db",
-                arcname="warehouse.db"
-            )
-
-            # uploads folder
-            for root, dirs, files in os.walk("uploads"):
-                for file in files:
-                    full_path = os.path.join(root, file)
-                    arcname = os.path.relpath(full_path, ".")
-
-                    zipf.write(full_path, arcname)
+        backup_name = create_backup_zip()
 
         log_activity(
             current_user.id,

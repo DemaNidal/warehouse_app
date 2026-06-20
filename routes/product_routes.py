@@ -8,7 +8,10 @@ from models import (
     Color,
     InventoryLocation,
     InventoryTransaction,
-    Size
+    Size,
+    STOCK_NORMAL,
+    STOCK_LOW,
+    STOCK_CRITICAL
 )
 from sqlalchemy.orm import joinedload
 from flask_login import login_required, current_user
@@ -81,7 +84,8 @@ def register_product_routes(app):
                 name=request.form["name"],
                 size_id=int(request.form["size_id"]),
                 image=filename,
-                color_id=int(request.form["color_id"])
+                color_id=int(request.form["color_id"]),
+                minimum_stock=int(request.form["minimum_stock"])
             )
 
             db.session.add(product)
@@ -139,7 +143,8 @@ def register_product_routes(app):
 
         locations = product.locations
 
-        total_quantity = sum(l.quantity for l in locations)
+        
+        
 
         transactions = sorted(
             product.transactions,
@@ -151,8 +156,9 @@ def register_product_routes(app):
             "product_details.html",
             product=product,
             locations=locations,
-            total_quantity=total_quantity,
-            transactions=transactions
+            total_quantity=product.total_quantity,
+            transactions=transactions,
+            stock_status=product.stock_status
         )
     
     @app.route(
@@ -177,6 +183,9 @@ def register_product_routes(app):
 
             product.color_id = int(
                 request.form["color_id"]
+            )
+            product.minimum_stock = int(
+                request.form["minimum_stock"]
             )
 
             image = request.files["image"]

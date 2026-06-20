@@ -20,6 +20,9 @@ TRANSACTION_LABELS = {
     "TRANSFER": "تحويل",
     "ADJUSTMENT": "تسوية"
 }
+STOCK_NORMAL = "NORMAL"
+STOCK_LOW = "LOW"
+STOCK_CRITICAL = "CRITICAL"
 
 class Color(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -75,6 +78,11 @@ class Product(db.Model):
         db.Integer,
         db.ForeignKey("color.id")
     )
+    minimum_stock = db.Column(
+        db.Integer,
+        nullable=False,
+        default=10
+    )
 
     created_at = db.Column(
         db.DateTime,
@@ -102,6 +110,21 @@ class Product(db.Model):
         back_populates="product",
         lazy=True
     )
+    @property
+    def total_quantity(self):
+        return sum(location.quantity for location in self.locations)
+    @property
+    def stock_status(self):
+
+        qty = self.total_quantity
+
+        if qty == 0:
+            return STOCK_CRITICAL
+
+        if qty <= self.minimum_stock:
+            return STOCK_LOW
+
+        return STOCK_NORMAL
 
 class Warehouse(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -311,3 +334,19 @@ class ActivityLog(db.Model):
     user = db.relationship(
         "User"
     )
+
+class Notification(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    user_id = db.Column(db.Integer, db.ForeignKey("user.id"), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey("product.id"), nullable=False)
+
+    type = db.Column(db.String(20), nullable=False)
+    # STOCK_LOW / STOCK_CRITICAL
+
+    is_read = db.Column(db.Boolean, default=False)
+
+    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
+
+    user = db.relationship("User")
+    product = db.relationship("Product")

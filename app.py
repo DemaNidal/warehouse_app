@@ -34,8 +34,8 @@ from routes.backup_routes import (
 )
 from flask_wtf.csrf import CSRFProtect
 import config
+from utils.backup import create_backup_zip
 
-from dotenv import load_dotenv
 
 
 
@@ -109,50 +109,7 @@ def uploaded_file(filename):
         filename
     )
 
-def create_auto_backup():
 
-    os.makedirs(
-        "backups",
-        exist_ok=True
-    )
-
-    backup_name = (
-        "startup_backup_"
-        + datetime.now().strftime(
-            "%Y%m%d_%H%M%S"
-        )
-        + ".db"
-    )
-
-    shutil.copy2(
-        "instance/warehouse.db",
-        os.path.join(
-            "backups",
-            backup_name
-        )
-    )
-
-    # الاحتفاظ بآخر 10 نسخ فقط
-
-    files = sorted(
-        [
-            f for f in os.listdir("backups")
-            if f.endswith(".db")
-        ]
-    )
-
-    while len(files) > 10:
-
-        oldest = files[0]
-
-        os.remove(
-            os.path.join(
-                "backups",
-                oldest
-            )
-        )
-
-        files.pop(0)
 
 register_product_routes(app)
 register_color_routes(app)
@@ -169,5 +126,6 @@ register_user_routes(app)
 register_activity_routes(app)
 register_backup_routes(app)
 if __name__ == "__main__":
-    # create_auto_backup()
+    # create_backup_zip()
+
     app.run(host="0.0.0.0")
