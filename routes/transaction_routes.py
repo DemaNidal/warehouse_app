@@ -18,6 +18,8 @@ from models import (
     TRANSACTION_TYPES
 )
 from flask_login import login_required, current_user
+from utils.notifications import generate_stock_notifications
+from models import User
 
 from routes.backup_routes import RESTORE_IN_PROGRESS
 from utils.activity_logger import log_activity
@@ -111,6 +113,10 @@ def register_transaction_routes(app):
                 transaction
             )
 
+            db.session.commit()
+            users = User.query.all()
+
+            generate_stock_notifications(product, users)
             db.session.commit()
 
             log_activity(

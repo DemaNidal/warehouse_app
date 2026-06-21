@@ -285,6 +285,11 @@ class User( UserMixin, db.Model):
         default=True,
         nullable=False
     )
+    notifications = db.relationship(
+        "Notification",
+        back_populates="user",
+        lazy=True
+    )
 
     def set_password(
         self,
@@ -348,5 +353,5 @@ class Notification(db.Model):
 
     created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
 
-    user = db.relationship("User")
+    user = db.relationship("User", back_populates="notifications")
     product = db.relationship("Product")

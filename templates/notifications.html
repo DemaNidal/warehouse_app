@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}الإشعارات{% endblock %}
+
+{% block content %}
+
+<h2 class="mb-4">🔔 الإشعارات</h2>
+
+<!-- Filters -->
+<div class="mb-3 d-flex gap-2 flex-wrap">
+
+    <a href="{{ url_for('notifications') }}"
+       class="btn btn-sm btn-outline-dark">
+        الكل
+    </a>
+
+    <a href="{{ url_for('notifications', filter='unread') }}"
+       class="btn btn-sm btn-outline-primary">
+        غير مقروءة
+    </a>
+
+    <a href="{{ url_for('notifications', filter='LOW') }}"
+       class="btn btn-sm btn-outline-warning">
+        مخزون منخفض
+    </a>
+
+    <a href="{{ url_for('notifications', filter='CRITICAL') }}"
+       class="btn btn-sm btn-outline-danger">
+        نفد المخزون
+    </a>
+
+</div>
+
+<!-- Inbox -->
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+
+        {% if notifications %}
+
+        <div class="list-group list-group-flush">
+
+            {% for n in notifications %}
+
+            <a href="{{ url_for('open_notification', id=n.id) }}"
+               class="list-group-item list-group-item-action
+               d-flex justify-content-between align-items-start
+               {% if not n.is_read %}bg-light{% endif %}">
+
+                <!-- Left side -->
+                <div class="ms-2 me-auto">
+
+                    <div class="d-flex align-items-center gap-2">
+
+                        <!-- Status badge -->
+                        {% if n.type == 'CRITICAL' %}
+                        <span class="badge bg-danger">🔴 نفد المخزون</span>
+
+                        {% elif n.type == 'LOW' %}
+                        <span class="badge bg-warning text-dark">🟡 منخفض</span>
+                        {% endif %}
+
+                        <!-- Product name -->
+                        <strong>
+                            {{ n.product.name }}
+                        </strong>
+
+                    </div>
+
+                    <small class="text-muted">
+                        {{ n.created_at.strftime('%Y-%m-%d %H:%M') }}
+                    </small>
+
+                </div>
+
+                <!-- Right side -->
+                <div class="text-end">
+
+                    {% if n.is_read %}
+                        <span class="badge bg-secondary">مقروء</span>
+                    {% else %}
+                        <span class="badge bg-primary">جديد</span>
+                    {% endif %}
+
+                </div>
+
+            </a>
+
+            {% endfor %}
+
+        </div>
+
+        {% else %}
+
+        <div class="p-4 text-center text-muted">
+            لا توجد إشعارات
+        </div>
+
+        {% endif %}
+
+    </div>
+</div>
+
+{% endblock %}
