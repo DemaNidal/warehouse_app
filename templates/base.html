@@ -196,14 +196,18 @@
             class="d-flex align-items-center gap-3 mt-3 mt-lg-0 justify-content-lg-end"
           >
             <!-- Notifications -->
-            <a href="#" class="icon-btn position-relative">
-              <i class="bi bi-bell fs-5"></i>
+          
+{% set unread = current_user.notifications|selectattr("is_read", "equalto", False)|list|length %}
 
-              <span
-                class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
-              >
-                0
-              </span>
+<a href="/notifications" class="icon-btn position-relative">
+    <i class="bi bi-bell fs-5"></i>
+
+    {% if unread > 0 %}
+    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+        {{ unread }}
+    </span>
+    {% endif %}
+</a>
             </a>
 
             <!-- User Dropdown -->

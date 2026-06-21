@@ -32,6 +32,7 @@ from routes.activity_routes import register_activity_routes
 from routes.backup_routes import (
     register_backup_routes
 )
+from routes.notifications_routes import register_notifications_routes
 from flask_wtf.csrf import CSRFProtect
 import config
 from utils.backup import create_backup_zip
@@ -125,6 +126,7 @@ register_create_admin_route(app)
 register_user_routes(app)
 register_activity_routes(app)
 register_backup_routes(app)
+register_notifications_routes(app)
 if __name__ == "__main__":
     # create_backup_zip()
 
