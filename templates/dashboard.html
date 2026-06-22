@@ -14,58 +14,66 @@
 
 <div class="row g-3">
 
-    <div class="col-md-3">
-        <div class="card text-center shadow-sm">
-            <div class="card-body">
-
+    <div class="col-lg-3 col-md-6">
+        <div class="card shadow-sm border-primary">
+            <div class="card-body text-center">
                 <h2>{{ product_count }}</h2>
-
                 <p class="mb-0">
-                    المنتجات
+                                                 <img
+            src="{{ url_for('static', filename='icons/box.png') }}"
+            width="25"
+            height="25"
+          /> المنتجات
                 </p>
-
             </div>
         </div>
     </div>
 
-    <div class="col-md-3">
-        <div class="card text-center shadow-sm">
-            <div class="card-body">
-
-                <h2>{{ color_count }}</h2>
-
+    <div class="col-lg-3 col-md-6">
+        <div class="card shadow-sm border-warning">
+            <div class="card-body text-center">
+                <h2>{{ attention_count }}</h2>
                 <p class="mb-0">
-                    الألوان
+                <img
+                    src="{{ url_for('static', filename='icons/attention.png') }}"
+                    width="25"
+                    height="25"
+                />
+                     تحتاج متابعة
                 </p>
-
             </div>
         </div>
     </div>
 
-    <div class="col-md-3">
-        <div class="card text-center shadow-sm">
-            <div class="card-body">
-
-                <h2>{{ warehouse_count }}</h2>
-
+    <div class="col-lg-3 col-md-6">
+        <div class="card shadow-sm border-danger">
+            <div class="card-body text-center">
+                <h2>{{ critical_count }}</h2>
                 <p class="mb-0">
-                    المستودعات
+                    <img
+                    src="{{ url_for('static', filename='icons/circle.png') }}"
+                    width="25"
+                    height="25"
+                />
+                     نفد المخزون
+                    
                 </p>
-
             </div>
         </div>
     </div>
 
-    <div class="col-md-3">
-        <div class="card text-center shadow-sm">
-            <div class="card-body">
-
-                <h2>{{ location_count }}</h2>
-
+    <div class="col-lg-3 col-md-6">
+        <div class="card shadow-sm border-info">
+            <div class="card-body text-center">
+                <h2>{{ unread_notifications }}</h2>
                 <p class="mb-0">
-                    المواقع
+                      <img
+                    src="{{ url_for('static', filename='icons/notification-bell.png') }}"
+                    width="25"
+                    height="25"
+                />
+                     إشعارات جديدة
                 </p>
-
             </div>
         </div>
     </div>
@@ -74,26 +82,202 @@
 
 <div class="row mt-4">
 
-    <div class="col-md-6">
+    <div class="col-lg-8">
 
-        <div class="card border-success shadow-sm">
+        <div class="card shadow-sm">
 
-            <div class="card-body text-center">
+            <div class="card-header bg-warning">
 
-                <h1 class="text-success">
-                    {{ total_quantity }}
-                </h1>
-
-                <h5>
-                    إجمالي الكمية بالمستودعات
+                <h5 class="mb-0">
+                       <img
+                    src="{{ url_for('static', filename='icons/attention.png') }}"
+                    width="22"
+                    height="2"
+                />المنتجات منخفضة المخزون
                 </h5>
+
+            </div>
+
+            <div class="card-body">
+
+                {% if low_stock_products %}
+
+                <div class="table-responsive">
+
+                    <table class="table align-middle">
+
+                        <thead>
+
+                            <tr>
+                                <th>المنتج</th>
+                                <th>المخزون</th>
+                                <th>الحالة</th>
+                                <th></th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody>
+
+                        {% for product in low_stock_products %}
+
+                            <tr>
+
+                                <td>
+
+                                    {{ product.name }}
+
+                                </td>
+
+                                    <td>
+
+                                        <strong>
+
+                                            {{ product.total_quantity }}
+
+                                        </strong>
+
+                                        /
+
+                                        {{ product.minimum_stock }}
+
+                                    </td>
+                                <td>
+
+                                    {% if product.stock_status == STOCK_CRITICAL %}
+
+                                    <span class="badge bg-danger">
+
+                                          <img
+                    src="{{ url_for('static', filename='icons/circle.png') }}"
+                    width="20"
+                    height="20"
+                />نفد المخزون
+
+                                    </span>
+
+                                    {% else %}
+
+                                    <span class="badge bg-warning text-dark">
+
+                                        🟡 منخفض
+
+                                    </span>
+
+                                    {% endif %}
+
+                                </td>
+
+                                <td>
+
+                                    <a
+                                        class="btn btn-sm btn-primary"
+                                        href="{{ url_for('product_details', product_id=product.id) }}"
+                                    >
+
+                                        عرض
+
+                                    </a>
+
+                                </td>
+
+                            </tr>
+
+                        {% endfor %}
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+                {% else %}
+
+                <div class="alert alert-success mb-0">
+
+                    ✅ جميع المنتجات ضمن الحد الطبيعي.
+
+                </div>
+
+                {% endif %}
+
+            </div>
+
+
+        </div>
+
+    </div>
+
+</div>
+<div class="row mt-4">
+
+    <div class="col-lg-8">
+
+        <div class="card shadow-sm">
+
+            <div class="card-header">
+
+                <h5 class="mb-0">
+
+                    🕒 آخر حركات المخزون
+
+                </h5>
+
+            </div>
+
+            <div class="card-body">
+
+                {% if recent_transactions %}
+
+                <div class="list-group">
+
+                    {% for t in recent_transactions %}
+
+                    <div class="list-group-item">
+
+                        <strong>
+
+                            {{ t.product.name }}
+
+                        </strong>
+
+                        <br>
+
+                        <small class="text-muted">
+
+                            {{ t.transaction_type }}
+
+                            —
+
+                            {{ t.user.username if t.user else "-" }}
+
+                            —
+
+                            {{ t.created_at.strftime("%Y-%m-%d %H:%M") }}
+
+                        </small>
+
+                    </div>
+
+                    {% endfor %}
+
+                </div>
+
+                {% else %}
+
+                <div class="alert alert-info mb-0">
+
+                    لا توجد حركات بعد.
+
+                </div>
+
+                {% endif %}
 
             </div>
 
         </div>
 
     </div>
-
 
 </div>
 

@@ -195,6 +195,10 @@
           <div
             class="d-flex align-items-center gap-3 mt-3 mt-lg-0 justify-content-lg-end"
           >
+          <!-- Search Button -->
+<a href="/" class="icon-btn">
+  <i class="bi bi-search fs-5"></i>
+</a>
             <!-- Notifications -->
           
 {% set unread = current_user.notifications|selectattr("is_read", "equalto", False)|list|length %}

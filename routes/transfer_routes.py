@@ -15,9 +15,9 @@ from models import (
     InventoryLocation,
     InventoryTransaction
 )
-from routes.backup_routes import RESTORE_IN_PROGRESS
 from utils.activity_logger import log_activity
 from utils.permissions import admin_required, manager_required
+from utils.system_guard import ensure_system_ready
 
 
 def register_transfer_routes(app):
@@ -29,8 +29,7 @@ def register_transfer_routes(app):
     @login_required
     @manager_required
     def transfer_stock(product_id):
-        if RESTORE_IN_PROGRESS:
-            flash("System is restoring backup. Try again later.", "warning")
+        if not ensure_system_ready():
             return redirect(url_for("dashboard"))
         product = Product.query.get_or_404(
             product_id

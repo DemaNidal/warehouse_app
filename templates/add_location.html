@@ -1,7 +1,9 @@
 {% from "macros.html" import csrf %}
+{% extends "base.html" %}
 
-{% extends "base.html" %} {% block title %} إضافة موقع {% endblock %} {% block
-content %}
+{% block title %} إضافة موقع {% endblock %}
+
+{% block content %}
 
 <h2>{{ product.name }}</h2>
 
@@ -9,41 +11,52 @@ content %}
 
 <form method="POST">
   {{ csrf() }}
+
+  <!-- Warehouse -->
   <div class="mb-3">
-    <label> المستودع </label>
+    <label class="form-label">المستودع</label>
 
-<select name="warehouse_id" class="form-select" required>
-
-    {% for warehouse in warehouses %}
-
-    <option value="{{ warehouse.id }}">
+    <select name="warehouse_id" class="form-select" required>
+      {% for warehouse in warehouses %}
+      <option value="{{ warehouse.id }}">
         {{ warehouse.name }}
-    </option>
-
-    {% endfor %}
-
-</select>
+      </option>
+      {% endfor %}
+    </select>
   </div>
 
+  <!-- Location (Optional) -->
   <div class="mb-3">
-    <label> الموقع </label>
+    <label class="form-label">
+      الموقع
+      <small class="text-muted">(اختياري)</small>
+    </label>
 
     <input
       type="text"
       name="location"
       class="form-control"
-      placeholder="رف 50 خانة 2"
+      placeholder="مثال: رف 50 - خانة 2"
+    />
+  </div>
+
+  <!-- Quantity -->
+  <div class="mb-3">
+    <label class="form-label">الكمية</label>
+
+    <input
+      type="number"
+      name="quantity"
+      class="form-control"
+      min="0"
       required
     />
   </div>
 
-  <div class="mb-3">
-    <label> الكمية </label>
+  <button class="btn btn-success">
+    حفظ
+  </button>
 
-    <input type="number" name="quantity" class="form-control" required />
-  </div>
-
-  <button class="btn btn-success">حفظ</button>
 </form>
 
 {% endblock %}

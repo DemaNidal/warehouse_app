@@ -8,9 +8,9 @@ from flask import (
 
 from models import db, Size
 from flask_login import current_user, login_required
-from routes.backup_routes import RESTORE_IN_PROGRESS
 from utils.activity_logger import log_activity
 from utils.permissions import admin_required
+from utils.system_guard import ensure_system_ready
 
 
 def register_size_routes(app):
@@ -22,8 +22,7 @@ def register_size_routes(app):
     @login_required
     @admin_required
     def add_size():
-        if RESTORE_IN_PROGRESS:
-            flash("System is restoring backup. Try again later.", "warning")
+        if not ensure_system_ready():
             return redirect(url_for("dashboard"))
         if request.method == "POST":
 
@@ -69,8 +68,7 @@ def register_size_routes(app):
     @login_required
     @admin_required
     def edit_size(size_id):
-        if RESTORE_IN_PROGRESS:
-            flash("System is restoring backup. Try again later.", "warning")
+        if not ensure_system_ready():
             return redirect(url_for("dashboard"))
         size = Size.query.get_or_404(size_id)
 

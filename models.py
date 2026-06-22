@@ -156,7 +156,7 @@ class InventoryLocation(db.Model):
 
     location = db.Column(
         db.String(255),
-        nullable=False
+        nullable=True
     )
 
     quantity = db.Column(
