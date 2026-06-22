@@ -13,88 +13,59 @@ from models import (
 )
 from flask_login import current_user, login_required
 
-from routes.backup_routes import RESTORE_IN_PROGRESS
+
 from utils.activity_logger import log_activity
 from utils.permissions import manager_required
-
+from utils.system_guard import ensure_system_ready
+from utils.system_guard import ensure_system_ready
+from utils.validation.location import validate_location
 
 def register_location_routes(app):
 
-    @app.route(
-        "/product/<int:product_id>/add-location",
-        methods=["GET", "POST"]
-    )
+    @app.route("/product/<int:product_id>/add-location", methods=["GET", "POST"])
     @login_required
     @manager_required
     def add_location(product_id):
-        if RESTORE_IN_PROGRESS:
-            flash("System is restoring backup. Try again later.", "warning")
+
+        if not ensure_system_ready():
             return redirect(url_for("dashboard"))
 
-        product = Product.query.get_or_404(
-            product_id
-        )
+        product = Product.query.get_or_404(product_id)
 
         if request.method == "POST":
 
+            location_name = request.form.get("location", "").strip()
+
+            # if not location_name:
+            #     flash("اسم الموقع مطلوب", "danger")
+            #     return redirect(url_for("add_location", product_id=product.id))
+
             location = InventoryLocation(
-
                 product_id=product.id,
-
-                warehouse_id=request.form[
-                    "warehouse_id"
-                ],
-
-                location=request.form[
-                    "location"
-                ],
-
-                quantity=request.form[
-                    "quantity"
-                ]
+                warehouse_id=request.form["warehouse_id"],
+                location=location_name,
+                quantity=request.form["quantity"]
             )
-            location_name = request.form[
-                "location"
-            ].strip()
-
-            if not location_name:
-
-                flash(
-                    "اسم الموقع مطلوب",
-                    "danger"
-                )
-
-                return redirect(
-                    url_for(
-                        "add_location",
-                        product_id=product.id
-                    )
-                )
 
             db.session.add(location)
-
             db.session.commit()
+
             log_activity(
                 current_user.id,
                 "ADD_LOCATION",
                 f"Added location {location.location} for {product.name}"
             )
 
-            return redirect(
-                f"/product/{product.id}"
-            )
+            return redirect(url_for("product_details", product_id=product.id))
 
-        warehouses = Warehouse.query.order_by(
-            Warehouse.name
-        ).all()
+        # ✅ THIS IS REQUIRED (GET request)
+        warehouses = Warehouse.query.order_by(Warehouse.name).all()
 
         return render_template(
             "add_location.html",
             product=product,
             warehouses=warehouses
         )
-    
-
     @app.route(
         "/location/<int:location_id>/edit",
         methods=["GET", "POST"]
@@ -102,8 +73,7 @@ def register_location_routes(app):
     @login_required
     @manager_required
     def edit_location(location_id):
-        if RESTORE_IN_PROGRESS:
-            flash("System is restoring backup. Try again later.", "warning")
+        if not ensure_system_ready():
             return redirect(url_for("dashboard"))
 
         location = InventoryLocation.query.get_or_404(
@@ -144,8 +114,7 @@ def register_location_routes(app):
     @login_required
     @manager_required
     def delete_location(location_id):
-        if RESTORE_IN_PROGRESS:
-            flash("System is restoring backup. Try again later.", "warning")
+        if not ensure_system_ready():
             return redirect(url_for("dashboard"))
 
         location = InventoryLocation.query.get_or_404(

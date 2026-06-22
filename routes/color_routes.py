@@ -8,9 +8,9 @@ from flask import (
 
 from models import db, Color
 from flask_login import current_user, login_required
-from routes.backup_routes import RESTORE_IN_PROGRESS
 from utils.activity_logger import log_activity
 from utils.permissions import admin_required
+from utils.system_guard import ensure_system_ready
 
 
 def register_color_routes(app):
@@ -22,8 +22,7 @@ def register_color_routes(app):
     @login_required
     @admin_required
     def add_color():
-        if RESTORE_IN_PROGRESS:
-            flash("System is restoring backup. Try again later.", "warning")
+        if not ensure_system_ready():
             return redirect(url_for("dashboard"))
 
         if request.method == "POST":
@@ -70,8 +69,7 @@ def register_color_routes(app):
     @login_required
     @admin_required
     def edit_color(color_id):
-        if RESTORE_IN_PROGRESS:
-            flash("System is restoring backup. Try again later.", "warning")
+        if not ensure_system_ready():
             return redirect(url_for("dashboard"))
 
         color = Color.query.get_or_404(color_id)
@@ -107,24 +105,3 @@ def register_color_routes(app):
         return redirect(url_for("add_color"))
 
 
-    # =========================
-    # DELETE
-    # =========================
-    # @app.route("/color/<int:color_id>/delete", methods=["POST"])
-    # @login_required
-    # @admin_required
-    # def delete_color(color_id):
-
-    #     color = Color.query.get_or_404(color_id)
-
-    #     db.session.delete(color)
-    #     db.session.commit()
-
-    #     flash("تم حذف اللون بنجاح", "success")
-    #     log_activity(
-    #         current_user.id,
-    #         "DELETE_COLOR",
-    #         f"Deleted color: {color.name}"
-    #     )
-
-    #     return redirect(url_for("add_color"))
