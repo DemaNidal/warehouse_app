@@ -7,6 +7,7 @@ from werkzeug.security import (
     check_password_hash
 )
 
+
 db = SQLAlchemy()
 TRANSACTION_TYPES = [
     "IN",
@@ -89,6 +90,8 @@ class Product(db.Model):
         default=db.func.now(),
         nullable=False
     )
+    default=datetime.utcnow
+    onupdate=datetime.utcnow
 
     updated_at = db.Column(
         db.DateTime,

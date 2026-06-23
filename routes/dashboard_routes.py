@@ -9,20 +9,23 @@ from models import (
     STOCK_CRITICAL
 )
 
+
 def register_dashboard_routes(app):
 
     @app.route("/dashboard")
     @login_required
     def dashboard():
 
+        # ⚠️ consider replacing with filtered query later
         products = Product.query.all()
 
-        low_stock_products = sorted(
-            [
-                product
-                for product in products
-                if product.stock_status in [STOCK_LOW, STOCK_CRITICAL]
-            ],
+        low_stock_products = [
+            p for p in products
+            if p.stock_status in (STOCK_LOW, STOCK_CRITICAL)
+        ]
+
+        # sort: critical first, then lowest stock
+        low_stock_products.sort(
             key=lambda p: (
                 p.stock_status != STOCK_CRITICAL,
                 p.total_quantity
@@ -32,9 +35,8 @@ def register_dashboard_routes(app):
         attention_count = len(low_stock_products)
 
         critical_count = sum(
-            1
-            for product in low_stock_products
-            if product.stock_status == STOCK_CRITICAL
+            1 for p in low_stock_products
+            if p.stock_status == STOCK_CRITICAL
         )
 
         unread_notifications = Notification.query.filter_by(

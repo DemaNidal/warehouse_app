@@ -11,7 +11,7 @@ from flask_login import current_user, login_required
 from utils.activity_logger import log_activity
 from utils.permissions import admin_required
 from utils.system_guard import ensure_system_ready
-
+from sqlalchemy.exc import IntegrityError
 
 def register_size_routes(app):
 
@@ -22,8 +22,10 @@ def register_size_routes(app):
     @login_required
     @admin_required
     def add_size():
+
         if not ensure_system_ready():
             return redirect(url_for("dashboard"))
+
         if request.method == "POST":
 
             name = request.form.get("name", "").strip()
@@ -36,28 +38,36 @@ def register_size_routes(app):
                 flash("اسم الحجم طويل جداً", "danger")
                 return redirect(url_for("add_size"))
 
+            # UX check (fast fail)
             exists = Size.query.filter_by(name=name).first()
-
             if exists:
                 flash("هذا الحجم موجود مسبقاً", "warning")
                 return redirect(url_for("add_size"))
 
             size = Size(name=name)
 
-            db.session.add(size)
-            db.session.commit()
+            try:
+                db.session.add(size)
+                db.session.commit()
+                flash("تمت إضافة الحجم بنجاح", "success")
+
+            except IntegrityError:
+                db.session.rollback()
+                flash("هذا الحجم موجود مسبقاً (DB)", "warning")
+
+            except Exception:
+                db.session.rollback()
+                flash("حدث خطأ أثناء الحفظ", "danger")
 
             log_activity(
                 current_user.id,
                 "ADD_SIZE",
-                f"Added size: {size.name}"
+                f"Added size: {name}"
             )
 
-            flash("تمت إضافة الحجم بنجاح", "success")
             return redirect(url_for("add_size"))
 
         sizes = Size.query.order_by(Size.id.desc()).all()
-
         return render_template("add_size.html", sizes=sizes)
 
 
