@@ -18,6 +18,7 @@ from models import (
 from utils.activity_logger import log_activity
 from utils.permissions import admin_required, manager_required
 from utils.system_guard import ensure_system_ready
+from utils.validation.transfer import validate_transfer
 
 
 def register_transfer_routes(app):
@@ -43,18 +44,10 @@ def register_transfer_routes(app):
 
         if request.method == "POST":
 
-            source_id = int(
-                request.form["source_location_id"]
-            )
+            result = validate_transfer(request.form)
 
-            destination_id = int(
-                request.form["destination_location_id"]
-            )
-
-            try:
-                quantity = int(request.form["quantity"])
-            except ValueError:
-                flash("الكمية غير صحيحة", "danger")
+            if not result.valid:
+                flash(result.message, "danger")
                 return redirect(
                     url_for(
                         "transfer_stock",
@@ -62,38 +55,12 @@ def register_transfer_routes(app):
                     )
                 )
 
-            notes = request.form.get(
-                "notes",
-                ""
-            )
+            data = result.data
 
-            if quantity <= 0:
-
-                flash(
-                    "الكمية يجب أن تكون أكبر من صفر",
-                    "danger"
-                )
-
-                return redirect(
-                    url_for(
-                        "transfer_stock",
-                        product_id=product.id
-                    )
-                )
-
-            if source_id == destination_id:
-
-                flash(
-                    "لا يمكن التحويل إلى نفس الموقع",
-                    "danger"
-                )
-
-                return redirect(
-                    url_for(
-                        "transfer_stock",
-                        product_id=product.id
-                    )
-                )
+            source_id = data["source"]
+            destination_id = data["destination"]
+            quantity = data["quantity"]
+            notes = data["notes"]
 
             source_location = (
                 InventoryLocation.query

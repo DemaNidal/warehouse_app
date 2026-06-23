@@ -1,13 +1,22 @@
+from dataclasses import dataclass
+
+
+@dataclass
 class ValidationResult:
-    def __init__(self, ok: bool, data=None, error=None):
-        self.ok = ok
-        self.data = data
-        self.error = error
+    valid: bool
+    message: str = ""
+    data: dict | None = None
 
 
-def fail(msg):
-    return ValidationResult(False, error=msg)
+def success(data=None):
+    return ValidationResult(
+        valid=True,
+        data=data
+    )
 
 
-def success(data):
-    return ValidationResult(True, data=data)
+def fail(message):
+    return ValidationResult(
+        valid=False,
+        message=message
+    )

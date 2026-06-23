@@ -16,6 +16,7 @@ from flask_login import (
 
 from models import User
 from utils.activity_logger import log_activity
+from utils.validation.auth import validate_login
 
 
 def register_auth_routes(app):
@@ -28,8 +29,18 @@ def register_auth_routes(app):
 
         if request.method == "POST":
 
-            username = request.form["username"]
-            password = request.form["password"]
+            result = validate_login(
+                request.form.get("username", ""),
+                request.form.get("password", "")
+            )
+
+            if not result.valid:
+                flash(result.message, "danger")
+                return redirect(url_for("login"))
+
+            data = result.data
+            username = data["username"]
+            password = data["password"]
 
             user = User.query.filter_by(
                 username=username

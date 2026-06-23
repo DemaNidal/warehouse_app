@@ -11,6 +11,7 @@ from flask_login import current_user, login_required
 from utils.activity_logger import log_activity
 from utils.permissions import admin_required
 from utils.system_guard import ensure_system_ready
+from utils.validation.color import validate_color_name
 
 
 def register_color_routes(app):
@@ -27,15 +28,15 @@ def register_color_routes(app):
 
         if request.method == "POST":
 
-            name = request.form.get("name", "").strip()
+            result = validate_color_name(
+                request.form.get("name", "")
+            )
 
-            if not name:
-                flash("اسم اللون مطلوب", "danger")
+            if not result.valid:
+                flash(result.message, "danger")
                 return redirect(url_for("add_color"))
 
-            if len(name) > 50:
-                flash("اسم اللون طويل جداً", "danger")
-                return redirect(url_for("add_color"))
+            name = result.data
 
             exists = Color.query.filter_by(name=name).first()
 

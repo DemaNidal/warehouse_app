@@ -36,7 +36,7 @@ from routes.notifications_routes import register_notifications_routes
 from flask_wtf.csrf import CSRFProtect
 import config
 from utils.backup import create_backup_zip
-
+from flask_migrate import Migrate
 
 
 
@@ -52,14 +52,13 @@ login_manager.login_view = "login"
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=8)
 app.secret_key = "f8b7e3d4a9c1e2f6b8a4d7e9c3f1a5b2"
 csrf.init_app(app)
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///warehouse.db"
+app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["UPLOAD_FOLDER"] = "uploads"
 
 db.init_app(app)
+migrate = Migrate(app, db)
 
-with app.app_context():
-    db.create_all()
 
 
 
