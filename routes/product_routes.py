@@ -18,6 +18,7 @@ from flask_login import login_required, current_user
 from utils.activity_logger import log_activity
 from utils.permissions import admin_required
 from config import RESTORE_IN_PROGRESS
+from utils.validation.product import validate_product_form
 ALLOWED_EXTENSIONS = {
     "png",
     "jpg",
@@ -80,12 +81,20 @@ def register_product_routes(app):
                     )
                 )
 
+            result = validate_product_form(request.form)
+
+            if not result.valid:
+                flash(result.message, "danger")
+                return redirect(url_for("add_product"))
+
+            data = result.data    
+
             product = Product(
-                name=request.form["name"],
-                size_id=int(request.form["size_id"]),
-                image=filename,
-                color_id=int(request.form["color_id"]),
-                minimum_stock=int(request.form["minimum_stock"])
+                name=data["name"],
+                color_id=data["color_id"],
+                size_id=data["size_id"],
+                minimum_stock=data["minimum_stock"],
+                image=filename
             )
 
             db.session.add(product)

@@ -24,6 +24,7 @@ from models import User
 from utils.activity_logger import log_activity
 from utils.permissions import admin_required, manager_required
 from utils.system_guard import ensure_system_ready
+from utils.validation.transaction import validate_transaction
 
 
 def register_transaction_routes(app):
@@ -44,31 +45,42 @@ def register_transaction_routes(app):
 
         if request.method == "POST":
 
-            transaction_type = request.form[
-                "transaction_type"
-            ]
+
+            result = validate_transaction(request.form)
+
+            if not result.valid:
+                flash(result.message, "danger")
+                return redirect(
+                    url_for(
+                        "add_transaction",
+                        product_id=product.id
+                    )
+                )
+
+            data = result.data
+
+            transaction_type = data["transaction_type"]
+            quantity = data["quantity"]
+            notes = data["notes"]
+
+            location = InventoryLocation.query.get_or_404(
+                data["location_id"]
+            )
 
             if transaction_type not in TRANSACTION_TYPES:
                 abort(400)
 
-            location = InventoryLocation.query.get_or_404(
-                request.form["location_id"]
-            )
+           
 
             if location.product_id != product.id:
                 abort(400)
 
-            quantity = int(
-                request.form["quantity"]
-            )
+            
 
             if quantity <= 0:
                 abort(400)
 
-            notes = request.form.get(
-                "notes",
-                ""
-            )
+           
 
             transaction = InventoryTransaction(
                 product_id=product.id,

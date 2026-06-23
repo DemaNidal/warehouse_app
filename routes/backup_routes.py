@@ -25,6 +25,7 @@ from config import RESTORE_SECRET
 import config
 
 from models import db
+from utils.validation.backup import validate_restore
 
 
 def register_backup_routes(app):
@@ -96,19 +97,26 @@ def register_backup_routes(app):
     @admin_required
     def restore_backup():
 
+        result = validate_restore(
+            request.form.get("restore_secret"),
+            request.files.get("backup_file"),
+            RESTORE_SECRET
+        )
+
+        if not result.valid:
+            flash(result.message, "danger")
+            return redirect(url_for("backups"))
         secret = request.form.get("restore_secret")
         file = request.files.get("backup_file")
 
-        if not secret:
-            flash("Restore secret is required", "danger")
-            return redirect(url_for("backups"))
+        result = validate_restore(
+            secret,
+            file,
+            RESTORE_SECRET
+        )
 
-        if secret != RESTORE_SECRET:
-            flash("Invalid restore secret", "danger")
-            return redirect(url_for("backups"))
-
-        if not file or not file.filename.endswith(".zip"):
-            flash("Invalid backup file", "danger")
+        if not result.valid:
+            flash(result.message, "danger")
             return redirect(url_for("backups"))
 
         # secure temp zip

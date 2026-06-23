@@ -40,11 +40,23 @@ def register_location_routes(app):
             #     flash("اسم الموقع مطلوب", "danger")
             #     return redirect(url_for("add_location", product_id=product.id))
 
+            result = validate_location(request.form)
+
+            if not result.valid:
+                flash(result.message, "danger")
+                return redirect(
+                    url_for(
+                        "add_location",
+                        product_id=product.id
+                    )
+                )
+
+            data = result.data
             location = InventoryLocation(
                 product_id=product.id,
-                warehouse_id=request.form["warehouse_id"],
-                location=location_name,
-                quantity=request.form["quantity"]
+                warehouse_id=data["warehouse_id"],
+                quantity=data["quantity"],
+                location=data["location"]
             )
 
             db.session.add(location)
