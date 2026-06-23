@@ -4,6 +4,7 @@ from flask_login import login_required
 from models import ActivityLog
 from utils.permissions import admin_required
 
+from sqlalchemy.orm import joinedload
 
 def register_activity_routes(app):
 
@@ -17,17 +18,11 @@ def register_activity_routes(app):
             1,
             type=int
         )
-
         logs = (
             ActivityLog.query
-            .order_by(
-                ActivityLog.created_at.desc()
-            )
-            .paginate(
-                page=page,
-                per_page=50,
-                error_out=False
-            )
+            .options(joinedload(ActivityLog.user))
+            .order_by(ActivityLog.created_at.desc())
+            .paginate(page=page, per_page=50, error_out=False, max_per_page=100)
         )
 
         return render_template(

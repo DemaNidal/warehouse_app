@@ -1,6 +1,7 @@
 from flask import render_template, request
-from sqlalchemy import or_, func
-from sqlalchemy.orm import joinedload,aliased
+from sqlalchemy import or_
+from sqlalchemy.orm import joinedload, aliased
+
 from models import (
     Product,
     Color,
@@ -16,7 +17,6 @@ def register_search_routes(app):
 
     @app.route("/search")
     @login_required
-
     def search():
 
         q = request.args.get("q", "").strip()
@@ -26,7 +26,6 @@ def register_search_routes(app):
 
         warehouses = Warehouse.query.order_by(Warehouse.name).all()
 
-        # alias مهم لتجنب ambiguity
         inv = aliased(InventoryLocation)
 
         query = Product.query.options(
@@ -35,25 +34,28 @@ def register_search_routes(app):
             joinedload(Product.locations)
         )
 
-        # join آمن للمخزون
-        query = query.outerjoin(inv, inv.product_id == Product.id)
-
-        # فلتر warehouse (إذا موجود)
+        # warehouse filter
         if warehouse_id:
+            query = query.join(inv, inv.product_id == Product.id)
             query = query.filter(inv.warehouse_id == warehouse_id)
+        else:
+            query = query.outerjoin(inv, inv.product_id == Product.id)
 
         # search
         if q:
-            query = query.join(Color).join(Size).filter(
+            query = query.join(Color, Product.color_id == Color.id)
+            query = query.join(Size, Product.size_id == Size.id)
+
+            query = query.filter(
                 or_(
                     Product.name.ilike(f"%{q}%"),
                     Color.name.ilike(f"%{q}%"),
                     Size.name.ilike(f"%{q}%"),
-                    inv.location.ilike(f"%{q}%")   # 👈 هذا اللي رجّع "رف 1"
+                    inv.location.ilike(f"%{q}%")
                 )
             )
 
-        query = query.distinct()
+        query = query.distinct(Product.id)
 
         pagination = query.paginate(
             page=page,

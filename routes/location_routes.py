@@ -5,23 +5,27 @@ from flask import (
     url_for,
     flash
 )
+
+from flask_login import login_required, current_user
+
 from models import (
     db,
     Product,
     Warehouse,
     InventoryLocation
 )
-from flask_login import current_user, login_required
-
 
 from utils.activity_logger import log_activity
 from utils.permissions import manager_required
 from utils.system_guard import ensure_system_ready
-from utils.system_guard import ensure_system_ready
 from utils.validation.location import validate_location
+
 
 def register_location_routes(app):
 
+    # =========================
+    # ADD LOCATION
+    # =========================
     @app.route("/product/<int:product_id>/add-location", methods=["GET", "POST"])
     @login_required
     @manager_required
@@ -34,24 +38,25 @@ def register_location_routes(app):
 
         if request.method == "POST":
 
-            location_name = request.form.get("location", "").strip()
-
-            # if not location_name:
-            #     flash("اسم الموقع مطلوب", "danger")
-            #     return redirect(url_for("add_location", product_id=product.id))
-
             result = validate_location(request.form)
 
             if not result.valid:
                 flash(result.message, "danger")
-                return redirect(
-                    url_for(
-                        "add_location",
-                        product_id=product.id
-                    )
-                )
+                return redirect(url_for("add_location", product_id=product.id))
 
             data = result.data
+
+            # safety: prevent duplicates (DB-level safety still recommended)
+            exists = InventoryLocation.query.filter_by(
+                product_id=product.id,
+                warehouse_id=data["warehouse_id"],
+                location=data["location"]
+            ).first()
+
+            if exists:
+                flash("هذا الموقع موجود مسبقاً", "warning")
+                return redirect(url_for("add_location", product_id=product.id))
+
             location = InventoryLocation(
                 product_id=product.id,
                 warehouse_id=data["warehouse_id"],
@@ -68,9 +73,10 @@ def register_location_routes(app):
                 f"Added location {location.location} for {product.name}"
             )
 
+            flash("تمت إضافة الموقع بنجاح", "success")
+
             return redirect(url_for("product_details", product_id=product.id))
 
-        # ✅ THIS IS REQUIRED (GET request)
         warehouses = Warehouse.query.order_by(Warehouse.name).all()
 
         return render_template(
@@ -78,94 +84,93 @@ def register_location_routes(app):
             product=product,
             warehouses=warehouses
         )
-    @app.route(
-        "/location/<int:location_id>/edit",
-        methods=["GET", "POST"]
-    )
+
+    # =========================
+    # EDIT LOCATION
+    # =========================
+    @app.route("/location/<int:location_id>/edit", methods=["GET", "POST"])
     @login_required
     @manager_required
     def edit_location(location_id):
+
         if not ensure_system_ready():
             return redirect(url_for("dashboard"))
 
-        location = InventoryLocation.query.get_or_404(
-            location_id
-        )
+        location = InventoryLocation.query.get_or_404(location_id)
 
         if request.method == "POST":
 
-            location.location = request.form["location"]
+            name = request.form.get("location", "").strip()
 
-            
+            if not name:
+                flash("الموقع مطلوب", "danger")
+                return redirect(url_for("edit_location", location_id=location.id))
+
+            if len(name) > 255:
+                flash("اسم الموقع طويل جداً", "danger")
+                return redirect(url_for("edit_location", location_id=location.id))
+
+            # prevent duplicates
+            exists = InventoryLocation.query.filter(
+                InventoryLocation.product_id == location.product_id,
+                InventoryLocation.warehouse_id == location.warehouse_id,
+                InventoryLocation.location == name,
+                InventoryLocation.id != location.id
+            ).first()
+
+            if exists:
+                flash("هذا الموقع موجود مسبقاً", "warning")
+                return redirect(url_for("edit_location", location_id=location.id))
+
+            old_name = location.location
+            location.location = name
 
             db.session.commit()
 
             log_activity(
                 current_user.id,
                 "EDIT_LOCATION",
-                f"Edited location {location.location}"
+                f"Changed location '{old_name}' → '{name}'"
             )
 
+            flash("تم تعديل الموقع بنجاح", "success")
+
             return redirect(
-                url_for(
-                    "product_details",
-                    product_id=location.product_id
-                )
+                url_for("product_details", product_id=location.product_id)
             )
-        
 
         return render_template(
             "edit_location.html",
             location=location
         )
-    
-    @app.route(
-    "/location/<int:location_id>/delete",
-    methods=["POST"]
-    )
+
+    # =========================
+    # DELETE LOCATION
+    # =========================
+    @app.route("/location/<int:location_id>/delete", methods=["POST"])
     @login_required
     @manager_required
     def delete_location(location_id):
+
         if not ensure_system_ready():
             return redirect(url_for("dashboard"))
 
-        location = InventoryLocation.query.get_or_404(
-            location_id
-        )
-
+        location = InventoryLocation.query.get_or_404(location_id)
         product_id = location.product_id
 
         if location.quantity > 0:
-
-            flash(
-                "لا يمكن حذف موقع يحتوي على كمية",
-                "danger"
-            )
-
-            return redirect(
-                url_for(
-                    "product_details",
-                    product_id=product_id
-                )
-            )
+            flash("لا يمكن حذف موقع يحتوي على كمية", "danger")
+            return redirect(url_for("product_details", product_id=product_id))
 
         db.session.delete(location)
-
         db.session.commit()
 
-        flash(
-            "تم حذف الموقع بنجاح",
-            "success"
-        )
         log_activity(
             current_user.id,
             "DELETE_LOCATION",
             f"Deleted location {location.location}"
         )
 
-        return redirect(
-            url_for(
-                "product_details",
-                product_id=product_id
-            )
-        )
+        flash("تم حذف الموقع بنجاح", "success")
+
+        return redirect(url_for("product_details", product_id=product_id))

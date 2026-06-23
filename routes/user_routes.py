@@ -19,57 +19,36 @@ def register_user_routes(app):
     @app.route("/profile")
     @login_required
     def profile():
-
-        return render_template(
-            "profile.html",
-            user=current_user
-        )
+        return render_template("profile.html", user=current_user)
 
     @app.route("/users")
     @login_required
     @admin_required
     def user_list():
 
-        users = User.query.order_by(
-            User.id.desc()
-        ).all()
+        users = User.query.order_by(User.id.desc()).all()
 
-        return render_template(
-            "users.html",
-            users=users
-        )
+        return render_template("users.html", users=users)
 
-    @app.route(
-        "/user/add",
-        methods=["GET", "POST"]
-    )
+    @app.route("/user/add", methods=["GET", "POST"])
     @login_required
     @admin_required
     def add_user():
+
         if not ensure_system_ready():
             return redirect(url_for("dashboard"))
+
         if request.method == "POST":
 
-            username = request.form["username"]
-
+            username = request.form["username"].strip()
             password = request.form["password"]
-
             role = request.form["role"]
 
-            exists = User.query.filter_by(
-                username=username
-            ).first()
+            exists = User.query.filter_by(username=username).first()
 
             if exists:
-
-                flash(
-                    "اسم المستخدم موجود",
-                    "danger"
-                )
-
-                return redirect(
-                    url_for("add_user")
-                )
+                flash("اسم المستخدم موجود", "danger")
+                return redirect(url_for("add_user"))
 
             user = User(
                 username=username,
@@ -79,74 +58,49 @@ def register_user_routes(app):
             user.set_password(password)
 
             db.session.add(user)
-
             db.session.commit()
+
             log_activity(
                 current_user.id,
                 "ADD_USER",
                 f"Created user: {user.username}"
             )
 
-            flash(
-                "تم إنشاء المستخدم",
-                "success"
-            )
+            flash("تم إنشاء المستخدم", "success")
 
-            return redirect(
-                url_for("user_list")
-            )
+            return redirect(url_for("user_list"))
 
-        return render_template(
-            "add_user.html"
-        )
+        return render_template("add_user.html")
     
-    @app.route(
-    "/user/<int:user_id>/disable",
-    methods=["POST"]
-    )
+    @app.route("/user/<int:user_id>/disable", methods=["POST"])
     @login_required
     @admin_required
     def disable_user(user_id):
+
         if not ensure_system_ready():
             return redirect(url_for("dashboard"))
-        user = User.query.get_or_404(
-            user_id
-        )
+
+        user = User.query.get_or_404(user_id)
 
         if user.id == current_user.id:
-
-            flash(
-                "لا يمكنك تعطيل حسابك",
-                "danger"
-            )
-
-            return redirect(
-                url_for("user_list")
-            )
+            flash("لا يمكنك تعطيل حسابك", "danger")
+            return redirect(url_for("user_list"))
 
         user.is_active_user = False
-
         db.session.commit()
+
         log_activity(
             current_user.id,
             "DISABLE_USER",
             f"Disabled user: {user.username}"
         )
 
-        flash(
-            "تم تعطيل المستخدم",
-            "success"
-        )
+        flash("تم تعطيل المستخدم", "success")
 
-        return redirect(
-            url_for("user_list")
-        )
+        return redirect(url_for("user_list"))
     
 
-    @app.route(
-    "/user/<int:user_id>/enable",
-    methods=["POST"]
-    )
+    @app.route("/user/<int:user_id>/enable", methods=["POST"])
     @login_required
     @admin_required
     def enable_user(user_id):
@@ -157,40 +111,32 @@ def register_user_routes(app):
         user = User.query.get_or_404(user_id)
 
         user.is_active_user = True
-
         db.session.commit()
+
         log_activity(
             current_user.id,
             "ENABLE_USER",
             f"Enabled user: {user.username}"
         )
 
-        flash(
-            "تم تفعيل المستخدم",
-            "success"
-        )
+        flash("تم تفعيل المستخدم", "success")
 
-        return redirect(
-            url_for("user_list")
-        )
-    
-    @app.route(
-    "/user/<int:user_id>/edit",
-    methods=["GET", "POST"]
-    )
+        return redirect(url_for("user_list"))
+
+
+    @app.route("/user/<int:user_id>/edit", methods=["GET", "POST"])
     @login_required
     @admin_required
     def edit_user(user_id):
+
         if not ensure_system_ready():
             return redirect(url_for("dashboard"))
-        user = User.query.get_or_404(
-            user_id
-        )
+
+        user = User.query.get_or_404(user_id)
 
         if request.method == "POST":
 
-            username = request.form["username"]
-
+            username = request.form["username"].strip()
             role = request.form["role"]
 
             exists = User.query.filter(
@@ -199,46 +145,28 @@ def register_user_routes(app):
             ).first()
 
             if exists:
-
-                flash(
-                    "اسم المستخدم موجود مسبقاً",
-                    "danger"
-                )
-
-                return redirect(
-                    url_for(
-                        "edit_user",
-                        user_id=user.id
-                    )
-                )
+                flash("اسم المستخدم موجود مسبقاً", "danger")
+                return redirect(url_for("edit_user", user_id=user.id))
 
             user.username = username
             user.role = role
 
             db.session.commit()
+
             log_activity(
                 current_user.id,
                 "EDIT_USER",
                 f"Edited user: {user.username}"
             )
-            flash(
-                "تم تعديل المستخدم",
-                "success"
-            )
 
-            return redirect(
-                url_for("user_list")
-            )
+            flash("تم تعديل المستخدم", "success")
 
-        return render_template(
-            "edit_user.html",
-            user=user
-        )
-    
-    @app.route(
-    "/profile/change-password",
-    methods=["GET", "POST"]
-    )
+            return redirect(url_for("user_list"))
+
+        return render_template("edit_user.html", user=user)
+
+
+    @app.route("/profile/change-password", methods=["GET", "POST"])
     @login_required
     def change_password():
 
@@ -247,73 +175,35 @@ def register_user_routes(app):
 
         if request.method == "POST":
 
-            current_password = request.form[
-                "current_password"
-            ]
+            current_password = request.form["current_password"]
+            new_password = request.form["new_password"]
+            confirm_password = request.form["confirm_password"]
 
-            new_password = request.form[
-                "new_password"
-            ]
-
-            confirm_password = request.form[
-                "confirm_password"
-            ]
-
-            if not current_user.check_password(
-                current_password
-            ):
-
-                flash(
-                    "كلمة المرور الحالية غير صحيحة",
-                    "danger"
-                )
-
-                return redirect(
-                    url_for(
-                        "change_password"
-                    )
-                )
+            if not current_user.check_password(current_password):
+                flash("كلمة المرور الحالية غير صحيحة", "danger")
+                return redirect(url_for("change_password"))
 
             if new_password != confirm_password:
+                flash("تأكيد كلمة المرور غير متطابق", "danger")
+                return redirect(url_for("change_password"))
 
-                flash(
-                    "تأكيد كلمة المرور غير متطابق",
-                    "danger"
-                )
-
-                return redirect(
-                    url_for(
-                        "change_password"
-                    )
-                )
-
-            current_user.set_password(
-                new_password
-            )
-
+            current_user.set_password(new_password)
             db.session.commit()
+
             log_activity(
                 current_user.id,
                 "CHANGE_PASSWORD",
                 f"User {current_user.username} changed password"
             )
-            flash(
-                "تم تغيير كلمة المرور",
-                "success"
-            )
 
-            return redirect(
-                url_for("profile")
-            )
+            flash("تم تغيير كلمة المرور", "success")
 
-        return render_template(
-            "change_password.html"
-        )
-    
-    @app.route(
-    "/user/<int:user_id>/reset-password",
-    methods=["GET", "POST"]
-    )
+            return redirect(url_for("profile"))
+
+        return render_template("change_password.html")
+
+
+    @app.route("/user/<int:user_id>/reset-password", methods=["GET", "POST"])
     @login_required
     @admin_required
     def reset_user_password(user_id):
@@ -321,54 +211,28 @@ def register_user_routes(app):
         if not ensure_system_ready():
             return redirect(url_for("dashboard"))
 
-        user = User.query.get_or_404(
-            user_id
-        )
+        user = User.query.get_or_404(user_id)
 
         if request.method == "POST":
 
-            new_password = request.form[
-                "new_password"
-            ]
-
-            confirm_password = request.form[
-                "confirm_password"
-            ]
+            new_password = request.form["new_password"]
+            confirm_password = request.form["confirm_password"]
 
             if new_password != confirm_password:
+                flash("كلمتا المرور غير متطابقتين", "danger")
+                return redirect(url_for("reset_user_password", user_id=user.id))
 
-                flash(
-                    "كلمتا المرور غير متطابقتين",
-                    "danger"
-                )
-
-                return redirect(
-                    url_for(
-                        "reset_user_password",
-                        user_id=user.id
-                    )
-                )
-
-            user.set_password(
-                new_password
-            )
-
+            user.set_password(new_password)
             db.session.commit()
+
             log_activity(
                 current_user.id,
                 "RESET_PASSWORD",
                 f"Reset password for: {user.username}"
             )
-            flash(
-                "تم إعادة تعيين كلمة المرور",
-                "success"
-            )
 
-            return redirect(
-                url_for("user_list")
-            )
+            flash("تم إعادة تعيين كلمة المرور", "success")
 
-        return render_template(
-            "reset_user_password.html",
-            user=user
-        )
+            return redirect(url_for("user_list"))
+
+        return render_template("reset_user_password.html", user=user)

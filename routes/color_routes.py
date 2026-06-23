@@ -12,7 +12,7 @@ from utils.activity_logger import log_activity
 from utils.permissions import admin_required
 from utils.system_guard import ensure_system_ready
 from utils.validation.color import validate_color_name
-
+from sqlalchemy.exc import IntegrityError
 
 def register_color_routes(app):
 
@@ -23,14 +23,13 @@ def register_color_routes(app):
     @login_required
     @admin_required
     def add_color():
+
         if not ensure_system_ready():
             return redirect(url_for("dashboard"))
 
         if request.method == "POST":
 
-            result = validate_color_name(
-                request.form.get("name", "")
-            )
+            result = validate_color_name(request.form.get("name", ""))
 
             if not result.valid:
                 flash(result.message, "danger")
@@ -39,27 +38,34 @@ def register_color_routes(app):
             name = result.data
 
             exists = Color.query.filter_by(name=name).first()
-
             if exists:
                 flash("هذا اللون موجود مسبقاً", "warning")
                 return redirect(url_for("add_color"))
 
             color = Color(name=name)
 
-            db.session.add(color)
-            db.session.commit()
+            try:
+                db.session.add(color)
+                db.session.commit()
+                flash("تمت إضافة اللون بنجاح", "success")
+
+            except IntegrityError:
+                db.session.rollback()
+                flash("هذا اللون موجود مسبقاً (DB)", "warning")
+
+            except Exception:
+                db.session.rollback()
+                flash("حدث خطأ أثناء الحفظ", "danger")
 
             log_activity(
                 current_user.id,
                 "ADD_COLOR",
-                f"Added color: {color.name}"
+                f"Added color: {name}"
             )
 
-            flash("تمت إضافة اللون بنجاح", "success")
             return redirect(url_for("add_color"))
 
         colors = Color.query.order_by(Color.id.desc()).all()
-
         return render_template("add_color.html", colors=colors)
 
 

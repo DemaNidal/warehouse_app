@@ -21,10 +21,7 @@ from utils.validation.auth import validate_login
 
 def register_auth_routes(app):
 
-    @app.route(
-        "/login",
-        methods=["GET", "POST"]
-    )
+    @app.route("/login", methods=["GET", "POST"])
     def login():
 
         if request.method == "POST":
@@ -39,30 +36,16 @@ def register_auth_routes(app):
                 return redirect(url_for("login"))
 
             data = result.data
-            username = data["username"]
-            password = data["password"]
 
             user = User.query.filter_by(
-                username=username
+                username=data["username"]
             ).first()
 
-            if (
-                user and
-                user.check_password(password)
-            ):
+            if user and user.check_password(data["password"]):
 
                 if not user.is_active_user:
-
-                    flash(
-                        "الحساب معطل",
-                        "danger"
-                    )
-
-                    return redirect(
-                        url_for("login")
-                    )
-
-                session.permanent = True
+                    flash("الحساب معطل", "danger")
+                    return redirect(url_for("login"))
 
                 login_user(user)
 
@@ -72,32 +55,22 @@ def register_auth_routes(app):
                     "User logged in"
                 )
 
-                return redirect("/dashboard")
+                return redirect(url_for("dashboard"))
 
-            flash(
-                "بيانات الدخول غير صحيحة",
-                "danger"
-            )
+            flash("بيانات الدخول غير صحيحة", "danger")
 
-        return render_template(
-            "login.html"
-        )
+        return render_template("login.html")
 
     @app.route("/logout")
     @login_required
     def logout():
 
-        user_id = current_user.id
-        username = current_user.username
-
         log_activity(
-            user_id,
+            current_user.id,
             "LOGOUT",
-            f"User {username} logged out"
+            f"User {current_user.username} logged out"
         )
 
         logout_user()
 
-        return redirect(
-            url_for("login")
-        )
+        return redirect(url_for("login"))

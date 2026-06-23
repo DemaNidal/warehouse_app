@@ -19,18 +19,25 @@ def register_setup_routes(app):
             "معرض نابلس"
         ]
 
-        for name in warehouses:
+        # safety check (prevents re-seeding)
+        if Warehouse.query.first():
+            return "Setup already completed"
 
-            exists = Warehouse.query.filter_by(
-                name=name
-            ).first()
+        # get existing names once
+        existing = {
+            w.name for w in Warehouse.query.filter(
+                Warehouse.name.in_(warehouses)
+            ).all()
+        }
 
-            if not exists:
+        # build only missing ones
+        new_warehouses = [
+            Warehouse(name=name)
+            for name in warehouses
+            if name not in existing
+        ]
 
-                db.session.add(
-                    Warehouse(name=name)
-                )
-
+        db.session.add_all(new_warehouses)
         db.session.commit()
 
-        return "Warehouses Created"
+        return f"Inserted {len(new_warehouses)} warehouses"
