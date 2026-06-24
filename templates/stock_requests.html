@@ -1,0 +1,57 @@
+{% from "macros.html" import csrf %}
+{% extends "base.html" %}
+
+{% block content %}
+
+<h2>طلبات المخزون</h2>
+
+<table class="table">
+  <thead>
+    <tr>
+      <th>المنتج</th>
+      <th>الموقع</th>
+      <th>الكمية</th>
+      <th>الموظف</th>
+      <th>الحالة</th>
+      <th>إجراءات</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    {% for r in requests %}
+    <tr>
+      <td>{{ r.product.name }}</td>
+      <td>{{ r.location.location }}</td>
+      <td>{{ r.quantity }}</td>
+      <td>{{ r.requester.username }}</td>
+      <td>
+        {% if r.status == "PENDING" %}
+          <span class="badge bg-warning">Pending</span>
+        {% elif r.status == "APPROVED" %}
+          <span class="badge bg-success">Approved</span>
+        {% else %}
+          <span class="badge bg-danger">Rejected</span>
+        {% endif %}
+      </td>
+
+      <td>
+        {% if r.status == "PENDING" %}
+
+        <form method="POST" action="/stock-request/{{ r.id }}/approve" class="d-inline">
+          {{ csrf() }}
+          <button class="btn btn-success btn-sm">Approve</button>
+        </form>
+
+        <form method="POST" action="/stock-request/{{ r.id }}/reject" class="d-inline">
+          {{ csrf() }}
+          <button class="btn btn-danger btn-sm">Reject</button>
+        </form>
+
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %}

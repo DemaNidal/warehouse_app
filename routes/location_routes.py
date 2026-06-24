@@ -16,7 +16,7 @@ from models import (
 )
 
 from utils.activity_logger import log_activity
-from utils.permissions import manager_required
+from utils.permissions import admin_required, manager_required
 from utils.system_guard import ensure_system_ready
 from utils.validation.location import validate_location
 
@@ -90,7 +90,7 @@ def register_location_routes(app):
     # =========================
     @app.route("/location/<int:location_id>/edit", methods=["GET", "POST"])
     @login_required
-    @manager_required
+    @admin_required
     def edit_location(location_id):
 
         if not ensure_system_ready():
@@ -149,7 +149,7 @@ def register_location_routes(app):
     # =========================
     @app.route("/location/<int:location_id>/delete", methods=["POST"])
     @login_required
-    @manager_required
+    @admin_required
     def delete_location(location_id):
 
         if not ensure_system_ready():

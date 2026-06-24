@@ -6,14 +6,17 @@ from models import (
     InventoryTransaction,
     Notification,
     STOCK_LOW,
-    STOCK_CRITICAL
+    STOCK_CRITICAL,
+    StockRequest
 )
+from utils.permissions import admin_required
 
 
 def register_dashboard_routes(app):
 
     @app.route("/dashboard")
     @login_required
+    @admin_required
     def dashboard():
 
         # ⚠️ consider replacing with filtered query later
@@ -38,6 +41,8 @@ def register_dashboard_routes(app):
             1 for p in low_stock_products
             if p.stock_status == STOCK_CRITICAL
         )
+        pending_requests_count = StockRequest.query.filter_by(status="PENDING").count()
+
 
         unread_notifications = Notification.query.filter_by(
             user_id=current_user.id,

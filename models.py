@@ -358,3 +358,25 @@ class Notification(db.Model):
 
     user = db.relationship("User", back_populates="notifications")
     product = db.relationship("Product")
+
+class StockRequest(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    product_id = db.Column(db.Integer, db.ForeignKey("product.id"))
+    location_id = db.Column(db.Integer, db.ForeignKey("inventory_location.id"))
+
+    quantity = db.Column(db.Integer)
+    notes = db.Column(db.String(255))
+
+    status = db.Column(db.String(20), default="PENDING")
+
+    requested_by = db.Column(db.Integer, db.ForeignKey("user.id"))
+    approved_by = db.Column(db.Integer, db.ForeignKey("user.id"))
+
+    created_at = db.Column(db.DateTime, default=datetime.now)
+
+    # ✅ IMPORTANT RELATIONSHIPS
+    product = db.relationship("Product")
+    location = db.relationship("InventoryLocation")
+    requester = db.relationship("User", foreign_keys=[requested_by])
+    approver = db.relationship("User", foreign_keys=[approved_by])
