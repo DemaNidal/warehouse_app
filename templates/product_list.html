@@ -8,9 +8,9 @@ content %}
     <p class="text-muted">جميع المنتجات المسجلة</p>
   </div>
 
-  {% if current_user.is_authenticated and current_user.role == "ADMIN" %}
+
   <a href="/add-product" class="btn btn-success"> + إضافة منتج </a>
-  {% endif %}
+
 </div>
 
 <div class="card shadow-sm">

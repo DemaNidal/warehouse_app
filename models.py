@@ -358,6 +358,10 @@ class Notification(db.Model):
 
     user = db.relationship("User", back_populates="notifications")
     product = db.relationship("Product")
+    target_url = db.Column(
+        db.String(255),
+        nullable=True
+    )
 
 class StockRequest(db.Model):
     id = db.Column(db.Integer, primary_key=True)

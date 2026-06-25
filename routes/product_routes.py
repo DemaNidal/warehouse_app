@@ -16,7 +16,7 @@ from models import (
 from sqlalchemy.orm import joinedload
 from flask_login import login_required, current_user
 from utils.activity_logger import log_activity
-from utils.permissions import admin_required
+from utils.permissions import admin_required, manager_required
 from config import RESTORE_IN_PROGRESS
 from utils.validation.product import validate_product_form
 ALLOWED_EXTENSIONS = {
@@ -41,7 +41,7 @@ def register_product_routes(app):
 
     @app.route("/add-product", methods=["GET", "POST"])
     @login_required
-    @admin_required
+    @manager_required
     def add_product():
         if RESTORE_IN_PROGRESS:
             flash("System is restoring backup. Try again later.", "warning")

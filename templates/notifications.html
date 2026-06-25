@@ -3,102 +3,90 @@
 
 {% block content %}
 
-<h2 class="mb-4"> <img
-                    src="{{ url_for('static', filename='icons/notification-bell.png') }}"
-                    width="25"
-                    height="25"
-                /> الإشعارات</h2>
+<h2 class="mb-3">
+    🔔 الإشعارات
+</h2>
 
 <!-- Filters -->
 <div class="mb-3 d-flex gap-2 flex-wrap">
 
-    <a href="{{ url_for('notifications') }}"
-       class="btn btn-sm btn-outline-dark">
-        الكل
-    </a>
-
-    <a href="{{ url_for('notifications', filter='unread') }}"
-       class="btn btn-sm btn-outline-primary">
-        غير مقروءة
-    </a>
-
-    <a href="{{ url_for('notifications', filter='LOW') }}"
-       class="btn btn-sm btn-outline-warning">
-        مخزون منخفض
-    </a>
-
-    <a href="{{ url_for('notifications', filter='CRITICAL') }}"
-       class="btn btn-sm btn-outline-danger">
-        نفد المخزون
-    </a>
+    <a href="{{ url_for('notifications') }}" class="btn btn-sm btn-dark">الكل</a>
+    <a href="{{ url_for('notifications', filter='unread') }}" class="btn btn-sm btn-outline-primary">غير مقروءة</a>
+    <a href="{{ url_for('notifications', filter='workflow') }}" class="btn btn-sm btn-outline-success">طلبات المخزون</a>
+    <a href="{{ url_for('notifications', filter='alerts') }}" class="btn btn-sm btn-outline-warning">تنبيهات المخزون</a>
 
 </div>
 
-<!-- Inbox -->
 <div class="card shadow-sm">
-    <div class="card-body p-0">
 
-        {% if notifications %}
+    <div class="list-group list-group-flush">
 
-        <div class="list-group list-group-flush">
+        {% for n in notifications %}
 
-            {% for n in notifications %}
+        <a href="{{ url_for('open_notification', id=n.id) }}"
+           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center
+           {% if not n.is_read %}bg-light{% endif %}">
 
-            <a href="{{ url_for('open_notification', id=n.id) }}"
-               class="list-group-item list-group-item-action
-               d-flex justify-content-between align-items-start
-               {% if not n.is_read %}bg-light{% endif %}">
+            <!-- LEFT -->
+            <div>
 
-                <!-- Left side -->
-                <div class="ms-2 me-auto">
+                <!-- TYPE BADGE -->
+                {% if n.type == "LOW" %}
+                    <span class="badge bg-warning text-dark">مخزون منخفض</span>
 
-                    <div class="d-flex align-items-center gap-2">
+                {% elif n.type == "CRITICAL" %}
+                    <span class="badge bg-danger">نفد المخزون</span>
 
-                        <!-- Status badge -->
-                        {% if n.type == 'CRITICAL' %}
-                        <span class="badge bg-danger">🔴 نفد المخزون</span>
+                {% elif n.type == "OUT_REQUEST" %}
+                    <span class="badge bg-info">طلب إخراج</span>
 
-                        {% elif n.type == 'LOW' %}
-                        <span class="badge bg-warning text-dark">🟡 منخفض</span>
-                        {% endif %}
+                {% elif n.type == "OUT_APPROVED" %}
+                    <span class="badge bg-success">تمت الموافقة</span>
 
-                        <!-- Product name -->
-                        <strong>
-                            {{ n.product.name }}
-                        </strong>
+                {% elif n.type == "OUT_REJECTED" %}
+                    <span class="badge bg-danger">تم الرفض</span>
+                {% endif %}
 
-                    </div>
+                <!-- MESSAGE -->
+                <div class="mt-1">
+                    {% if n.type == "OUT_REQUEST" %}
+                        <strong>{{ n.product.name }}</strong>
+                        <span>طلب إخراج جديد يحتاج موافقة</span>
 
-                    <small class="text-muted">
-                        {{ n.created_at.strftime('%Y-%m-%d %H:%M') }}
-                    </small>
+                    {% elif n.type == "OUT_APPROVED" %}
+                        <strong>{{ n.product.name }}</strong>
+                        <span>تمت الموافقة على طلب الإخراج</span>
 
-                </div>
+                    {% elif n.type == "OUT_REJECTED" %}
+                        <strong>{{ n.product.name }}</strong>
+                        <span>تم رفض طلب الإخراج</span>
 
-                <!-- Right side -->
-                <div class="text-end">
-
-                    {% if n.is_read %}
-                        <span class="badge bg-secondary">مقروء</span>
                     {% else %}
-                        <span class="badge bg-primary">جديد</span>
+                        <strong>{{ n.product.name }}</strong>
+                        <span>حالة المخزون تحتاج انتباه</span>
                     {% endif %}
-
                 </div>
 
-            </a>
+                <small class="text-muted">
+                    {{ n.created_at.strftime('%Y-%m-%d %H:%M') }}
+                </small>
 
-            {% endfor %}
+            </div>
 
-        </div>
+            <!-- RIGHT -->
+            <div>
 
-        {% else %}
+                {% if n.is_read %}
+                    <span class="badge bg-secondary">مقروء</span>
+                {% else %}
+                    <span class="badge bg-primary">جديد</span>
+                {% endif %}
 
-        <div class="p-4 text-center text-muted">
-            لا توجد إشعارات
-        </div>
+            </div>
 
-        {% endif %}
+        </a>
+
+        {% endfor %}
 
     </div>
 </div>

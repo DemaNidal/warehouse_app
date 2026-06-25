@@ -1,8 +1,8 @@
 """init
 
-Revision ID: bb6768ef3fb7
+Revision ID: f3943c960d50
 Revises: 
-Create Date: 2026-06-24 14:07:16.264486
+Create Date: 2026-06-24 18:06:49.883846
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'bb6768ef3fb7'
+revision = 'f3943c960d50'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -84,6 +84,7 @@ def upgrade():
     sa.Column('type', sa.String(length=20), nullable=False),
     sa.Column('is_read', sa.Boolean(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.Column('target_url', sa.String(length=255), nullable=True),
     sa.ForeignKeyConstraint(['product_id'], ['product.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['user.id'], ),
     sa.PrimaryKeyConstraint('id')
@@ -106,12 +107,12 @@ def upgrade():
     )
     op.create_table('stock_request',
     sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('product_id', sa.Integer(), nullable=False),
-    sa.Column('location_id', sa.Integer(), nullable=False),
-    sa.Column('quantity', sa.Integer(), nullable=False),
-    sa.Column('notes', sa.Text(), nullable=True),
-    sa.Column('requested_by', sa.Integer(), nullable=False),
+    sa.Column('product_id', sa.Integer(), nullable=True),
+    sa.Column('location_id', sa.Integer(), nullable=True),
+    sa.Column('quantity', sa.Integer(), nullable=True),
+    sa.Column('notes', sa.String(length=255), nullable=True),
     sa.Column('status', sa.String(length=20), nullable=True),
+    sa.Column('requested_by', sa.Integer(), nullable=True),
     sa.Column('approved_by', sa.Integer(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['approved_by'], ['user.id'], ),
