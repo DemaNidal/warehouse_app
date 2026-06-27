@@ -14,6 +14,7 @@ from models import (
     Product,
     User,
     StockRequest,
+    Notification,
     InventoryLocation,
     InventoryTransaction,
     TRANSACTION_TYPES,
@@ -88,30 +89,45 @@ def register_transaction_routes(app):
                         flash("الكمية غير كافية", "danger")
                         return redirect(url_for("add_transaction", product_id=product.id))
 
-                    existing_request = StockRequest.query.filter_by(
-                        product_id=product.id,
-                        location_id=location.id,
-                        requested_by=current_user.id,
-                        status="PENDING"
-                    ).first()
+                    if current_user.role == "ADMIN":
 
-                    if existing_request:
-                        flash("يوجد طلب معلق مسبقاً لهذا المنتج", "warning")
+                        location.quantity -= quantity
+
+                        db.session.add(InventoryTransaction(
+                            product_id=product.id,
+                            location_id=location.id,
+                            transaction_type="OUT",
+                            quantity=quantity,
+                            notes=notes,
+                            user_id=current_user.id
+                        ))
+
+                    else:
+
+                        existing_request = StockRequest.query.filter_by(
+                            product_id=product.id,
+                            location_id=location.id,
+                            requested_by=current_user.id,
+                            status="PENDING"
+                        ).first()
+
+                        if existing_request:
+                            flash("يوجد طلب معلق مسبقاً لهذا المنتج", "warning")
+                            return redirect(url_for("product_details", product_id=product.id))
+
+                        db.session.add(StockRequest(
+                            product_id=product.id,
+                            location_id=location.id,
+                            quantity=quantity,
+                            notes=notes,
+                            requested_by=current_user.id,
+                            status="PENDING"
+                        ))
+
+                        db.session.commit()   # ✅ IMPORTANT HERE
+
+                        flash("تم إرسال طلب إخراج للموافقة", "success")
                         return redirect(url_for("product_details", product_id=product.id))
-
-                    db.session.add(StockRequest(
-                        product_id=product.id,
-                        location_id=location.id,
-                        quantity=quantity,
-                        notes=notes,
-                        requested_by=current_user.id,
-                        status="PENDING"
-                    ))
-
-                    db.session.commit()
-
-                    flash("تم إرسال طلب إخراج للموافقة", "success")
-                    return redirect(url_for("product_details", product_id=product.id))
 
                 # =====================================================
                 # ADJUSTMENT
@@ -154,117 +170,3 @@ def register_transaction_routes(app):
             transaction_types=TRANSACTION_TYPES,
             transaction_labels=TRANSACTION_LABELS
         )
-
-    # =========================================================
-    # STOCK REQUESTS LIST
-    # =========================================================
-    @app.route("/stock-requests")
-    @login_required
-    @admin_required
-    def stock_requests():
-
-        requests = StockRequest.query.filter_by(
-            status="PENDING"
-        ).order_by(
-            StockRequest.created_at.desc()
-        ).all()
-
-        return render_template(
-            "stock_requests.html",
-            requests=requests
-        )
-
-    # =========================================================
-    # APPROVE REQUEST
-    # =========================================================
-    @app.route("/stock-request/<int:request_id>/approve", methods=["POST"])
-    @login_required
-    @admin_required
-    def approve_request(request_id):
-
-        req = StockRequest.query.get_or_404(request_id)
-
-        if req.status != "PENDING":
-            abort(400)
-
-        location = InventoryLocation.query.get_or_404(req.location_id)
-
-        if location.quantity < req.quantity:
-            flash("الكمية لم تعد متوفرة", "danger")
-            return redirect(url_for("stock_requests"))
-
-        try:
-
-            location.quantity -= req.quantity
-
-            db.session.add(InventoryTransaction(
-                product_id=req.product_id,
-                location_id=req.location_id,
-                transaction_type="OUT",
-                quantity=req.quantity,
-                notes=req.notes,
-                user_id=req.requested_by
-            ))
-
-            req.status = "APPROVED"
-            req.approved_by = current_user.id
-
-            db.session.add(req)
-
-            db.session.commit()
-
-            # 🔔 ONLY LOW/ZERO STOCK NOTIFICATIONS
-            users = User.query.all()
-            generate_stock_notifications(req.product, users)
-
-            log_activity(
-                current_user.id,
-                "APPROVE_STOCK_REQUEST",
-                f"Request #{req.id}"
-            )
-
-            flash("تمت الموافقة على الطلب", "success")
-
-        except Exception:
-            db.session.rollback()
-            flash("حدث خطأ أثناء الموافقة", "danger")
-
-        return redirect(url_for("stock_requests"))
-
-    # =========================================================
-    # REJECT REQUEST
-    # =========================================================
-    @app.route("/stock-request/<int:request_id>/reject", methods=["POST"])
-    @login_required
-    @admin_required
-    def reject_request(request_id):
-
-        req = StockRequest.query.get_or_404(request_id)
-
-        if req.status != "PENDING":
-            abort(400)
-
-        try:
-
-            req.status = "REJECTED"
-            req.approved_by = current_user.id
-
-            db.session.add(req)
-
-            db.session.add(Notification(
-                user_id=req.requested_by,
-                product_id=req.product_id,
-                type="OUT_REJECTED",
-                is_read=False,
-                target_url=url_for("product_details", product_id=req.product_id)
-            ))
-
-            db.session.commit()
-
-            flash("تم رفض الطلب", "warning")
-
-        except Exception:
-            db.session.rollback()
-            flash("حدث خطأ أثناء رفض الطلب", "danger")
-
-        return redirect(url_for("stock_requests"))

@@ -1,8 +1,8 @@
 """init
 
-Revision ID: f3943c960d50
+Revision ID: 20d66e637a58
 Revises: 
-Create Date: 2026-06-24 18:06:49.883846
+Create Date: 2026-06-27 13:58:43.043296
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = 'f3943c960d50'
+revision = '20d66e637a58'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -111,9 +111,11 @@ def upgrade():
     sa.Column('location_id', sa.Integer(), nullable=True),
     sa.Column('quantity', sa.Integer(), nullable=True),
     sa.Column('notes', sa.String(length=255), nullable=True),
-    sa.Column('status', sa.String(length=20), nullable=True),
-    sa.Column('requested_by', sa.Integer(), nullable=True),
+    sa.Column('status', sa.String(length=20), nullable=False),
+    sa.Column('requested_by', sa.Integer(), nullable=False),
     sa.Column('approved_by', sa.Integer(), nullable=True),
+    sa.Column('approved_at', sa.DateTime(), nullable=True),
+    sa.Column('rejected_at', sa.DateTime(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['approved_by'], ['user.id'], ),
     sa.ForeignKeyConstraint(['location_id'], ['inventory_location.id'], ),

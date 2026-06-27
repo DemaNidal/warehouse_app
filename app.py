@@ -15,6 +15,7 @@ from routes.auth_routes import (
 from datetime import datetime, timedelta
 from routes.product_routes import register_product_routes
 from routes.color_routes import register_color_routes
+from routes.requests_routes import register_requests_routes
 from routes.setup_routes import register_setup_routes
 from routes.location_routes import register_location_routes
 from routes.search_routes import register_search_routes
@@ -25,6 +26,7 @@ from routes.transaction_routes import (
 from routes.create_admin_route import (
     register_create_admin_route
 )
+from utils.context_processors import register_context_processors
 from routes.user_routes import register_user_routes
 from routes.transfer_routes import register_transfer_routes
 from routes.size_routes import register_size_routes
@@ -126,6 +128,8 @@ register_user_routes(app)
 register_activity_routes(app)
 register_backup_routes(app)
 register_notifications_routes(app)
+register_context_processors(app)
+register_requests_routes(app)
 if __name__ == "__main__":
     # create_backup_zip()
 

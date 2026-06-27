@@ -372,15 +372,38 @@ class StockRequest(db.Model):
     quantity = db.Column(db.Integer)
     notes = db.Column(db.String(255))
 
-    status = db.Column(db.String(20), default="PENDING")
 
-    requested_by = db.Column(db.Integer, db.ForeignKey("user.id"))
-    approved_by = db.Column(db.Integer, db.ForeignKey("user.id"))
+    status = db.Column(
+        db.String(20),
+        default="PENDING",
+        nullable=False
+    )
+
+    requested_by = db.Column(
+        db.Integer,
+        db.ForeignKey("user.id"),
+        nullable=False
+    )
+
+    approved_by = db.Column(
+        db.Integer,
+        db.ForeignKey("user.id")
+    )
+
+    approved_at = db.Column(db.DateTime)
+
+    rejected_at = db.Column(db.DateTime)
 
     created_at = db.Column(db.DateTime, default=datetime.now)
 
     # ✅ IMPORTANT RELATIONSHIPS
     product = db.relationship("Product")
     location = db.relationship("InventoryLocation")
-    requester = db.relationship("User", foreign_keys=[requested_by])
-    approver = db.relationship("User", foreign_keys=[approved_by])
+    requester = db.relationship(
+        "User",
+        foreign_keys=[requested_by]
+    )
+    approver = db.relationship(
+        "User",
+        foreign_keys=[approved_by]
+    )
