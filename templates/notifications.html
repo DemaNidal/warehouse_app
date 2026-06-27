@@ -1,94 +1,55 @@
 {% extends "base.html" %}
-{% block title %}الإشعارات{% endblock %}
 
 {% block content %}
 
-<h2 class="mb-3">
-    🔔 الإشعارات
-</h2>
+<h2>🔔 Notifications</h2>
 
-<!-- Filters -->
-<div class="mb-3 d-flex gap-2 flex-wrap">
-
-    <a href="{{ url_for('notifications') }}" class="btn btn-sm btn-dark">الكل</a>
-    <a href="{{ url_for('notifications', filter='unread') }}" class="btn btn-sm btn-outline-primary">غير مقروءة</a>
-    <a href="{{ url_for('notifications', filter='workflow') }}" class="btn btn-sm btn-outline-success">طلبات المخزون</a>
-    <a href="{{ url_for('notifications', filter='alerts') }}" class="btn btn-sm btn-outline-warning">تنبيهات المخزون</a>
-
+<div class="mb-3">
+    <a href="{{ url_for('notifications') }}" class="btn btn-dark btn-sm">All</a>
+    <a href="{{ url_for('notifications', filter='unread') }}" class="btn btn-outline-primary btn-sm">Unread</a>
+    <a href="{{ url_for('notifications', filter='alerts') }}" class="btn btn-outline-warning btn-sm">Alerts</a>
 </div>
 
-<div class="card shadow-sm">
+<div class="card">
 
     <div class="list-group list-group-flush">
 
         {% for n in notifications %}
 
         <a href="{{ url_for('open_notification', id=n.id) }}"
-           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center
-           {% if not n.is_read %}bg-light{% endif %}">
+           class="list-group-item d-flex justify-content-between align-items-center {% if not n.is_read %}bg-light{% endif %}">
 
-            <!-- LEFT -->
             <div>
 
-                <!-- TYPE BADGE -->
                 {% if n.type == "LOW" %}
-                    <span class="badge bg-warning text-dark">مخزون منخفض</span>
+                    <span class="badge bg-warning text-dark">LOW STOCK</span>
 
                 {% elif n.type == "CRITICAL" %}
-                    <span class="badge bg-danger">نفد المخزون</span>
-
-                {% elif n.type == "OUT_REQUEST" %}
-                    <span class="badge bg-info">طلب إخراج</span>
+                    <span class="badge bg-danger">CRITICAL</span>
 
                 {% elif n.type == "OUT_APPROVED" %}
-                    <span class="badge bg-success">تمت الموافقة</span>
+                    <span class="badge bg-success">APPROVED</span>
 
                 {% elif n.type == "OUT_REJECTED" %}
-                    <span class="badge bg-danger">تم الرفض</span>
+                    <span class="badge bg-danger">REJECTED</span>
                 {% endif %}
 
-                <!-- MESSAGE -->
-                <div class="mt-1">
-                    {% if n.type == "OUT_REQUEST" %}
-                        <strong>{{ n.product.name }}</strong>
-                        <span>طلب إخراج جديد يحتاج موافقة</span>
-
-                    {% elif n.type == "OUT_APPROVED" %}
-                        <strong>{{ n.product.name }}</strong>
-                        <span>تمت الموافقة على طلب الإخراج</span>
-
-                    {% elif n.type == "OUT_REJECTED" %}
-                        <strong>{{ n.product.name }}</strong>
-                        <span>تم رفض طلب الإخراج</span>
-
-                    {% else %}
-                        <strong>{{ n.product.name }}</strong>
-                        <span>حالة المخزون تحتاج انتباه</span>
-                    {% endif %}
-                </div>
-
-                <small class="text-muted">
-                    {{ n.created_at.strftime('%Y-%m-%d %H:%M') }}
-                </small>
+                <strong class="ms-2">
+                    {{ n.product.name }}
+                </strong>
 
             </div>
 
-            <!-- RIGHT -->
-            <div>
-
-                {% if n.is_read %}
-                    <span class="badge bg-secondary">مقروء</span>
-                {% else %}
-                    <span class="badge bg-primary">جديد</span>
-                {% endif %}
-
-            </div>
+            <small class="text-muted">
+                {{ n.created_at.strftime('%Y-%m-%d %H:%M') }}
+            </small>
 
         </a>
 
         {% endfor %}
 
     </div>
+
 </div>
 
 {% endblock %}
