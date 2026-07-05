@@ -52,7 +52,7 @@ def register_auth_routes(app):
                 log_activity(
                     user.id,
                     "LOGIN",
-                    "User logged in"
+                    "تسجيل الدخول إلى النظام"
                 )
 
                 return redirect(url_for("dashboard"))
@@ -68,7 +68,7 @@ def register_auth_routes(app):
         log_activity(
             current_user.id,
             "LOGOUT",
-            f"User {current_user.username} logged out"
+            f"قام المستخدم {current_user.username} بتسجيل الخروج"
         )
 
         logout_user()

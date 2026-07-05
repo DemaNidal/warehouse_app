@@ -60,7 +60,7 @@ def register_color_routes(app):
             log_activity(
                 current_user.id,
                 "ADD_COLOR",
-                f"Added color: {name}"
+                f"اضافة اللون: {color.name}"
             )
 
             return redirect(url_for("add_color"))
@@ -105,7 +105,7 @@ def register_color_routes(app):
         log_activity(
             current_user.id,
             "EDIT_COLOR",
-            f"Edited color: {color.name}"
+            f"تعديل اللون: {color.name}"
         )
 
         flash("تم تعديل اللون بنجاح", "success")

@@ -102,7 +102,7 @@ def register_product_routes(app):
             log_activity(
                 current_user.id,
                 "ADD_PRODUCT",
-                f"Added product: {product.name}"
+                f"اضافة المنتج: {product.name}"
             )
             return redirect(
                 url_for(
@@ -249,7 +249,7 @@ def register_product_routes(app):
             log_activity(
                 current_user.id,
                 "EDIT_PRODUCT",
-                f"Edited product: {product.name}"
+                f"تعديل المنتج: {product.name}"
             )
 
             return redirect(
