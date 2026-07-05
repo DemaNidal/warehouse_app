@@ -25,44 +25,17 @@
 
         <select name="role" class="form-select">
 
-            <option
-              value="ADMIN"
-              {%
-              if
-              user.role=""
-              ="ADMIN"
-              %}selected{%
-              endif
-              %}
-            >
-              مدير
-            </option>
+             <option value="ADMIN" {% if user.role == "ADMIN" %}selected{% endif %}>
+    مدير
+  </option>
 
-            <option
-              value="STORE_MANAGER"
-              {%
-              if
-              user.role=""
-              ="STORE_MANAGER"
-              %}selected{%
-              endif
-              %}
-            >
-              مسؤول مخازن
-            </option>
+  <option value="STORE_MANAGER" {% if user.role == "STORE_MANAGER" %}selected{% endif %}>
+    مسؤول مخازن
+  </option>
 
-            <option
-              value="EMPLOYEE"
-              {%
-              if
-              user.role=""
-              ="EMPLOYEE"
-              %}selected{%
-              endif
-              %}
-            >
-              موظف
-            </option>
+  <option value="EMPLOYEE" {% if user.role == "EMPLOYEE" %}selected{% endif %}>
+    موظف
+  </option>
 
         </select>
       </div>
