@@ -70,7 +70,7 @@ def register_location_routes(app):
             log_activity(
                 current_user.id,
                 "ADD_LOCATION",
-                f"Added location {location.location} for {product.name}"
+                f"إضافة الموقع {location.location} للمنتج {product.name}"
             )
 
             flash("تمت إضافة الموقع بنجاح", "success")
@@ -130,7 +130,7 @@ def register_location_routes(app):
             log_activity(
                 current_user.id,
                 "EDIT_LOCATION",
-                f"Changed location '{old_name}' → '{name}'"
+                f"تعديل الموقع '{old_name}' → '{name}'"
             )
 
             flash("تم تعديل الموقع بنجاح", "success")
@@ -168,7 +168,7 @@ def register_location_routes(app):
         log_activity(
             current_user.id,
             "DELETE_LOCATION",
-            f"Deleted location {location.location}"
+            f"حذف الموقع {location.location}"
         )
 
         flash("تم حذف الموقع بنجاح", "success")

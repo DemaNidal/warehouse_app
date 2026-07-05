@@ -62,7 +62,7 @@ def register_size_routes(app):
             log_activity(
                 current_user.id,
                 "ADD_SIZE",
-                f"Added size: {name}"
+                f"اضافة الحجم: {name}"
             )
 
             return redirect(url_for("add_size"))
@@ -108,29 +108,6 @@ def register_size_routes(app):
         log_activity(
             current_user.id,
             "EDIT_SIZE",
-            f"Edited size: {size.name}"
+            f"تعديل الحجم: {size.name}"
         )
         return redirect(url_for("add_size"))
-
-
-    # =========================
-    # DELETE
-    # =========================
-    # @app.route("/size/<int:size_id>/delete", methods=["POST"])
-    # @login_required
-    # @admin_required
-    # def delete_size(size_id):
-
-    #     size = Size.query.get_or_404(size_id)
-
-    #     db.session.delete(size)
-    #     db.session.commit()
-
-    #     flash("تم حذف الحجم بنجاح", "success")
-    #     log_activity(
-    #         current_user.id,
-    #         "DELETE_SIZE",
-    #         f"Deleted size: {size.name}"
-    #     )
-
-    #     return redirect(url_for("add_size"))

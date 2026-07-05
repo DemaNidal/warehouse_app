@@ -9,14 +9,14 @@ from models import (
     STOCK_CRITICAL,
     StockRequest
 )
-from utils.permissions import admin_required
+from utils.permissions import manager_required
 
 
 def register_dashboard_routes(app):
 
     @app.route("/dashboard")
     @login_required
-    @admin_required
+    @manager_required
     def dashboard():
 
         # ⚠️ consider replacing with filtered query later

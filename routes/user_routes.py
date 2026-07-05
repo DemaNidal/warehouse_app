@@ -63,7 +63,7 @@ def register_user_routes(app):
             log_activity(
                 current_user.id,
                 "ADD_USER",
-                f"Created user: {user.username}"
+                f"اضافة المستخدم: {user.username}"
             )
 
             flash("تم إنشاء المستخدم", "success")
@@ -92,7 +92,7 @@ def register_user_routes(app):
         log_activity(
             current_user.id,
             "DISABLE_USER",
-            f"Disabled user: {user.username}"
+            f"تعطيل المستخدم: {user.username}"
         )
 
         flash("تم تعطيل المستخدم", "success")
@@ -116,7 +116,7 @@ def register_user_routes(app):
         log_activity(
             current_user.id,
             "ENABLE_USER",
-            f"Enabled user: {user.username}"
+            f"تفعيل المستخدم: {user.username}"
         )
 
         flash("تم تفعيل المستخدم", "success")
@@ -156,7 +156,7 @@ def register_user_routes(app):
             log_activity(
                 current_user.id,
                 "EDIT_USER",
-                f"Edited user: {user.username}"
+                f"تعديل المستخدم: {user.username}"
             )
 
             flash("تم تعديل المستخدم", "success")
@@ -193,7 +193,7 @@ def register_user_routes(app):
             log_activity(
                 current_user.id,
                 "CHANGE_PASSWORD",
-                f"User {current_user.username} changed password"
+                f"المستخدم {current_user.username} قام بتغيير كلمة المرور الخاصة به"
             )
 
             flash("تم تغيير كلمة المرور", "success")
@@ -228,7 +228,7 @@ def register_user_routes(app):
             log_activity(
                 current_user.id,
                 "RESET_PASSWORD",
-                f"Reset password for: {user.username}"
+                f"إعادة تعيين كلمة المرور لـ: {user.username}"
             )
 
             flash("تم إعادة تعيين كلمة المرور", "success")

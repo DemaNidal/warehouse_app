@@ -56,7 +56,7 @@ def register_backup_routes(app):
 
         log_activity(
             current_user.id,
-            "CREATE_BACKUP",
+            "انشاء نسخة احتياطية",
             backup_name
         )
 
@@ -99,7 +99,7 @@ def register_backup_routes(app):
 
         log_activity(
             current_user.id,
-            "DELETE_BACKUP",
+            "حذف نسخة احتياطية",
             filename
         )
 
@@ -174,7 +174,7 @@ def register_backup_routes(app):
 
             log_activity(
                 current_user.id,
-                "RESTORE_BACKUP",
+                "استرجاع نسخة احتياطية",
                 os.path.basename(temp_zip_path)
             )
 

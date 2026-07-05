@@ -52,7 +52,7 @@ login_manager.init_app(app)
 
 login_manager.login_view = "login"
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=8)
-app.secret_key = "f8b7e3d4a9c1e2f6b8a4d7e9c3f1a5b2"
+app.secret_key = os.getenv("SECRET_KEY")
 csrf.init_app(app)
 app.config["SQLALCHEMY_DATABASE_URI"] = config.DATABASE_URL
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False

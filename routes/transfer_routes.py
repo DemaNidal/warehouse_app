@@ -94,7 +94,7 @@ def register_transfer_routes(app):
                     current_user.id,
                     "STOCK_TRANSFER",
                     f"{product.name} | {source_location.location} -> "
-                    f"{destination_location.location} | Qty={quantity}"
+                    f"{destination_location.location} | الكمية={quantity}"
                 )
 
                 flash("تم التحويل بنجاح", "success")

@@ -1,3 +1,5 @@
+import datetime
+
 from flask import (
     render_template,
     redirect,
@@ -18,6 +20,9 @@ from models import (
     InventoryTransaction,
     Product
 )
+from sqlalchemy import func
+from sqlalchemy.orm import joinedload
+from datetime import datetime, timedelta
 
 from utils.activity_logger import log_activity
 from utils.notifications import generate_stock_notifications
@@ -34,47 +39,198 @@ def register_requests_routes(app):
     @admin_required
     def stock_requests():
 
-        # BASE QUERY
-        base_query = StockRequest.query
+        # ----------------------------------
+        # Filters
+        # ----------------------------------
 
-        # FILTERS
-        status = request.args.get("status")
-        product_id = request.args.get("product")
-        user_id = request.args.get("user")
+        q = request.args.get("q", "").strip()
+
+        status = request.args.get(
+            "status",
+            ""
+        ).strip()
+
+        product_id = request.args.get(
+            "product",
+            type=int
+        )
+
+        user_id = request.args.get(
+            "user",
+            type=int
+        )
+
+        date = request.args.get(
+            "date",
+            ""
+        )
+
+        # ----------------------------------
+        # Sorting
+        # ----------------------------------
+
+        sort = request.args.get(
+            "sort",
+            "created_at"
+        )
+
+        direction = request.args.get(
+            "direction",
+            "desc"
+        )
+
+        # ----------------------------------
+        # Pagination
+        # ----------------------------------
+
+        page = request.args.get(
+            "page",
+            1,
+            type=int
+        )
+
+        per_page = 20
+
+        # ----------------------------------
+        # Base Query
+        # ----------------------------------
+
+        query = (
+            StockRequest.query
+            .options(
+                joinedload(StockRequest.product),
+                joinedload(StockRequest.location),
+                joinedload(StockRequest.requester),
+                joinedload(StockRequest.approver)
+            )
+            .join(Product)
+        )
+
+        # ----------------------------------
+        # Search
+        # ----------------------------------
+
+        if q:
+            query = query.filter(
+                Product.name.ilike(f"%{q}%")
+            )
+
+        # ----------------------------------
+        # Filters
+        # ----------------------------------
+
+        if status:
+            query = query.filter(
+                StockRequest.status == status
+            )
 
         if product_id:
-            base_query = base_query.filter(StockRequest.product_id == int(product_id))
+            query = query.filter(
+                StockRequest.product_id == product_id
+            )
 
         if user_id:
-            base_query = base_query.filter(StockRequest.requested_by == int(user_id))
+            query = query.filter(
+                StockRequest.requested_by == user_id
+            )
 
-        # IMPORTANT: split queries for tabs
-        pending_requests = base_query.filter(StockRequest.status == "PENDING") \
-            .order_by(StockRequest.created_at.desc()).all()
+        if date:
+            selected_date = datetime.strptime(date, "%Y-%m-%d")
 
-        approved_requests = base_query.filter(StockRequest.status == "APPROVED") \
-            .order_by(StockRequest.created_at.desc()).all()
+            next_day = selected_date + timedelta(days=1)
 
-        rejected_requests = base_query.filter(StockRequest.status == "REJECTED") \
-            .order_by(StockRequest.created_at.desc()).all()
+            query = query.filter(
+                StockRequest.created_at >= selected_date,
+                StockRequest.created_at < next_day
+            )
 
-        all_requests = base_query.order_by(StockRequest.created_at.desc()).all()
+        # ----------------------------------
+        # Sorting
+        # ----------------------------------
 
-        # dropdowns
-        products = Product.query.all()
-        users = User.query.all()
+        sortable_columns = {
+            "created_at": StockRequest.created_at,
+            "quantity": StockRequest.quantity,
+            "status": StockRequest.status,
+            "product": Product.name
+        }
+
+        column = sortable_columns.get(
+            sort,
+            StockRequest.created_at
+        )
+
+        if direction == "asc":
+            query = query.order_by(column.asc())
+        else:
+            query = query.order_by(column.desc())
+
+        # ----------------------------------
+        # Pagination
+        # ----------------------------------
+
+        pagination = query.paginate(
+            page=page,
+            per_page=per_page,
+            error_out=False
+        )
+
+        requests = pagination.items
+
+        # ----------------------------------
+        # Summary Cards
+        # ----------------------------------
+
+        pending_count = db.session.query(func.count(StockRequest.id)).filter(
+            StockRequest.status == "PENDING"
+        ).scalar()
+
+        approved_count = db.session.query(func.count(StockRequest.id)).filter(
+            StockRequest.status == "APPROVED"
+        ).scalar()
+
+        rejected_count = db.session.query(func.count(StockRequest.id)).filter(
+            StockRequest.status == "REJECTED"
+        ).scalar()
+
+        total_count = db.session.query(
+            func.count(StockRequest.id)
+        ).scalar()
+
+        # ----------------------------------
+        # Dropdowns
+        # ----------------------------------
+
+        products = Product.query.order_by(
+            Product.name
+        ).all()
+
+        users = User.query.order_by(
+            User.username
+        ).all()
 
         return render_template(
             "stock_requests.html",
-            pending_requests=pending_requests,
-            approved_requests=approved_requests,
-            rejected_requests=rejected_requests,
-            all_requests=all_requests,
+
+            requests=requests,
+            pagination=pagination,
+
+            pending_count=pending_count,
+            approved_count=approved_count,
+            rejected_count=rejected_count,
+            total_count=total_count,
+
             products=products,
             users=users,
-            active_status=status or "all",
-            selected_product=product_id,
-            selected_user=user_id
+
+            q=q,
+            status=status,
+            product_id=product_id,
+            user_id=user_id,
+            date=date,
+
+            sort=sort,
+            direction=direction
         )
 
     # =========================================================
