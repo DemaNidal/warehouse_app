@@ -37,7 +37,6 @@ from routes.backup_routes import (
 from routes.notifications_routes import register_notifications_routes
 from flask_wtf.csrf import CSRFProtect
 import config
-from utils.backup import create_backup_zip
 from flask_migrate import Migrate
 
 
@@ -131,6 +130,6 @@ register_notifications_routes(app)
 register_context_processors(app)
 register_requests_routes(app)
 if __name__ == "__main__":
-    # create_backup_zip()
+    
 
     app.run(host="0.0.0.0")
