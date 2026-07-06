@@ -1,47 +1,105 @@
 {% extends "base.html" %}
 
+{% block title %}الملف الشخصي{% endblock %}
+
 {% block content %}
 
-<div class="card shadow-sm">
+<div class="container mt-4">
 
-    <div class="card-body">
+    <div class="row justify-content-center">
 
-        <h2>
-            الملف الشخصي
-        </h2>
+        <div class="col-lg-7">
 
-        <hr>
+            <div class="card shadow border-0">
 
-        <p>
-            <strong>
-                اسم المستخدم:
-            </strong>
+                <div class="card-header bg-primary text-white py-4 text-center">
 
-            {{ user.username }}
-        </p>
+                    <i class="bi bi-person-circle display-3"></i>
 
-        <p>
-            <strong>
-                الصلاحية:
-            </strong>
+                    <h3 class="mt-2 mb-0">
+                        {{ user.username }}
+                    </h3>
 
-            {{ user.role }}
-        </p>
+                    <small>الملف الشخصي</small>
 
-        <p>
-            <strong>
-                تاريخ الإنشاء:
-            </strong>
+                </div>
 
-            {{ user.created_at }}
-        </p>
+                <div class="card-body p-4">
 
-        <a
-            href="/profile/change-password"
-            class="btn btn-primary"
-        >
-            تغيير كلمة المرور
-        </a>
+                    <table class="table table-borderless align-middle">
+
+                        <tr>
+                            <th width="180">
+                                <i class="bi bi-person-fill me-2 text-primary"></i>
+                                اسم المستخدم
+                            </th>
+
+                            <td>{{ user.username }}</td>
+                        </tr>
+
+                        <tr>
+                            <th>
+                                <i class="bi bi-shield-lock-fill me-2 text-success"></i>
+                                الصلاحية
+                            </th>
+
+                            <td>
+
+                                {% if user.role == "ADMIN" %}
+
+                                <span class="badge bg-danger fs-6">
+                                    مدير النظام
+                                </span>
+
+                                {% elif user.role == "STORE_MANAGER" %}
+
+                                <span class="badge bg-warning text-dark fs-6">
+                                    مدير مستودع
+                                </span>
+
+                                {% else %}
+
+                                <span class="badge bg-secondary fs-6">
+                                    مستخدم
+                                </span>
+
+                                {% endif %}
+
+                            </td>
+                        </tr>
+
+                        <tr>
+                            <th>
+                                <i class="bi bi-calendar-event me-2 text-info"></i>
+                                تاريخ الإنشاء
+                            </th>
+
+                            <td>
+                                {{ user.created_at.strftime("%Y-%m-%d %H:%M") }}
+                            </td>
+                        </tr>
+
+                    </table>
+
+                    <hr>
+
+                    <div class="d-grid gap-2">
+
+                        <a
+                            href="/profile/change-password"
+                            class="btn btn-primary btn-lg"
+                        >
+                            <i class="bi bi-key-fill"></i>
+                            تغيير كلمة المرور
+                        </a>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
 
     </div>
 

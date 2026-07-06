@@ -1,4 +1,5 @@
 from flask import (
+    current_app,
     render_template,
     redirect,
     request,
@@ -18,7 +19,7 @@ import zipfile
 from werkzeug.utils import secure_filename
 
 from models import db
-from utils.backup import create_backup_zip, get_backup_files
+from utils.backup import create_backup_zip, get_backup_files, restore_database
 from utils.permissions import admin_required
 from utils.activity_logger import log_activity
 from utils.validation.backup import validate_restore
@@ -136,52 +137,36 @@ def register_backup_routes(app):
         os.makedirs(TEMP_DIR, exist_ok=True)
 
         try:
-            # extract
+
             with zipfile.ZipFile(temp_zip_path, "r") as zip_ref:
                 zip_ref.extractall(TEMP_DIR)
 
-            db_file = os.path.join(TEMP_DIR, "warehouse.db")
-            uploads_dir = os.path.join(TEMP_DIR, "uploads")
+            data_dir = os.path.join(TEMP_DIR, "data")
 
-            if not os.path.exists(db_file):
-                flash("Invalid backup file", "danger")
+            if not os.path.isdir(data_dir):
+                flash("Invalid backup file.", "danger")
                 return redirect(url_for("backups"))
 
-            # stop DB connections
             db.session.remove()
             db.engine.dispose()
 
-            # backup current DB (rollback safety)
-            if os.path.exists(DB_PATH):
-                rollback_dir = os.path.join(BACKUP_FOLDER, "rollback")
-                os.makedirs(rollback_dir, exist_ok=True)
+            restore_database(data_dir)
 
-                shutil.copy2(
-                    DB_PATH,
-                    os.path.join(
-                        rollback_dir,
-                        f"rollback_{uuid.uuid4().hex}.db"
-                    )
-                )
-
-            # restore DB
-            shutil.copy2(db_file, DB_PATH)
-
-            # restore uploads
-            if os.path.exists(uploads_dir):
-                shutil.rmtree(UPLOAD_FOLDER, ignore_errors=True)
-                shutil.copytree(uploads_dir, UPLOAD_FOLDER)
+            restore_uploads(TEMP_DIR)
 
             log_activity(
                 current_user.id,
                 "استرجاع نسخة احتياطية",
-                os.path.basename(temp_zip_path)
+                file.filename
             )
 
-            flash("تم استرجاع النسخة بنجاح", "success")
+            flash("تم استرجاع النسخة الاحتياطية بنجاح", "success")
 
         except Exception as e:
-            flash(f"فشل الاسترجاع: {str(e)}", "danger")
+
+            db.session.rollback()
+
+            flash(f"Restore failed: {e}", "danger")
 
         finally:
             shutil.rmtree(TEMP_DIR, ignore_errors=True)
