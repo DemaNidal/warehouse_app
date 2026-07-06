@@ -2,6 +2,7 @@
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <title>{% block title %}{% endblock %} | الابراهيم بلاست</title>
 
@@ -206,10 +207,161 @@
     font-weight: 500;
 }
 
-.table td,
-.table th {
-    vertical-align: middle;
-}
+    .dashboard-card {
+      border: none;
+      border-radius: 28px;
+      box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .dashboard-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 24px 55px rgba(15, 23, 42, 0.12);
+    }
+
+    .stat-card-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .dashboard-card .card-body {
+      padding: 1.75rem;
+    }
+
+    .dashboard-card .table {
+      min-width: 100%;
+    }
+
+    .dashboard-card .list-group-item {
+      border-radius: 18px;
+      margin-bottom: 0.75rem;
+      background: #f8fafc;
+    }
+
+    .dashboard-card .list-group-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .dashboard-card .card-header {
+      padding: 1.4rem 1.75rem;
+    }
+
+    .dashboard-card .card-body.p-0 {
+      padding: 0;
+    }
+
+    .dashboard-card .table-responsive {
+      border-top: 1px solid rgba(15,23,42,0.08);
+    }
+
+    .table thead th {
+      border-bottom: 1px solid rgba(15,23,42,0.08);
+    }
+
+    .table tbody tr td {
+      padding-top: 1rem;
+      padding-bottom: 1rem;
+    }
+
+    .text-secondary.small {
+      white-space: nowrap;
+    }
+
+    .table tr:last-child td {
+      border-bottom: none;
+    }
+
+    .dashboard-note {
+      color: #6b7280;
+    }
+
+    .table-responsive {
+      overflow-x: auto;
+    }
+
+    .card-header.bg-transparent h5 {
+      font-weight: 700;
+    }
+
+    .text-secondary.small {
+      font-size: 0.95rem;
+    }
+
+    .dashboard-card .badge {
+      border-radius: 999px;
+    }
+
+    .dashboard-card .btn-outline-primary {
+      border-radius: 999px;
+      padding-left: 1.1rem;
+      padding-right: 1.1rem;
+    }
+
+    .dashboard-card .card-body .btn {
+      min-width: 95px;
+    }
+
+    .table-responsive table {
+      margin-bottom: 0;
+    }
+
+    .dashboard-section-title {
+      font-size: 1.06rem;
+      font-weight: 700;
+    }
+
+    .text-muted.small {
+      font-size: 0.9rem;
+    }
+
+    .align-middle .badge {
+      font-size: 0.85rem;
+    }
+
+    .dashboard-card .card-body .fw-semibold {
+      font-weight: 600;
+    }
+
+    .dashboard-card .card-body .text-dark {
+      color: #111827 !important;
+    }
+
+    .dashboard-card .card-body .text-muted {
+      color: #6b7280 !important;
+    }
+
+    .dashboard-card .card-header .badge {
+      font-size: 0.85rem;
+    }
+
+    .dashboard-card .card-header .d-flex {
+      gap: 0.8rem;
+      align-items: center;
+    }
+
+    .dashboard-card .card-header small {
+      font-size: 0.92rem;
+    }
+
+    .table thead th {
+      vertical-align: bottom;
+    }
+
+    .table tbody tr:hover {
+      background: #f8fafc;
+    }
+
+    .table-md {
+      min-width: 100%;
+    }
+
+    .table td, .table th {
+      vertical-align: middle;
+    }
     </style>
   </head>
 
