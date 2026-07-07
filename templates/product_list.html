@@ -85,10 +85,6 @@
 
                 {% endif %}
 
-                {% if product.price %}
-                <span class="price-badge">{{ product.price }}$</span>
-                {% endif %}
-
                 <span class="badge-color">{{ product.color.name }}</span>
 
             </div>
@@ -99,12 +95,7 @@
 
                     <div>
                         <h5 class="fw-bold mb-1">{{ product.name }}</h5>
-                        <small class="text-muted">ID : {{ product.id }}</small>
                     </div>
-
-                    <span class="badge rounded-pill bg-danger">
-                        {{ product.color.name }}
-                    </span>
 
                 </div>
 
