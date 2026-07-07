@@ -378,6 +378,64 @@
       box-shadow: 0 26px 60px rgba(15, 23, 42, 0.09);
     }
 
+    .product-status-strip {
+      height: 5px;
+      width: 100%;
+    }
+
+    .status-normal .product-status-strip {
+      background: linear-gradient(90deg, #10b981, #34d399);
+    }
+
+    .status-low .product-status-strip {
+      background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    }
+
+    .status-critical .product-status-strip {
+      background: linear-gradient(90deg, #ef4444, #f87171);
+    }
+
+    .product-title {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .meta-item.meta-qty .value.status-normal { color: #059669; }
+    .meta-item.meta-qty .value.status-low { color: #b45309; }
+    .meta-item.meta-qty .value.status-critical { color: #dc2626; }
+
+    /* Product list stat card */
+    .stat-icon-box {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      background: rgba(30, 58, 95, 0.1);
+      color: var(--primary);
+    }
+
+    /* Brand-matched pagination */
+    .pagination .page-link {
+      border: none;
+      margin: 0 3px;
+      border-radius: 10px;
+      color: var(--text);
+    }
+
+    .pagination .page-link:hover {
+      background: #F1F5F9;
+      color: var(--gold);
+    }
+
+    .pagination .page-item.active .page-link {
+      background: var(--primary);
+      color: white;
+    }
+
     .product-image-wrapper {
       position: relative;
       width: 100%;

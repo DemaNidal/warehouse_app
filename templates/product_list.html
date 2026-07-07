@@ -19,7 +19,7 @@
 
     </div>
 
-    <a href="/add-product" class="btn btn-success shadow-sm">
+    <a href="/add-product" class="btn btn-success rounded-pill shadow-sm px-3">
 
         <i class="bi bi-plus-circle"></i>
 
@@ -33,19 +33,22 @@
 
     <div class="col-md-4">
 
-        <div class="card border-0 shadow-sm">
+        <div class="card dashboard-card h-100">
 
-            <div class="card-body">
+            <div class="card-body d-flex align-items-center gap-3">
 
-                <h6 class="text-muted">
-                    إجمالي المنتجات
-                </h6>
+                <div class="stat-icon-box">
+                    <i class="bi bi-box-seam fs-4"></i>
+                </div>
 
-                <h2 class="fw-bold">
-
-                    {{ products.total }}
-
-                </h2>
+                <div>
+                    <div class="text-secondary small">
+                        إجمالي المنتجات
+                    </div>
+                    <h3 class="fw-bold mb-0">
+                        {{ products.total }}
+                    </h3>
+                </div>
 
             </div>
 
@@ -63,7 +66,9 @@
 
     <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
 
-        <div class="card product-card h-100">
+        <div class="card product-card h-100 status-{{ product.stock_status|lower }}">
+
+            <div class="product-status-strip"></div>
 
             <div class="product-image-wrapper">
 
@@ -93,8 +98,8 @@
 
                 <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
 
-                    <div>
-                        <h5 class="fw-bold mb-1">{{ product.name }}</h5>
+                    <div class="flex-grow-1 min-w-0">
+                        <h5 class="fw-bold mb-1 product-title" title="{{ product.name }}">{{ product.name }}</h5>
                     </div>
 
                 </div>
@@ -112,9 +117,9 @@
                         </div>
                     </div>
 
-                    <div class="meta-item">
+                    <div class="meta-item meta-qty">
                         <span class="label">الكمية</span>
-                        <div class="value">{{ total }}</div>
+                        <div class="value status-{{ product.stock_status|lower }}">{{ total }}</div>
                     </div>
 
                     <div class="meta-item">
