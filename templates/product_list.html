@@ -19,7 +19,7 @@
 
     </div>
 
-    <a href="/add-product" class="btn btn-success shadow-sm">
+    <a href="/add-product" class="btn btn-success rounded-pill shadow-sm px-3">
 
         <i class="bi bi-plus-circle"></i>
 
@@ -33,19 +33,22 @@
 
     <div class="col-md-4">
 
-        <div class="card border-0 shadow-sm">
+        <div class="card dashboard-card h-100">
 
-            <div class="card-body">
+            <div class="card-body d-flex align-items-center gap-3">
 
-                <h6 class="text-muted">
-                    إجمالي المنتجات
-                </h6>
+                <div class="stat-icon-box">
+                    <i class="bi bi-box-seam fs-4"></i>
+                </div>
 
-                <h2 class="fw-bold">
-
-                    {{ products.total }}
-
-                </h2>
+                <div>
+                    <div class="text-secondary small">
+                        إجمالي المنتجات
+                    </div>
+                    <h3 class="fw-bold mb-0">
+                        {{ products.total }}
+                    </h3>
+                </div>
 
             </div>
 
@@ -55,171 +58,104 @@
 
 </div>
 
-<div class="card border-0 shadow">
+<div class="row g-4">
 
-    <div class="table-responsive">
+    {% for product in products.items %}
 
-        <table class="table table-hover align-middle mb-0">
+    {% set total = product.locations | sum(attribute='quantity') %}
 
-            <thead class="table-light">
+    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
 
-                <tr>
+        <div class="card product-card h-100 status-{{ product.stock_status|lower }}">
 
-                    <th width="90">الصورة</th>
+            <div class="product-status-strip"></div>
 
-                    <th>المنتج</th>
+            <div class="product-image-wrapper">
 
-                    <th>اللون</th>
+                {% if product.image %}
 
-                    <th>الحجم</th>
+                <div class="product-image-inner">
+                  <img
+                      src="{{ url_for('uploaded_file', filename=product.image) }}"
+                      class="product-image"
+                      alt="{{ product.name }}"
+                  >
+                </div>
 
-                    <th class="text-center">الكمية</th>
+                {% else %}
 
-                    <th class="text-center">الحالة</th>
+                <div class="product-image-inner product-image-placeholder">
+                    <i class="bi bi-image"></i>
+                </div>
 
-                    <th class="text-center">الإجراءات</th>
+                {% endif %}
 
-                </tr>
+                <span class="badge-color">{{ product.color.name }}</span>
 
-            </thead>
+            </div>
 
-            <tbody>
+            <div class="card-body">
 
-                {% for product in products.items %}
+                <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
 
-                {% set total = product.locations | sum(attribute='quantity') %}
+                    <div class="flex-grow-1 min-w-0">
+                        <h5 class="fw-bold mb-1 product-title" title="{{ product.name }}">{{ product.name }}</h5>
+                    </div>
 
-                <tr>
+                </div>
 
-                    <td>
+                <div class="product-meta-grid">
 
-                        {% if product.image %}
-
-                        <img
-                            src="{{ url_for('uploaded_file', filename=product.image) }}"
-                            class="rounded shadow-sm border"
-                            width="70"
-                            height="70"
-                            style="object-fit:cover;"
-                        >
-
-                        {% else %}
-
-                        <div class="bg-light rounded border d-flex align-items-center justify-content-center"
-                             style="width:70px;height:70px;">
-
-                            <i class="bi bi-image text-secondary fs-3"></i>
-
+                    <div class="meta-item">
+                        <span class="label">الحجم</span>
+                        <div class="value">
+                            {% if product.size_data %}
+                                {{ product.size_data.name }}
+                            {% else %}
+                                -
+                            {% endif %}
                         </div>
+                    </div>
 
-                        {% endif %}
+                    <div class="meta-item meta-qty">
+                        <span class="label">الكمية</span>
+                        <div class="value status-{{ product.stock_status|lower }}">{{ total }}</div>
+                    </div>
 
-                    </td>
-
-                    <td>
-
-                        <div class="fw-bold">
-
-                            {{ product.name }}
-
+                    <div class="meta-item">
+                        <span class="label">الحالة</span>
+                        <div class="value">
+                            {% if product.stock_status == "CRITICAL" %}
+                            <span class="badge bg-danger">نفد</span>
+                            {% elif product.stock_status == "LOW" %}
+                            <span class="badge bg-warning text-dark">منخفض</span>
+                            {% else %}
+                            <span class="badge bg-success">متوفر</span>
+                            {% endif %}
                         </div>
+                    </div>
 
-                        <small class="text-muted">
+                    <div class="meta-item">
+                        <span class="label">المواقع</span>
+                        <div class="value">{{ product.locations|length }}</div>
+                    </div>
 
-                            ID : {{ product.id }}
+                </div>
 
-                        </small>
+            </div>
 
-                    </td>
+            <div class="card-footer">
+                <a href="/product/{{ product.id }}" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-eye"></i>
+                    عرض
+                </a>
+            </div>
 
-                    <td>
-
-                        <span class="badge rounded-pill bg-danger">
-
-                            {{ product.color.name }}
-
-                        </span>
-
-                    </td>
-
-                    <td>
-
-                        {% if product.size_data %}
-
-                            {{ product.size_data.name }}
-
-                        {% else %}
-
-                            -
-
-                        {% endif %}
-
-                    </td>
-
-                    <td class="text-center">
-
-                        <span class="badge bg-primary fs-6">
-
-                            {{ total }}
-
-                        </span>
-
-                    </td>
-
-                    <td class="text-center">
-
-                        {% if product.stock_status == "CRITICAL" %}
-
-                        <span class="badge bg-danger">
-
-                            🔴 نفد المخزون
-
-                        </span>
-
-                        {% elif product.stock_status == "LOW" %}
-
-                        <span class="badge bg-warning text-dark">
-
-                            🟡 منخفض
-
-                        </span>
-
-                        {% else %}
-
-                        <span class="badge bg-success">
-
-                            🟢 متوفر
-
-                        </span>
-
-                        {% endif %}
-
-                    </td>
-
-                    <td class="text-center">
-
-                        <a
-                            href="/product/{{ product.id }}"
-                            class="btn btn-outline-primary btn-sm"
-                        >
-
-                            <i class="bi bi-eye"></i>
-
-                            عرض
-
-                        </a>
-
-                    </td>
-
-                </tr>
-
-                {% endfor %}
-
-            </tbody>
-
-        </table>
+        </div>
 
     </div>
+
+    {% endfor %}
 
 </div>
 

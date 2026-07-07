@@ -43,18 +43,27 @@
 
         <div class="card h-100 shadow-sm border-0">
 
-            {% if product.image %}
-            <img
-                src="{{ url_for('uploaded_file', filename=product.image) }}"
-                class="card-img-top"
-                style="height:260px; object-fit:cover;"
-            >
-            {% else %}
-            <div class="bg-light d-flex align-items-center justify-content-center"
-                 style="height:260px;">
-                <span class="text-muted">لا توجد صورة</span>
+            <div class="product-image-wrapper">
+                {% if product.image %}
+                <div class="product-image-inner">
+                  <img
+                      src="{{ url_for('uploaded_file', filename=product.image) }}"
+                      class="product-image"
+                      alt="{{ product.name }}"
+                  >
+                </div>
+                {% else %}
+                <div class="product-image-inner product-image-placeholder">
+                    <i class="bi bi-image"></i>
+                </div>
+                {% endif %}
+
+                {% if product.price %}
+                <span class="price-badge">{{ product.price }}$</span>
+                {% endif %}
+
+                <span class="badge-color">{{ product.color.name }}</span>
             </div>
-            {% endif %}
 
             <div class="card-body">
 
