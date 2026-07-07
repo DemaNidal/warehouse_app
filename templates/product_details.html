@@ -7,19 +7,22 @@ block content %}
   <div class="card-body">
     <div class="row">
       <div class="col-md-4 text-center">
-        {% if product.image %}
+        <div class="product-image-wrapper rounded overflow-hidden border">
+          {% if product.image %}
+          <img
+            src="{{ url_for('uploaded_file', filename=product.image) }}"
+            class="product-image"
+            alt="{{ product.name }}"
+          />
 
-        <img
-          src="{{ url_for('uploaded_file', filename=product.image) }}"
-          class="img-fluid rounded border"
-          style="max-height: 400px"
-        />
+          {% else %}
 
-        {% else %}
+          <div class="product-image-placeholder">
+            <i class="bi bi-image"></i>
+          </div>
 
-        <div class="alert alert-secondary">لا توجد صورة</div>
-
-        {% endif %}
+          {% endif %}
+        </div>
       </div>
 
       <div class="col-md-8">

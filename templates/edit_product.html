@@ -69,7 +69,20 @@
       <div class="mb-3">
         <label> صورة جديدة (اختياري) </label>
 
+        {% if product.image %}
+        <div class="mb-2">
+          <div class="product-image-wrapper rounded overflow-hidden border" style="max-width:280px;">
+            <img src="{{ url_for('uploaded_file', filename=product.image) }}" class="product-image" alt="{{ product.name }}">
+          </div>
+        </div>
+        <div class="text-muted small mb-2">اترك الحقل فارغًا للاحتفاظ بالصورة الحالية أو اختر ملفًا جديدًا للاستبدال.</div>
+
         <input type="file" name="image" class="form-control" />
+        {% else %}
+
+        <input type="file" name="image" class="form-control" />
+
+        {% endif %}
       </div>
 
       <button class="btn btn-success">حفظ التعديلات</button>
