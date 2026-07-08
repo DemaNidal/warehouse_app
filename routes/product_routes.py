@@ -17,7 +17,7 @@ from sqlalchemy.orm import joinedload
 from flask_login import login_required, current_user
 from utils.activity_logger import log_activity
 from utils.permissions import admin_required, manager_required
-from config import RESTORE_IN_PROGRESS
+import config
 from utils.validation.product import validate_product_form
 ALLOWED_EXTENSIONS = {
     "png",
@@ -43,7 +43,7 @@ def register_product_routes(app):
     @login_required
     @manager_required
     def add_product():
-        if RESTORE_IN_PROGRESS:
+        if config.RESTORE_IN_PROGRESS:
             flash("System is restoring backup. Try again later.", "warning")
             return redirect(url_for("dashboard"))
         if request.method == "POST":
@@ -177,7 +177,7 @@ def register_product_routes(app):
     @login_required
     @admin_required
     def edit_product(product_id):
-        if RESTORE_IN_PROGRESS:
+        if config.RESTORE_IN_PROGRESS:
             flash("System is restoring backup. Try again later.", "warning")
             return redirect(url_for("dashboard"))
         product = Product.query.get_or_404(

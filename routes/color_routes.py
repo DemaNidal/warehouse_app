@@ -3,10 +3,11 @@ from flask import (
     request,
     redirect,
     url_for,
-    flash
+    flash,
+    jsonify
 )
 
-from models import db, Color
+from models import db, Color, Product
 from flask_login import current_user, login_required
 from utils.activity_logger import log_activity
 from utils.permissions import admin_required
@@ -24,7 +25,11 @@ def register_color_routes(app):
     @admin_required
     def add_color():
 
+        is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
         if not ensure_system_ready():
+            if is_ajax:
+                return jsonify(success=False, message="النظام قيد الاسترجاع حالياً"), 503
             return redirect(url_for("dashboard"))
 
         if request.method == "POST":
@@ -32,6 +37,8 @@ def register_color_routes(app):
             result = validate_color_name(request.form.get("name", ""))
 
             if not result.valid:
+                if is_ajax:
+                    return jsonify(success=False, message=result.message), 400
                 flash(result.message, "danger")
                 return redirect(url_for("add_color"))
 
@@ -39,6 +46,8 @@ def register_color_routes(app):
 
             exists = Color.query.filter_by(name=name).first()
             if exists:
+                if is_ajax:
+                    return jsonify(success=False, message="هذا اللون موجود مسبقاً"), 409
                 flash("هذا اللون موجود مسبقاً", "warning")
                 return redirect(url_for("add_color"))
 
@@ -47,21 +56,29 @@ def register_color_routes(app):
             try:
                 db.session.add(color)
                 db.session.commit()
+
+                log_activity(
+                    current_user.id,
+                    "ADD_COLOR",
+                    f"اضافة اللون: {color.name}"
+                )
+
+                if is_ajax:
+                    return jsonify(success=True, id=color.id, name=color.name)
+
                 flash("تمت إضافة اللون بنجاح", "success")
 
             except IntegrityError:
                 db.session.rollback()
+                if is_ajax:
+                    return jsonify(success=False, message="هذا اللون موجود مسبقاً"), 409
                 flash("هذا اللون موجود مسبقاً (DB)", "warning")
 
             except Exception:
                 db.session.rollback()
+                if is_ajax:
+                    return jsonify(success=False, message="حدث خطأ أثناء الحفظ"), 500
                 flash("حدث خطأ أثناء الحفظ", "danger")
-
-            log_activity(
-                current_user.id,
-                "ADD_COLOR",
-                f"اضافة اللون: {color.name}"
-            )
 
             return redirect(url_for("add_color"))
 
@@ -81,15 +98,13 @@ def register_color_routes(app):
 
         color = Color.query.get_or_404(color_id)
 
-        name = request.form.get("name", "").strip()
+        result = validate_color_name(request.form.get("name", ""))
 
-        if not name:
-            flash("اسم اللون مطلوب", "danger")
+        if not result.valid:
+            flash(result.message, "danger")
             return redirect(url_for("add_color"))
 
-        if len(name) > 50:
-            flash("اسم اللون طويل جداً", "danger")
-            return redirect(url_for("add_color"))
+        name = result.data
 
         exists = Color.query.filter(
             Color.name == name,
@@ -109,6 +124,40 @@ def register_color_routes(app):
         )
 
         flash("تم تعديل اللون بنجاح", "success")
+        return redirect(url_for("add_color"))
+
+
+    # =========================
+    # DELETE
+    # =========================
+    @app.route("/color/<int:color_id>/delete", methods=["POST"])
+    @login_required
+    @admin_required
+    def delete_color(color_id):
+
+        if not ensure_system_ready():
+            return redirect(url_for("dashboard"))
+
+        color = Color.query.get_or_404(color_id)
+
+        in_use = Product.query.filter_by(color_id=color.id).first() is not None
+
+        if in_use:
+            flash("لا يمكن حذف لون مستخدم في منتجات", "danger")
+            return redirect(url_for("add_color"))
+
+        name = color.name
+
+        db.session.delete(color)
+        db.session.commit()
+
+        log_activity(
+            current_user.id,
+            "DELETE_COLOR",
+            f"حذف اللون: {name}"
+        )
+
+        flash("تم حذف اللون بنجاح", "success")
         return redirect(url_for("add_color"))
 
 

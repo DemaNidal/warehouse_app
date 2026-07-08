@@ -1,0 +1,224 @@
+{% from "macros.html" import csrf %}
+
+{% extends "base.html" %}
+
+{% block title %}الإعدادات{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-center gap-3 mb-4">
+  <div class="stat-icon-box">
+    <i class="bi bi-gear fs-4"></i>
+  </div>
+  <div>
+    <h2 class="mb-0">الإعدادات</h2>
+    <small class="text-muted">إدارة المستودعات وإعدادات النظام العامة</small>
+  </div>
+</div>
+
+<!-- ================= QUICK LINKS ================= -->
+<div class="row g-3 mb-4">
+
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('add_color') }}" class="text-decoration-none">
+      <div class="card shadow-sm h-100 text-center">
+        <div class="card-body">
+          <i class="bi bi-palette fs-3 text-primary"></i>
+          <div class="fw-semibold mt-2">الألوان</div>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('add_size') }}" class="text-decoration-none">
+      <div class="card shadow-sm h-100 text-center">
+        <div class="card-body">
+          <i class="bi bi-rulers fs-3 text-primary"></i>
+          <div class="fw-semibold mt-2">الأحجام</div>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('user_list') }}" class="text-decoration-none">
+      <div class="card shadow-sm h-100 text-center">
+        <div class="card-body">
+          <i class="bi bi-people-fill fs-3 text-primary"></i>
+          <div class="fw-semibold mt-2">المستخدمون</div>
+        </div>
+      </div>
+    </a>
+  </div>
+
+  <div class="col-6 col-md-3">
+    <a href="{{ url_for('backups') }}" class="text-decoration-none">
+      <div class="card shadow-sm h-100 text-center">
+        <div class="card-body">
+          <i class="bi bi-database fs-3 text-primary"></i>
+          <div class="fw-semibold mt-2">النسخ الاحتياطية</div>
+        </div>
+      </div>
+    </a>
+  </div>
+
+</div>
+
+<!-- ================= ADD WAREHOUSE ================= -->
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+
+    <h4 class="mb-3"><i class="bi bi-building"></i> إدارة المستودعات</h4>
+
+    <form method="POST" action="{{ url_for('add_warehouse') }}">
+      {{ csrf() }}
+      <div class="row g-2">
+
+        <div class="col-md-10">
+          <input
+            type="text"
+            name="name"
+            class="form-control"
+            placeholder="أدخل اسم المستودع الجديد"
+            required
+          >
+        </div>
+
+        <div class="col-md-2">
+          <button class="btn btn-success w-100">
+            <i class="bi bi-plus-lg"></i> إضافة
+          </button>
+        </div>
+
+      </div>
+    </form>
+
+  </div>
+</div>
+
+<!-- ================= WAREHOUSE LIST ================= -->
+<div class="card shadow-sm">
+  <div class="card-body">
+
+    <h5 class="mb-3">المستودعات الحالية</h5>
+
+    {% if warehouses %}
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>اسم المستودع</th>
+            <th>عدد المواقع المرتبطة</th>
+            <th width="220">إجراءات</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for warehouse in warehouses %}
+          <tr>
+            <td>{{ warehouse.id }}</td>
+            <td>{{ warehouse.name }}</td>
+            <td>{{ warehouse.locations|length }}</td>
+            <td>
+
+              <button
+                class="btn btn-warning btn-sm"
+                data-id="{{ warehouse.id }}"
+                data-name="{{ warehouse.name }}"
+                onclick="openWarehouseModal(this)"
+              >
+                <i class="bi bi-pencil"></i> تعديل
+              </button>
+
+              <form
+                method="POST"
+                action="{{ url_for('delete_warehouse', warehouse_id=warehouse.id) }}"
+                class="d-inline"
+                onsubmit="return confirm('هل تريد حذف هذا المستودع؟');"
+              >
+                {{ csrf() }}
+                <button
+                  class="btn btn-outline-danger btn-sm"
+                  {% if warehouse.locations|length > 0 %}
+                  disabled
+                  title="لا يمكن الحذف لوجود مواقع مرتبطة"
+                  {% endif %}
+                >
+                  <i class="bi bi-trash"></i> حذف
+                </button>
+              </form>
+
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+
+      </table>
+    </div>
+
+    {% else %}
+    <div class="alert alert-info">
+      لا توجد مستودعات مضافة بعد
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<!-- ================= EDIT WAREHOUSE MODAL ================= -->
+<div class="modal fade" id="editWarehouseModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <form method="POST" id="editWarehouseForm">
+        {{ csrf() }}
+
+        <div class="modal-header">
+          <h5 class="modal-title">تعديل المستودع</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <div class="modal-body">
+          <label class="form-label">اسم المستودع</label>
+          <input
+            type="text"
+            name="name"
+            id="warehouse_name"
+            class="form-control"
+            required
+          >
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-primary">حفظ</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+        </div>
+
+      </form>
+
+    </div>
+  </div>
+</div>
+
+<script>
+function openWarehouseModal(btn) {
+
+  const id = btn.getAttribute("data-id");
+  const name = btn.getAttribute("data-name");
+
+  document.getElementById("warehouse_name").value = name;
+
+  document.getElementById("editWarehouseForm").action =
+    "/settings/warehouse/" + id + "/edit";
+
+  new bootstrap.Modal(
+    document.getElementById("editWarehouseModal")
+  ).show();
+}
+</script>
+
+{% endblock %}

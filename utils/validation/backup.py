@@ -1,3 +1,5 @@
+import hmac
+
 from .base import success, fail
 
 
@@ -6,7 +8,7 @@ def validate_restore(secret, file, expected_secret):
     if not secret:
         return fail("Restore secret is required")
 
-    if secret != expected_secret:
+    if not hmac.compare_digest(secret, expected_secret or ""):
         return fail("Invalid restore secret")
 
     if not file:

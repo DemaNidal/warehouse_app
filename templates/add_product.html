@@ -1,50 +1,313 @@
 {% from "macros.html" import csrf %}
 
-{% extends "base.html" %} {% block title %} إضافة منتج {% endblock %} {% block
-content %}
+{% extends "base.html" %}
+{% block title %}إضافة منتج{% endblock %}
 
-<h1>إضافة منتج</h1>
+{% block content %}
 
-<form method="POST" enctype="multipart/form-data">
-  {{ csrf() }}
-  <div class="mb-3">
-    <label>اسم المنتج</label>
-    <input type="text" name="name" class="form-control" required />
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+  <div class="d-flex align-items-center gap-3">
+    <div class="stat-icon-box">
+      <i class="bi bi-box-seam fs-4"></i>
+    </div>
+    <div>
+      <h2 class="mb-0">إضافة منتج جديد</h2>
+      <small class="text-muted">أدخل بيانات المنتج ثم اضغط حفظ</small>
+    </div>
   </div>
 
-  <div class="mb-3">
-    <label>اللون</label>
+  <a href="{{ url_for('product_list') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-right"></i> رجوع للمنتجات
+  </a>
+</div>
 
-    <select name="color_id" class="form-select" required>
-      <option value="">اختر اللون</option>
+<div class="card shadow-sm">
+  <div class="card-body p-4">
 
-      {% for color in colors %}
-      <option value="{{ color.id }}">{{ color.name }}</option>
-      {% endfor %}
-    </select>
+    <form method="POST" enctype="multipart/form-data" novalidate>
+      {{ csrf() }}
+
+      <div class="row g-3">
+
+        <div class="col-12">
+          <label class="form-label">اسم المنتج</label>
+          <input
+            type="text"
+            name="name"
+            class="form-control"
+            placeholder="مثال: زجاجة بلاستيك 500 مل"
+            required
+          >
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">اللون</label>
+          <div class="input-group">
+            <select name="color_id" class="form-select" required>
+              <option value="">اختر اللون</option>
+              {% for color in colors %}
+              <option value="{{ color.id }}">{{ color.name }}</option>
+              {% endfor %}
+            </select>
+
+            {% if current_user.role == "ADMIN" %}
+            <button
+              type="button"
+              class="btn btn-outline-primary"
+              data-bs-toggle="modal"
+              data-bs-target="#quickAddColorModal"
+              title="إضافة لون جديد"
+            >
+              <i class="bi bi-plus-lg"></i>
+            </button>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">الحجم</label>
+          <div class="input-group">
+            <select name="size_id" class="form-select" required>
+              <option value="">اختر الحجم</option>
+              {% for size in sizes %}
+              <option value="{{ size.id }}">{{ size.name }}</option>
+              {% endfor %}
+            </select>
+
+            {% if current_user.role == "ADMIN" %}
+            <button
+              type="button"
+              class="btn btn-outline-primary"
+              data-bs-toggle="modal"
+              data-bs-target="#quickAddSizeModal"
+              title="إضافة حجم جديد"
+            >
+              <i class="bi bi-plus-lg"></i>
+            </button>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">الحد الأدنى من المخزون</label>
+          <input
+            type="number"
+            name="minimum_stock"
+            class="form-control"
+            min="0"
+            placeholder="مثال: 10"
+            required
+          >
+          <div class="form-text">يتم تنبيهك عند وصول الكمية لهذا الحد</div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">صورة المنتج</label>
+          <input
+            type="file"
+            name="image"
+            id="productImageInput"
+            class="form-control"
+            accept="image/png,image/jpeg,image/webp"
+          >
+          <div class="form-text">الصيغ المدعومة: PNG، JPG، WEBP</div>
+        </div>
+
+        <div class="col-12" id="imagePreviewWrapper" style="display:none;">
+          <div
+            class="product-image-wrapper"
+            style="max-width:200px; border:1px solid var(--border); border-radius:14px;"
+          >
+            <div class="product-image-inner">
+              <img id="imagePreview" class="product-image" alt="معاينة الصورة">
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <hr class="my-4">
+
+      <div class="d-flex gap-2">
+        <button class="btn btn-success px-4">
+          <i class="bi bi-check-lg"></i> حفظ المنتج
+        </button>
+        <a href="{{ url_for('product_list') }}" class="btn btn-light border">
+          إلغاء
+        </a>
+      </div>
+
+    </form>
+
   </div>
+</div>
 
-  <div class="mb-3">
-    <label>الحجم</label>
-    <select name="size_id" class="form-select" required>
-      <option value="">اختر الحجم</option>
+{% if current_user.role == "ADMIN" %}
 
-      {% for size in sizes %}
-      <option value="{{ size.id }}">{{ size.name }}</option>
-      {% endfor %}
-    </select>
+<!-- ================= QUICK ADD COLOR MODAL ================= -->
+<div class="modal fade" id="quickAddColorModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-palette"></i> إضافة لون جديد</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <label class="form-label" for="quickColorName">اسم اللون</label>
+        <input
+          type="text"
+          id="quickColorName"
+          class="form-control"
+          placeholder="مثال: أحمر"
+          onkeydown="if(event.key==='Enter'){event.preventDefault(); quickAddColor();}"
+        >
+        <div class="text-danger small mt-2 d-none" id="quickColorError"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+        <button type="button" class="btn btn-success" id="quickColorSaveBtn" onclick="quickAddColor()">
+          <i class="bi bi-check-lg"></i> حفظ
+        </button>
+      </div>
+
+    </div>
   </div>
-    <div class="mb-3">
-    <label>الحد الأدنى من المخزون</label>
-    <input type="number" name="minimum_stock" class="form-control" required />
-  </div>
+</div>
 
-  <div class="mb-3">
-    <label>الصورة</label>
-    <input type="file" name="image" class="form-control" />
-  </div>
+<!-- ================= QUICK ADD SIZE MODAL ================= -->
+<div class="modal fade" id="quickAddSizeModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
 
-  <button class="btn btn-success">حفظ المنتج</button>
-</form>
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-rulers"></i> إضافة حجم جديد</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <label class="form-label" for="quickSizeName">اسم الحجم</label>
+        <input
+          type="text"
+          id="quickSizeName"
+          class="form-control"
+          placeholder="مثال: 500 مل"
+          onkeydown="if(event.key==='Enter'){event.preventDefault(); quickAddSize();}"
+        >
+        <div class="text-danger small mt-2 d-none" id="quickSizeError"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+        <button type="button" class="btn btn-success" id="quickSizeSaveBtn" onclick="quickAddSize()">
+          <i class="bi bi-check-lg"></i> حفظ
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+{% endif %}
+
+<script>
+const CSRF_TOKEN = "{{ csrf_token() }}";
+
+// ---- image preview ----
+document.getElementById("productImageInput").addEventListener("change", function (e) {
+  const file = e.target.files[0];
+  const wrapper = document.getElementById("imagePreviewWrapper");
+  const preview = document.getElementById("imagePreview");
+
+  if (!file) {
+    wrapper.style.display = "none";
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function (evt) {
+    preview.src = evt.target.result;
+    wrapper.style.display = "block";
+  };
+  reader.readAsDataURL(file);
+});
+
+// ---- quick add (color / size) ----
+async function quickAdd(url, name, selectEl, errorEl, modalId, inputEl, btn) {
+  errorEl.classList.add("d-none");
+
+  if (!name.trim()) {
+    errorEl.textContent = "الاسم مطلوب";
+    errorEl.classList.remove("d-none");
+    return;
+  }
+
+  btn.disabled = true;
+
+  try {
+    const resp = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-CSRFToken": CSRF_TOKEN,
+        "X-Requested-With": "XMLHttpRequest"
+      },
+      body: new URLSearchParams({ name: name })
+    });
+
+    const data = await resp.json();
+
+    if (!resp.ok || !data.success) {
+      errorEl.textContent = data.message || "حدث خطأ، حاول مرة أخرى";
+      errorEl.classList.remove("d-none");
+      return;
+    }
+
+    const option = document.createElement("option");
+    option.value = data.id;
+    option.textContent = data.name;
+    option.selected = true;
+    selectEl.appendChild(option);
+
+    inputEl.value = "";
+    bootstrap.Modal.getInstance(document.getElementById(modalId)).hide();
+
+  } catch (err) {
+    errorEl.textContent = "تعذر الاتصال بالخادم";
+    errorEl.classList.remove("d-none");
+
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+function quickAddColor() {
+  const input = document.getElementById("quickColorName");
+  quickAdd(
+    "{{ url_for('add_color') }}",
+    input.value,
+    document.querySelector("select[name='color_id']"),
+    document.getElementById("quickColorError"),
+    "quickAddColorModal",
+    input,
+    document.getElementById("quickColorSaveBtn")
+  );
+}
+
+function quickAddSize() {
+  const input = document.getElementById("quickSizeName");
+  quickAdd(
+    "{{ url_for('add_size') }}",
+    input.value,
+    document.querySelector("select[name='size_id']"),
+    document.getElementById("quickSizeError"),
+    "quickAddSizeModal",
+    input,
+    document.getElementById("quickSizeSaveBtn")
+  );
+}
+</script>
 
 {% endblock %}

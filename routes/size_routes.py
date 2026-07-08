@@ -3,14 +3,16 @@ from flask import (
     request,
     redirect,
     url_for,
-    flash
+    flash,
+    jsonify
 )
 
-from models import db, Size
+from models import db, Size, Product
 from flask_login import current_user, login_required
 from utils.activity_logger import log_activity
 from utils.permissions import admin_required
 from utils.system_guard import ensure_system_ready
+from utils.validation.size import validate_size_name
 from sqlalchemy.exc import IntegrityError
 
 def register_size_routes(app):
@@ -23,24 +25,29 @@ def register_size_routes(app):
     @admin_required
     def add_size():
 
+        is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
+
         if not ensure_system_ready():
+            if is_ajax:
+                return jsonify(success=False, message="النظام قيد الاسترجاع حالياً"), 503
             return redirect(url_for("dashboard"))
 
         if request.method == "POST":
 
-            name = request.form.get("name", "").strip()
+            result = validate_size_name(request.form.get("name", ""))
 
-            if not name:
-                flash("الحجم مطلوب", "danger")
+            if not result.valid:
+                if is_ajax:
+                    return jsonify(success=False, message=result.message), 400
+                flash(result.message, "danger")
                 return redirect(url_for("add_size"))
 
-            if len(name) > 50:
-                flash("اسم الحجم طويل جداً", "danger")
-                return redirect(url_for("add_size"))
+            name = result.data
 
-            # UX check (fast fail)
             exists = Size.query.filter_by(name=name).first()
             if exists:
+                if is_ajax:
+                    return jsonify(success=False, message="هذا الحجم موجود مسبقاً"), 409
                 flash("هذا الحجم موجود مسبقاً", "warning")
                 return redirect(url_for("add_size"))
 
@@ -49,21 +56,29 @@ def register_size_routes(app):
             try:
                 db.session.add(size)
                 db.session.commit()
+
+                log_activity(
+                    current_user.id,
+                    "ADD_SIZE",
+                    f"اضافة الحجم: {size.name}"
+                )
+
+                if is_ajax:
+                    return jsonify(success=True, id=size.id, name=size.name)
+
                 flash("تمت إضافة الحجم بنجاح", "success")
 
             except IntegrityError:
                 db.session.rollback()
+                if is_ajax:
+                    return jsonify(success=False, message="هذا الحجم موجود مسبقاً"), 409
                 flash("هذا الحجم موجود مسبقاً (DB)", "warning")
 
             except Exception:
                 db.session.rollback()
+                if is_ajax:
+                    return jsonify(success=False, message="حدث خطأ أثناء الحفظ"), 500
                 flash("حدث خطأ أثناء الحفظ", "danger")
-
-            log_activity(
-                current_user.id,
-                "ADD_SIZE",
-                f"اضافة الحجم: {name}"
-            )
 
             return redirect(url_for("add_size"))
 
@@ -82,15 +97,13 @@ def register_size_routes(app):
             return redirect(url_for("dashboard"))
         size = Size.query.get_or_404(size_id)
 
-        name = request.form.get("name", "").strip()
+        result = validate_size_name(request.form.get("name", ""))
 
-        if not name:
-            flash("الحجم مطلوب", "danger")
+        if not result.valid:
+            flash(result.message, "danger")
             return redirect(url_for("add_size"))
 
-        if len(name) > 50:
-            flash("اسم الحجم طويل جداً", "danger")
-            return redirect(url_for("add_size"))
+        name = result.data
 
         exists = Size.query.filter(
             Size.name == name,
@@ -110,4 +123,38 @@ def register_size_routes(app):
             "EDIT_SIZE",
             f"تعديل الحجم: {size.name}"
         )
+        return redirect(url_for("add_size"))
+
+
+    # =========================
+    # DELETE
+    # =========================
+    @app.route("/size/<int:size_id>/delete", methods=["POST"])
+    @login_required
+    @admin_required
+    def delete_size(size_id):
+
+        if not ensure_system_ready():
+            return redirect(url_for("dashboard"))
+
+        size = Size.query.get_or_404(size_id)
+
+        in_use = Product.query.filter_by(size_id=size.id).first() is not None
+
+        if in_use:
+            flash("لا يمكن حذف حجم مستخدم في منتجات", "danger")
+            return redirect(url_for("add_size"))
+
+        name = size.name
+
+        db.session.delete(size)
+        db.session.commit()
+
+        log_activity(
+            current_user.id,
+            "DELETE_SIZE",
+            f"حذف الحجم: {name}"
+        )
+
+        flash("تم حذف الحجم بنجاح", "success")
         return redirect(url_for("add_size"))
