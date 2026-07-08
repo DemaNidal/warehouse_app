@@ -17,11 +17,13 @@ from flask_login import (
 from models import User
 from utils.activity_logger import log_activity
 from utils.validation.auth import validate_login
+from extensions import limiter
 
 
 def register_auth_routes(app):
 
     @app.route("/login", methods=["GET", "POST"])
+    @limiter.limit("5 per minute")
     def login():
 
         if request.method == "POST":

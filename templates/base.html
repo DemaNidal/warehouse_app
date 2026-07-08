@@ -744,11 +744,13 @@
                 </a>
               </li>
 
+              {% if current_user.is_authenticated and current_user.role == "ADMIN" %}
               <li>
-                <a class="dropdown-item" href="#">
+                <a class="dropdown-item" href="{{ url_for('settings_page') }}">
                   <i class="bi bi-gear"></i> الإعدادات
                 </a>
               </li>
+              {% endif %}
 
               <li><hr class="dropdown-divider"></li>
 

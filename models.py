@@ -34,6 +34,13 @@ class Color(db.Model):
         nullable=False
     )
 
+    products = db.relationship(
+        "Product",
+        backref="color_data",
+        lazy=True,
+        viewonly=True
+    )
+
 class Size(db.Model):
 
     id = db.Column(

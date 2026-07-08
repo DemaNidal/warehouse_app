@@ -73,6 +73,14 @@ def export_uploads(temp_dir):
         shutil.copytree(UPLOAD_FOLDER, uploads_dst, dirs_exist_ok=True)
 
 
+def restore_uploads(temp_dir):
+
+    uploads_src = os.path.join(temp_dir, "uploads")
+
+    if os.path.exists(uploads_src):
+        shutil.copytree(uploads_src, UPLOAD_FOLDER, dirs_exist_ok=True)
+
+
 # =========================
 # METADATA
 # =========================

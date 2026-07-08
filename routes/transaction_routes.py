@@ -4,7 +4,8 @@ from flask import (
     redirect,
     url_for,
     abort,
-    flash
+    flash,
+    current_app
 )
 
 from flask_login import login_required, current_user
@@ -156,6 +157,7 @@ def register_transaction_routes(app):
 
             except Exception:
                 db.session.rollback()
+                current_app.logger.exception("Transaction failed for product %s", product.id)
                 flash("حدث خطأ أثناء العملية", "danger")
                 return redirect(url_for("add_transaction", product_id=product.id))
 

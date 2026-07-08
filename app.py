@@ -23,9 +23,6 @@ from routes.dashboard_routes import register_dashboard_routes
 from routes.transaction_routes import (
     register_transaction_routes
 )
-from routes.create_admin_route import (
-    register_create_admin_route
-)
 from utils.context_processors import register_context_processors
 from routes.user_routes import register_user_routes
 from routes.transfer_routes import register_transfer_routes
@@ -35,9 +32,12 @@ from routes.backup_routes import (
     register_backup_routes
 )
 from routes.notifications_routes import register_notifications_routes
+from routes.settings_routes import register_settings_routes
 from flask_wtf.csrf import CSRFProtect
+import click
 import config
 from flask_migrate import Migrate
+from extensions import limiter
 
 
 
@@ -51,8 +51,11 @@ login_manager.init_app(app)
 
 login_manager.login_view = "login"
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=8)
-app.secret_key = os.getenv("SECRET_KEY")
+if not config.SECRET_KEY:
+    raise RuntimeError("SECRET_KEY environment variable must be set")
+app.secret_key = config.SECRET_KEY
 csrf.init_app(app)
+limiter.init_app(app)
 app.config["SQLALCHEMY_DATABASE_URI"] = config.DATABASE_URL
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["UPLOAD_FOLDER"] = "uploads"
@@ -122,13 +125,42 @@ register_transaction_routes(app)
 register_transfer_routes(app)
 register_size_routes(app)
 register_auth_routes(app)
-register_create_admin_route(app)
 register_user_routes(app)
 register_activity_routes(app)
 register_backup_routes(app)
 register_notifications_routes(app)
 register_context_processors(app)
 register_requests_routes(app)
+register_settings_routes(app)
+
+
+@app.cli.command("create-admin")
+def create_admin():
+    """Create the initial ADMIN user (refuses if one already exists)."""
+
+    existing_user = User.query.filter_by(role="ADMIN").first()
+
+    if existing_user:
+        click.echo(f"An ADMIN user already exists: {existing_user.username}")
+        return
+
+    username = click.prompt("Admin username")
+
+    password = click.prompt(
+        "Admin password",
+        hide_input=True,
+        confirmation_prompt=True
+    )
+
+    user = User(username=username, role="ADMIN")
+    user.set_password(password)
+
+    db.session.add(user)
+    db.session.commit()
+
+    click.echo(f"Admin user '{username}' created.")
+
+
 if __name__ == "__main__":
-    
+
     app.run(host="0.0.0.0")

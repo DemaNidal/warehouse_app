@@ -2,35 +2,52 @@
 
 {% extends "base.html" %}
 
-{% block title %}
-إدارة الأحجام
-{% endblock %}
+{% block title %}إدارة الأحجام{% endblock %}
 
 {% block content %}
+
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+  <div class="d-flex align-items-center gap-3">
+    <div class="stat-icon-box">
+      <i class="bi bi-rulers fs-4"></i>
+    </div>
+    <div>
+      <h2 class="mb-0">إدارة الأحجام</h2>
+      <small class="text-muted">إضافة وتعديل الأحجام المستخدمة في المنتجات</small>
+    </div>
+  </div>
+
+  <a href="{{ url_for('settings_page') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-right"></i> رجوع للإعدادات
+  </a>
+</div>
 
 <!-- ================= ADD SIZE ================= -->
 <div class="card shadow-sm mb-4">
     <div class="card-body">
 
-        <h2 class="mb-4">إدارة الأحجام</h2>
+        <h5 class="mb-3">إضافة حجم جديد</h5>
 
         <form method="POST" action="{{ url_for('add_size') }}">
             {{ csrf() }}
-            <div class="row">
+            <div class="row g-2">
 
                 <div class="col-md-10">
-                    <input
-                        type="text"
-                        name="name"
-                        class="form-control"
-                        placeholder="أدخل الحجم"
-                        required
-                    >
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-rulers"></i></span>
+                        <input
+                            type="text"
+                            name="name"
+                            class="form-control"
+                            placeholder="مثال: 500 مل"
+                            required
+                        >
+                    </div>
                 </div>
 
                 <div class="col-md-2">
                     <button class="btn btn-success w-100">
-                        إضافة
+                        <i class="bi bi-plus-lg"></i> إضافة
                     </button>
                 </div>
 
@@ -45,17 +62,33 @@
 <div class="card shadow-sm">
     <div class="card-body">
 
-        <h4 class="mb-3">الأحجام الحالية</h4>
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+            <h5 class="mb-0">الأحجام الحالية <span class="badge bg-secondary">{{ sizes|length }}</span></h5>
+
+            {% if sizes %}
+            <div style="max-width:260px; width:100%;">
+                <input
+                    type="text"
+                    id="sizeSearchInput"
+                    class="form-control form-control-sm"
+                    placeholder="بحث عن حجم..."
+                    onkeyup="filterTable('sizeSearchInput', 'sizesTable')"
+                >
+            </div>
+            {% endif %}
+        </div>
 
         {% if sizes %}
 
-        <table class="table table-hover align-middle">
+        <div class="table-responsive">
+        <table class="table table-hover align-middle" id="sizesTable">
 
             <thead>
                 <tr>
                     <th>#</th>
                     <th>الحجم</th>
-                    <th width="200">إجراءات</th>
+                    <th>عدد المنتجات المرتبطة</th>
+                    <th width="220">إجراءات</th>
                 </tr>
             </thead>
 
@@ -66,6 +99,11 @@
 
                     <td>{{ size.id }}</td>
                     <td>{{ size.name }}</td>
+                    <td>
+                        <span class="badge {{ 'bg-light text-dark' if size.products|length == 0 else 'bg-primary' }}">
+                            {{ size.products|length }}
+                        </span>
+                    </td>
 
                     <td>
 
@@ -76,9 +114,27 @@
                             data-name="{{ size.name }}"
                             onclick="openEditModal(this)"
                         >
-                            تعديل
+                            <i class="bi bi-pencil"></i> تعديل
                         </button>
 
+                        <!-- DELETE BUTTON -->
+                        <form
+                            method="POST"
+                            action="{{ url_for('delete_size', size_id=size.id) }}"
+                            class="d-inline"
+                            onsubmit="return confirm('هل تريد حذف هذا الحجم؟');"
+                        >
+                            {{ csrf() }}
+                            <button
+                                class="btn btn-outline-danger btn-sm"
+                                {% if size.products|length > 0 %}
+                                disabled
+                                title="لا يمكن الحذف لاستخدامه في منتجات"
+                                {% endif %}
+                            >
+                                <i class="bi bi-trash"></i> حذف
+                            </button>
+                        </form>
 
                     </td>
 
@@ -88,6 +144,7 @@
             </tbody>
 
         </table>
+        </div>
 
         {% else %}
         <div class="alert alert-info">
@@ -108,7 +165,7 @@
             <form method="POST" id="editSizeForm">
                 {{ csrf() }}
                 <div class="modal-header">
-                    <h5 class="modal-title">تعديل الحجم</h5>
+                    <h5 class="modal-title"><i class="bi bi-rulers"></i> تعديل الحجم</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
 
@@ -161,6 +218,16 @@ function openEditModal(btn) {
     new bootstrap.Modal(
         document.getElementById('editSizeModal')
     ).show();
+}
+
+function filterTable(inputId, tableId) {
+    const filter = document.getElementById(inputId).value.trim().toLowerCase();
+    const rows = document.getElementById(tableId).querySelectorAll("tbody tr");
+
+    rows.forEach(row => {
+        const text = row.children[1].textContent.toLowerCase();
+        row.style.display = text.includes(filter) ? "" : "none";
+    });
 }
 </script>
 

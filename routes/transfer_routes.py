@@ -5,7 +5,8 @@ from flask import (
     request,
     redirect,
     url_for,
-    flash
+    flash,
+    current_app
 )
 from flask_login import login_required, current_user
 
@@ -103,6 +104,7 @@ def register_transfer_routes(app):
 
             except Exception:
                 db.session.rollback()
+                current_app.logger.exception("Transfer failed for product %s", product.id)
                 flash("حدث خطأ أثناء التحويل", "danger")
                 return redirect(url_for("transfer_stock", product_id=product.id))
 

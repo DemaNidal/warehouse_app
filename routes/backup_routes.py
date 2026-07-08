@@ -19,11 +19,28 @@ import zipfile
 from werkzeug.utils import secure_filename
 
 from models import db
-from utils.backup import create_backup_zip, get_backup_files, restore_database
+from utils.backup import (
+    create_backup_zip,
+    get_backup_files,
+    restore_database,
+    restore_uploads
+)
 from utils.permissions import admin_required
 from utils.activity_logger import log_activity
 from utils.validation.backup import validate_restore
 import config
+
+
+def _safe_extract(zip_ref, target_dir):
+    target_root = os.path.realpath(target_dir)
+
+    for name in zip_ref.namelist():
+        resolved = os.path.realpath(os.path.join(target_dir, name))
+
+        if resolved != target_root and not resolved.startswith(target_root + os.sep):
+            raise ValueError(f"Unsafe path in backup archive: {name}")
+
+    zip_ref.extractall(target_dir)
 
 
 BACKUP_FOLDER = "backups"
@@ -136,10 +153,12 @@ def register_backup_routes(app):
         shutil.rmtree(TEMP_DIR, ignore_errors=True)
         os.makedirs(TEMP_DIR, exist_ok=True)
 
+        config.RESTORE_IN_PROGRESS = True
+
         try:
 
             with zipfile.ZipFile(temp_zip_path, "r") as zip_ref:
-                zip_ref.extractall(TEMP_DIR)
+                _safe_extract(zip_ref, TEMP_DIR)
 
             data_dir = os.path.join(TEMP_DIR, "data")
 
@@ -169,6 +188,8 @@ def register_backup_routes(app):
             flash(f"Restore failed: {e}", "danger")
 
         finally:
+            config.RESTORE_IN_PROGRESS = False
+
             shutil.rmtree(TEMP_DIR, ignore_errors=True)
 
             if os.path.exists(temp_zip_path):
