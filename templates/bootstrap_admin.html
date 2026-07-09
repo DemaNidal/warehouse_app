@@ -1,0 +1,130 @@
+{% from "macros.html" import csrf %}
+
+{% extends "auth_base.html" %}
+
+{% block title %}
+إنشاء حساب الأدمن
+{% endblock %}
+
+{% block content %}
+
+<div class="auth-panel">
+
+    <div class="auth-brand-side">
+        <div class="brand-mark">
+            <img src="{{ url_for('static', filename='icons/Logo.png') }}" alt="Logo">
+            <span>الابراهيم بلاست</span>
+        </div>
+
+        <div class="brand-headline">
+            <h2>إعداد أول حساب أدمن</h2>
+            <p>هذه الخطوة تعمل مرة واحدة فقط، وتحتاج الرمز السري من ملف الإعدادات على السيرفر.</p>
+        </div>
+
+        <div class="brand-foot">
+            جميع الحقوق محفوظة &copy; الابراهيم بلاست
+        </div>
+    </div>
+
+    <div class="auth-form-side">
+        <div class="auth-form-card">
+
+            <div class="auth-brand-mobile d-md-none">
+                <img src="{{ url_for('static', filename='icons/Logo.png') }}" alt="Logo" height="40">
+                <div>
+                    <div class="auth-title">الابراهيم بلاست</div>
+                </div>
+            </div>
+
+            <div class="auth-title">
+                إنشاء حساب الأدمن
+            </div>
+            <div class="auth-subtitle">
+                خطوة تشغّل مرة واحدة فقط لإنشاء أول حساب أدمن في النظام
+            </div>
+
+            <form method="POST">
+                {{ csrf() }}
+
+                <div class="mb-3">
+                    <label class="form-label">الرمز السري</label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="bi bi-shield-lock"></i>
+                        </span>
+                        <input
+                            type="password"
+                            name="secret"
+                            class="form-control"
+                            placeholder="BOOTSTRAP_ADMIN_SECRET"
+                            required
+                            autofocus
+                        >
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">اسم المستخدم</label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="bi bi-person"></i>
+                        </span>
+                        <input
+                            type="text"
+                            name="username"
+                            class="form-control"
+                            placeholder="اسم المستخدم"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">كلمة المرور</label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="bi bi-lock"></i>
+                        </span>
+                        <input
+                            type="password"
+                            name="password"
+                            class="form-control"
+                            placeholder="8 أحرف على الأقل"
+                            required
+                            minlength="8"
+                        >
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">تأكيد كلمة المرور</label>
+                    <div class="input-group">
+                        <span class="input-group-text">
+                            <i class="bi bi-lock-fill"></i>
+                        </span>
+                        <input
+                            type="password"
+                            name="confirm_password"
+                            class="form-control"
+                            placeholder="أعد كتابة كلمة المرور"
+                            required
+                            minlength="8"
+                        >
+                    </div>
+                </div>
+
+                <button class="btn btn-auth-primary w-100">
+                    إنشاء الحساب
+                </button>
+            </form>
+
+            <div class="auth-note">
+                هذا الرابط يتعطل تلقائياً بعد إنشاء أول حساب أدمن.
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}
