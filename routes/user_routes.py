@@ -12,6 +12,7 @@ from models import db, User
 from utils.activity_logger import log_activity
 from utils.permissions import admin_required
 from utils.system_guard import ensure_system_ready
+from utils.validation.user import validate_add_user
 
 
 def register_user_routes(app):
@@ -40,22 +41,31 @@ def register_user_routes(app):
 
         if request.method == "POST":
 
-            username = request.form["username"].strip()
-            password = request.form["password"]
-            role = request.form["role"]
+            result = validate_add_user(
+                request.form.get("username", ""),
+                request.form.get("password", ""),
+                request.form.get("confirm_password", ""),
+                request.form.get("role", "")
+            )
 
-            exists = User.query.filter_by(username=username).first()
+            if not result.valid:
+                flash(result.message, "danger")
+                return redirect(url_for("add_user"))
+
+            data = result.data
+
+            exists = User.query.filter_by(username=data["username"]).first()
 
             if exists:
                 flash("اسم المستخدم موجود", "danger")
                 return redirect(url_for("add_user"))
 
             user = User(
-                username=username,
-                role=role
+                username=data["username"],
+                role=data["role"]
             )
 
-            user.set_password(password)
+            user.set_password(data["password"])
 
             db.session.add(user)
             db.session.commit()

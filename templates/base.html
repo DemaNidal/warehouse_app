@@ -418,6 +418,38 @@
       color: var(--primary);
     }
 
+    /* Role picker (add/edit user) */
+    .role-option-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      border: 1.5px solid var(--border);
+      border-radius: 14px;
+      padding: 14px 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: .15s ease;
+      background: white;
+      width: 100%;
+    }
+
+    .role-option-card i {
+      font-size: 1.4rem;
+      color: #94a3b8;
+      margin-bottom: 4px;
+    }
+
+    .btn-check:checked + .role-option-card {
+      border-color: var(--primary);
+      background: rgba(30, 58, 95, 0.06);
+      box-shadow: 0 0 0 2px rgba(30, 58, 95, 0.12);
+    }
+
+    .btn-check:checked + .role-option-card i {
+      color: var(--primary);
+    }
+
     /* Brand-matched pagination */
     .pagination .page-link {
       border: none;
