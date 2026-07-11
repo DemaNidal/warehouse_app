@@ -8,7 +8,7 @@ from flask import (
     send_from_directory
 )
 
-from models import db, Warehouse, User
+from models import db, Warehouse, User, Product
 from flask_login import LoginManager, login_required
 from routes.auth_routes import (
     register_auth_routes
@@ -113,9 +113,15 @@ def home():
         Warehouse.name
     ).all()
 
+    product_count = Product.query.count()
+
+    greeting = "صباح الخير" if datetime.now().hour < 12 else "مساء الخير"
+
     return render_template(
         "index.html",
-        warehouses=warehouses
+        warehouses=warehouses,
+        product_count=product_count,
+        greeting=greeting
     )
 
 

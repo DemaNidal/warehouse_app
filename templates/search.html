@@ -6,44 +6,45 @@
 
 {% block content %}
 
-<div class="bg-light border rounded-3 p-4 mb-4">
-
-    <div class="d-flex justify-content-between align-items-center">
-
-        <div>
-            <h2 class="fw-bold mb-1">نتائج البحث</h2>
-
-            <div class="text-secondary">
-                {% if q %}
-                    البحث: <strong>{{ q }}</strong>
-                {% else %}
-                    عرض جميع المنتجات
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="text-center">
-            <div class="text-muted small">النتائج</div>
-
-            <div class="fw-bold" style="font-size:40px; color:#198754;">
-                {{ total_count }}
-            </div>
-        </div>
-
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+  <div class="d-flex align-items-center gap-3">
+    <div class="stat-icon-box">
+      <i class="bi bi-search fs-4"></i>
     </div>
+    <div>
+      <h2 class="mb-0">نتائج البحث</h2>
+      <small class="text-muted">
+        {% if q %}
+        البحث عن: <strong>{{ q }}</strong>
+        {% else %}
+        عرض جميع المنتجات
+        {% endif %}
+        {% if selected_warehouse and warehouses %}
+        {% for w in warehouses %}{% if w.id == selected_warehouse %} &middot; المستودع: <strong>{{ w.name }}</strong>{% endif %}{% endfor %}
+        {% endif %}
+      </small>
+    </div>
+  </div>
+
+  <span class="badge bg-primary-subtle text-primary-emphasis fs-6 px-3 py-2 rounded-pill">
+    {{ total_count }} نتيجة
+  </span>
 </div>
 
 {% if products %}
 
-<div class="row">
+<div class="row g-4">
 
     {% for product in products %}
 
-    <div class="col-lg-4 col-md-6 mb-4">
+    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
 
-        <div class="card h-100 shadow-sm border-0">
+        <div class="card product-card h-100 status-{{ product.stock_status|lower }}">
+
+            <div class="product-status-strip"></div>
 
             <div class="product-image-wrapper">
+
                 {% if product.image %}
                 <div class="product-image-inner">
                   <img
@@ -58,55 +59,53 @@
                 </div>
                 {% endif %}
 
-                {% if product.price %}
-                <span class="price-badge">{{ product.price }}$</span>
-                {% endif %}
-
                 <span class="badge-color">{{ product.color.name }}</span>
+
             </div>
 
             <div class="card-body">
 
-                <h5 class="fw-bold mb-2">{{ product.name }}</h5>
+                <h5 class="fw-bold mb-1 product-title" title="{{ product.name }}">{{ product.name }}</h5>
 
-                <span class="badge bg-danger mb-2">
-                    {{ product.color.name }}
-                </span>
+                <div class="product-meta-grid">
 
-                <p class="mb-2">
-                    <strong>الحجم:</strong>
-                    {{ product.size_data.name if product.size_data else "-" }}
-                </p>
-
-                {% set total = product.locations | sum(attribute='quantity') %}
-
-                <div class="row text-center mt-3">
-
-                    <div class="col-6">
-                        <div class="border rounded p-2">
-                            <div class="text-muted small">الكمية</div>
-                            <div class="fw-bold text-success fs-5">
-                                {{ total }}
-                            </div>
+                    <div class="meta-item">
+                        <span class="label">الحجم</span>
+                        <div class="value">
+                            {{ product.size_data.name if product.size_data else "-" }}
                         </div>
                     </div>
 
-                    <div class="col-6">
-                        <div class="border rounded p-2">
-                            <div class="text-muted small">المواقع</div>
-                            <div class="fw-bold fs-5">
-                                {{ product.locations|length }}
-                            </div>
+                    <div class="meta-item meta-qty">
+                        <span class="label">الكمية</span>
+                        <div class="value status-{{ product.stock_status|lower }}">{{ product.total_quantity }}</div>
+                    </div>
+
+                    <div class="meta-item">
+                        <span class="label">الحالة</span>
+                        <div class="value">
+                            {% if product.stock_status == "CRITICAL" %}
+                            <span class="badge bg-danger">نفد</span>
+                            {% elif product.stock_status == "LOW" %}
+                            <span class="badge bg-warning text-dark">منخفض</span>
+                            {% else %}
+                            <span class="badge bg-success">متوفر</span>
+                            {% endif %}
                         </div>
+                    </div>
+
+                    <div class="meta-item">
+                        <span class="label">المواقع</span>
+                        <div class="value">{{ product.locations|length }}</div>
                     </div>
 
                 </div>
 
             </div>
 
-            <div class="card-footer bg-white border-0">
-                <a href="/product/{{ product.id }}"
-                   class="btn btn-primary w-100">
+            <div class="card-footer">
+                <a href="/product/{{ product.id }}" class="btn btn-outline-primary w-100">
+                    <i class="bi bi-eye"></i>
                     عرض التفاصيل
                 </a>
             </div>
@@ -120,41 +119,52 @@
 </div>
 
 <!-- ================= PAGINATION ================= -->
-<nav>
-  <ul class="pagination">
+{% if pagination.pages > 1 %}
 
-    {% if pagination.has_prev %}
-      <li class="page-item">
-        <a class="page-link"
-           href="?q={{ q }}&warehouse_id={{ selected_warehouse }}&page={{ pagination.prev_num }}">
-          السابق
-        </a>
-      </li>
-    {% endif %}
+<nav class="mt-4">
+    <ul class="pagination justify-content-center flex-wrap">
 
-    <li class="page-item active">
-      <span class="page-link">
-        {{ pagination.page }}
-      </span>
-    </li>
+        {% if pagination.has_prev %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('search', q=q, warehouse_id=selected_warehouse, page=pagination.prev_num) }}">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+        {% endif %}
 
-    {% if pagination.has_next %}
-      <li class="page-item">
-        <a class="page-link"
-           href="?q={{ q }}&warehouse_id={{ selected_warehouse }}&page={{ pagination.next_num }}">
-          التالي
-        </a>
-      </li>
-    {% endif %}
+        {% for page in pagination.iter_pages() %}
+            {% if page %}
+            <li class="page-item {% if page == pagination.page %}active{% endif %}">
+                <a class="page-link" href="{{ url_for('search', q=q, warehouse_id=selected_warehouse, page=page) }}">
+                    {{ page }}
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+            {% endif %}
+        {% endfor %}
 
-  </ul>
+        {% if pagination.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="{{ url_for('search', q=q, warehouse_id=selected_warehouse, page=pagination.next_num) }}">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+        {% endif %}
+
+    </ul>
 </nav>
+
+{% endif %}
 
 {% else %}
 
-<div class="alert alert-warning text-center">
-    <h5>لا توجد نتائج</h5>
-    <p class="mb-0">جرّب كلمة مختلفة أو فلتر آخر.</p>
+<div class="card border-0 shadow-sm rounded-4">
+    <div class="card-body text-center py-5">
+        <i class="bi bi-search fs-1 text-muted"></i>
+        <h5 class="mt-3">لا توجد نتائج</h5>
+        <p class="text-muted mb-0">جرّب كلمة مختلفة أو فلتر آخر</p>
+    </div>
 </div>
 
 {% endif %}

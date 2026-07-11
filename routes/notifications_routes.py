@@ -3,7 +3,8 @@ from flask import (
     redirect,
     url_for,
     abort,
-    request
+    request,
+    flash
 )
 
 from flask_login import (
@@ -23,7 +24,9 @@ def register_notifications_routes(app):
     @login_required
     def notifications():
 
-        filter_type = request.args.get("filter")
+        filter_type = request.args.get("filter", "")
+
+        page = request.args.get("page", 1, type=int)
 
         query = Notification.query.filter_by(
             user_id=current_user.id
@@ -39,14 +42,44 @@ def register_notifications_routes(app):
                 Notification.type.in_(["LOW", "CRITICAL"])
             )
 
-        notifications = query.order_by(
+        pagination = query.order_by(
             Notification.created_at.desc()
-        ).all()
+        ).paginate(
+            page=page,
+            per_page=20,
+            error_out=False
+        )
+
+        unread_count = Notification.query.filter_by(
+            user_id=current_user.id,
+            is_read=False
+        ).count()
 
         return render_template(
             "notifications.html",
-            notifications=notifications
+            notifications=pagination.items,
+            pagination=pagination,
+            filter_type=filter_type,
+            unread_count=unread_count
         )
+
+    @app.route("/notifications/mark-all-read", methods=["POST"])
+    @login_required
+    def mark_all_notifications_read():
+
+        Notification.query.filter_by(
+            user_id=current_user.id,
+            is_read=False
+        ).update({"is_read": True})
+
+        db.session.commit()
+
+        flash("تم تحديد جميع الإشعارات كمقروءة", "success")
+
+        return redirect(url_for(
+            "notifications",
+            filter=request.form.get("filter") or None
+        ))
 
     @app.route("/notification/<int:id>/open")
     @login_required

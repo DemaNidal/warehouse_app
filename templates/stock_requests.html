@@ -1,9 +1,33 @@
 {% from "macros.html" import csrf %}
-{% extends "base.html" %}  
-{% block title%}Stock Requests{% endblock %} 
+{% extends "base.html" %}
+{% block title %}طلبات الإخراج{% endblock %}
 {% block content %}
 
-<div class="container-fluid">
+{% macro sort_link(key, label) %}
+{% set new_direction = 'desc' if (sort == key and direction == 'asc') else 'asc' %}
+<a
+    href="{{ url_for('stock_requests', q=q, status=status, product=product_id, user=user_id, date=date, sort=key, direction=new_direction) }}"
+    class="text-dark text-decoration-none d-inline-flex align-items-center gap-1"
+>
+    {{ label }}
+    {% if sort == key %}
+    <i class="bi bi-caret-{{ 'up' if direction == 'asc' else 'down' }}-fill small"></i>
+    {% endif %}
+</a>
+{% endmacro %}
+
+<div class="container-fluid px-0">
+
+<!-- ===================== HEADER ===================== -->
+<div class="d-flex align-items-center gap-3 mb-4">
+  <div class="stat-icon-box">
+    <i class="bi bi-clipboard-check fs-4"></i>
+  </div>
+  <div>
+    <h2 class="mb-0">طلبات الإخراج</h2>
+    <small class="text-muted">مراجعة طلبات إخراج المخزون والموافقة عليها أو رفضها</small>
+  </div>
+</div>
 
 <!-- ===================== FILTERS ===================== -->
 
@@ -19,9 +43,9 @@
             <div class="row g-3 align-items-end">
 
                 <!-- Search -->
-                <div class="col-lg-3">
+                <div class="col-md-6 col-lg-3">
                     <label class="form-label fw-semibold">
-                        بحث
+                        بحث بالمنتج
                     </label>
 
                     <div class="input-group">
@@ -40,7 +64,7 @@
                 </div>
 
                 <!-- Status -->
-                <div class="col-lg-2">
+                <div class="col-md-6 col-lg-2">
                     <label class="form-label fw-semibold">
                         الحالة
                     </label>
@@ -71,14 +95,14 @@
                 </div>
 
                 <!-- Product -->
-                <!-- <div class="col-lg-2">
+                <div class="col-md-6 col-lg-2">
                     <label class="form-label fw-semibold">
-                        Product
+                        المنتج
                     </label>
 
                     <select class="form-select" name="product">
 
-                        <option value="">All Products</option>
+                        <option value="">جميع المنتجات</option>
 
                         {% for product in products %}
 
@@ -92,10 +116,10 @@
                         {% endfor %}
 
                     </select>
-                </div> -->
+                </div>
 
                 <!-- User -->
-                <div class="col-lg-2">
+                <div class="col-md-6 col-lg-2">
                     <label class="form-label fw-semibold">
                         مطلوب بواسطة
                     </label>
@@ -119,7 +143,7 @@
                 </div>
 
                 <!-- Date -->
-                <div class="col-lg-2">
+                <div class="col-md-6 col-lg-2">
                     <label class="form-label fw-semibold">
                         التاريخ
                     </label>
@@ -133,11 +157,12 @@
                 </div>
 
                 <!-- Buttons -->
-                <div class="col-lg-1 d-grid">
+                <div class="col-md-6 col-lg-1 d-grid">
 
                     <button
                         type="submit"
                         class="btn btn-primary"
+                        title="تطبيق الفلاتر"
                     >
                         <i class="bi bi-funnel"></i>
                     </button>
@@ -171,7 +196,7 @@
 
 <div class="row g-3 mb-4">
 
-    <div class="col-lg-3 col-md-6">
+    <div class="col-6 col-lg-3">
         <div class="card border-0 shadow-sm rounded-4 h-100">
             <div class="card-body">
 
@@ -187,7 +212,7 @@
         </div>
     </div>
 
-    <div class="col-lg-3 col-md-6">
+    <div class="col-6 col-lg-3">
         <div class="card border-0 shadow-sm rounded-4 h-100">
             <div class="card-body">
 
@@ -203,7 +228,7 @@
         </div>
     </div>
 
-    <div class="col-lg-3 col-md-6">
+    <div class="col-6 col-lg-3">
         <div class="card border-0 shadow-sm rounded-4 h-100">
             <div class="card-body">
 
@@ -219,7 +244,7 @@
         </div>
     </div>
 
-    <div class="col-lg-3 col-md-6">
+    <div class="col-6 col-lg-3">
         <div class="card border-0 shadow-sm rounded-4 h-100">
             <div class="card-body">
 
@@ -239,11 +264,11 @@
 
 <!-- ===================== STATUS TABS ===================== -->
 
-<ul class="nav nav-pills mb-4">
+<div class="row row-cols-2 row-cols-sm-4 g-2 mb-4">
 
-    <li class="nav-item">
+    <div class="col">
         <a
-            class="nav-link {% if not status %}active{% endif %}"
+            class="status-tab status-tab-all {% if not status %}active{% endif %}"
             href="{{ url_for(
                 'stock_requests',
                 q=q,
@@ -254,17 +279,15 @@
                 direction=direction
             ) }}"
         >
-            جميع الطلبات
-
-            <span class="badge bg-light text-dark ms-1">
-                {{ total_count }}
-            </span>
+            <i class="bi bi-collection status-tab-icon"></i>
+            <span class="status-tab-label">جميع الطلبات</span>
+            <span class="status-tab-count">{{ total_count }}</span>
         </a>
-    </li>
+    </div>
 
-    <li class="nav-item">
+    <div class="col">
         <a
-            class="nav-link {% if status=='PENDING' %}active{% endif %}"
+            class="status-tab status-tab-pending {% if status=='PENDING' %}active{% endif %}"
             href="{{ url_for(
                 'stock_requests',
                 status='PENDING',
@@ -276,17 +299,15 @@
                 direction=direction
             ) }}"
         >
-            قيد الانتظار
-
-            <span class="badge bg-warning text-dark ms-1">
-                {{ pending_count }}
-            </span>
+            <i class="bi bi-hourglass-split status-tab-icon"></i>
+            <span class="status-tab-label">قيد الانتظار</span>
+            <span class="status-tab-count">{{ pending_count }}</span>
         </a>
-    </li>
+    </div>
 
-    <li class="nav-item">
+    <div class="col">
         <a
-            class="nav-link {% if status=='APPROVED' %}active{% endif %}"
+            class="status-tab status-tab-approved {% if status=='APPROVED' %}active{% endif %}"
             href="{{ url_for(
                 'stock_requests',
                 status='APPROVED',
@@ -298,17 +319,15 @@
                 direction=direction
             ) }}"
         >
-            تمت الموافقة
-
-            <span class="badge bg-success ms-1">
-                {{ approved_count }}
-            </span>
+            <i class="bi bi-check-circle status-tab-icon"></i>
+            <span class="status-tab-label">تمت الموافقة</span>
+            <span class="status-tab-count">{{ approved_count }}</span>
         </a>
-    </li>
+    </div>
 
-    <li class="nav-item">
+    <div class="col">
         <a
-            class="nav-link {% if status=='REJECTED' %}active{% endif %}"
+            class="status-tab status-tab-rejected {% if status=='REJECTED' %}active{% endif %}"
             href="{{ url_for(
                 'stock_requests',
                 status='REJECTED',
@@ -320,15 +339,13 @@
                 direction=direction
             ) }}"
         >
-            مرفوض
-
-            <span class="badge bg-danger ms-1">
-                {{ rejected_count }}
-            </span>
+            <i class="bi bi-x-circle status-tab-icon"></i>
+            <span class="status-tab-label">مرفوض</span>
+            <span class="status-tab-count">{{ rejected_count }}</span>
         </a>
-    </li>
+    </div>
 
-</ul>
+</div>
 
 <!-- ===================== TABLE ===================== -->
 
@@ -342,21 +359,21 @@
 
                 <tr>
 
-                    <th>المنتج</th>
+                    <th>{{ sort_link('product', 'المنتج') }}</th>
 
                     <th>المخزن</th>
 
                     <th>الموقع</th>
 
-                    <th class="text-center">الكمية</th>
+                    <th class="text-center">{{ sort_link('quantity', 'الكمية') }}</th>
 
                     <th>مطلوب بواسطة</th>
 
-                    <th>معالجة بواسطة</th>
+                    <th class="d-none d-md-table-cell">معالجة بواسطة</th>
 
-                    <th>الحالة</th>
+                    <th>{{ sort_link('status', 'الحالة') }}</th>
 
-                    <th>التاريخ</th>
+                    <th class="d-none d-md-table-cell">{{ sort_link('created_at', 'التاريخ') }}</th>
 
                     <th class="text-center">الإجراءات</th>
 
@@ -368,7 +385,16 @@
 
                 {% for r in requests %}
 
-                <tr>
+                <tr
+                    class="request-row"
+                    data-id="{{ r.id }}"
+                    data-product="{{ r.product.name }}"
+                    data-location="{{ r.location.warehouse.name }}{% if r.location.location %} - {{ r.location.location }}{% endif %}"
+                    data-qty="{{ r.quantity }}"
+                    data-user="{{ r.requester.username }}"
+                    data-status="{% if r.status == 'PENDING' %}قيد الانتظار{% elif r.status == 'APPROVED' %}تمت الموافقة{% else %}مرفوض{% endif %}"
+                    data-notes="{{ r.notes or '' }}"
+                >
 
                     <td>
 
@@ -405,7 +431,7 @@
                         {{ r.requester.username }}
 
                     </td>
-                    <td>
+                    <td class="d-none d-md-table-cell">
                         {% if r.approver %}
                             {{ r.approver.username }}
                         {% else %}
@@ -443,7 +469,7 @@
 
                     </td>
 
-                    <td>
+                    <td class="d-none d-md-table-cell">
 
                         {{ r.created_at.strftime('%Y-%m-%d %H:%M') }}
 
@@ -458,12 +484,14 @@
                             <form
                                 method="POST"
                                 action="{{ url_for('approve_request', request_id=r.id) }}"
+                                onsubmit="return confirm('هل تريد الموافقة على هذا الطلب؟ سيتم خصم الكمية من المخزون.');"
                             >
 
                                 {{ csrf() }}
 
                                 <button
                                     class="btn btn-success btn-sm"
+                                    title="موافقة"
                                 >
 
                                     <i class="bi bi-check-lg"></i>
@@ -475,12 +503,14 @@
                             <form
                                 method="POST"
                                 action="{{ url_for('reject_request', request_id=r.id) }}"
+                                onsubmit="return confirm('هل تريد رفض هذا الطلب؟');"
                             >
 
                                 {{ csrf() }}
 
                                 <button
                                     class="btn btn-outline-danger btn-sm"
+                                    title="رفض"
                                 >
 
                                     <i class="bi bi-x-lg"></i>
@@ -509,7 +539,7 @@
 
                 <tr>
 
-                    <td colspan="8" class="text-center py-5">
+                    <td colspan="9" class="text-center py-5">
 
                         <i class="bi bi-inbox fs-1 text-muted"></i>
 
@@ -532,6 +562,59 @@
     </div>
 
 </div>
+
+<!-- ===================== PAGINATION ===================== -->
+
+{% if pagination.pages > 1 %}
+
+<nav class="mt-4">
+
+    <ul class="pagination justify-content-center flex-wrap">
+
+        {% if pagination.has_prev %}
+        <li class="page-item">
+            <a
+                class="page-link"
+                href="{{ url_for('stock_requests', page=pagination.prev_num, q=q, status=status, product=product_id, user=user_id, date=date, sort=sort, direction=direction) }}"
+            >
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+        {% endif %}
+
+        {% for page in pagination.iter_pages() %}
+
+            {% if page %}
+            <li class="page-item {% if page == pagination.page %}active{% endif %}">
+                <a
+                    class="page-link"
+                    href="{{ url_for('stock_requests', page=page, q=q, status=status, product=product_id, user=user_id, date=date, sort=sort, direction=direction) }}"
+                >
+                    {{ page }}
+                </a>
+            </li>
+            {% else %}
+            <li class="page-item disabled"><span class="page-link">…</span></li>
+            {% endif %}
+
+        {% endfor %}
+
+        {% if pagination.has_next %}
+        <li class="page-item">
+            <a
+                class="page-link"
+                href="{{ url_for('stock_requests', page=pagination.next_num, q=q, status=status, product=product_id, user=user_id, date=date, sort=sort, direction=direction) }}"
+            >
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+        {% endif %}
+
+    </ul>
+
+</nav>
+
+{% endif %}
 
     <!-- ===================== REQUEST DETAILS MODAL ===================== -->
 
@@ -585,5 +668,4 @@
       </div>
     </div>
   </div>
-</div>
-{% endblock %} 
+{% endblock %}

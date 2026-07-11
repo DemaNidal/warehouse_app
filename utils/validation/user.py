@@ -51,3 +51,19 @@ def validate_add_user(username, password, confirm_password, role):
         "password": password,
         "role": role
     })
+
+
+def validate_edit_user(username, role):
+
+    username_result = validate_username(username)
+
+    if not username_result.valid:
+        return username_result
+
+    if role not in VALID_ROLES:
+        return fail("صلاحية غير صالحة")
+
+    return success({
+        "username": username_result.data,
+        "role": role
+    })
