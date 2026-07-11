@@ -31,14 +31,68 @@
       }
 
       body {
-        background: var(--light);
+        background:
+          radial-gradient(circle at top right, rgba(200, 155, 60, 0.10), transparent 24%),
+          linear-gradient(180deg, #f7faff 0%, #f3f7fd 100%);
         color: var(--text);
+        min-height: 100vh;
+      }
+
+      .content-shell {
+        max-width: 1480px;
+        margin: 0 auto;
+        padding-bottom: 1.25rem;
+      }
+
+      .alert {
+        border: 0;
+        border-radius: 16px;
+        box-shadow: 0 10px 28px rgba(15, 23, 42, 0.06);
+      }
+
+      .card {
+        border: 1px solid rgba(226, 232, 240, 0.9);
+        border-radius: 22px;
+        box-shadow: 0 14px 40px rgba(15, 23, 42, 0.06);
+        background: rgba(255, 255, 255, 0.96);
+      }
+
+      .btn {
+        border-radius: 999px;
+        transition: transform .2s ease, box-shadow .2s ease;
+      }
+
+      .btn:hover {
+        transform: translateY(-1px);
       }
 
       .navbar {
-        background: white;
+        background: rgba(255,255,255,.92);
+        backdrop-filter: saturate(180%) blur(10px);
+        -webkit-backdrop-filter: saturate(180%) blur(10px);
         box-shadow: 0 8px 30px rgba(15,23,42,.06);
-        padding: 12px 0;
+        padding: 10px 0;
+        z-index: 1030;
+      }
+
+      /* HAMBURGER (mobile sidebar trigger) */
+      .sidebar-toggle-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 42px;
+        height: 42px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: white;
+        color: var(--primary);
+        font-size: 20px;
+        transition: .2s;
+      }
+
+      .sidebar-toggle-btn:hover {
+        background: #F1F5F9;
+        color: var(--gold);
       }
 
       /* NAV LINKS */
@@ -116,6 +170,13 @@
         gap:10px;
       }
 
+      /* Navbar dropdowns don't use Popper (Bootstrap disables it inside
+         .navbar), so they can't auto-flip away from the viewport edge.
+         Cap the width so they can never overflow off-screen. */
+      .navbar .dropdown-menu{
+        max-width: calc(100vw - 24px);
+      }
+
       .role-badge{
         font-size:11px;
         padding:2px 8px;
@@ -126,13 +187,82 @@
       .role-manager{ background:#fef3c7; color:#92400e; }
       .role-emp{ background:#dbeafe; color:#1e40af; }
 
-      /* MOBILE */
-      @media (max-width: 991px){
-        .nav-center{
-          margin-top:15px;
-          flex-direction:column;
-          gap:8px;
-        }
+      /* ===================== SIDEBAR (MOBILE OFFCANVAS) ===================== */
+
+      .offcanvas {
+        --bs-offcanvas-width: 300px;
+      }
+
+      .sidebar-header {
+        border-bottom: 1px solid var(--border);
+        padding: 18px 20px;
+      }
+
+      .sidebar-user {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--border);
+        background: var(--light);
+      }
+
+      .sidebar-nav {
+        padding: 12px;
+        overflow-y: auto;
+      }
+
+      .sidebar-link {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 14px;
+        border-radius: 12px;
+        color: var(--text);
+        font-weight: 600;
+        text-decoration: none;
+        transition: .15s ease;
+        min-height: 46px;
+      }
+
+      .sidebar-link i {
+        font-size: 18px;
+        width: 22px;
+        text-align: center;
+        color: #94a3b8;
+        flex-shrink: 0;
+      }
+
+      .sidebar-link:hover {
+        background: #F1F5F9;
+        color: var(--primary);
+      }
+
+      .sidebar-link.active {
+        background: var(--primary);
+        color: white;
+      }
+
+      .sidebar-link.active i {
+        color: white;
+      }
+
+      .sidebar-link .badge {
+        margin-inline-start: auto;
+      }
+
+      .sidebar-section-label {
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: #94a3b8;
+        padding: 16px 14px 6px;
+      }
+
+      .sidebar-footer {
+        border-top: 1px solid var(--border);
+        padding: 12px;
       }
 
       /* ===================== ROW UX ===================== */
@@ -207,8 +337,106 @@
     font-weight: 500;
 }
 
+    .dashboard-hero {
+      position: relative;
+      overflow: hidden;
+      border: 0;
+      border-radius: 30px;
+      background: linear-gradient(135deg, rgba(30, 58, 95, 0.98) 0%, rgba(20, 39, 63, 1) 100%);
+      color: #fff;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.16);
+      padding: 1.5rem 1.6rem;
+    }
+
+    .dashboard-hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 85% 12%, rgba(200, 155, 60, 0.28), transparent 34%);
+      pointer-events: none;
+    }
+
+    .dashboard-hero > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .dashboard-hero .hero-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.38rem 0.8rem;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.14);
+      color: rgba(255,255,255,0.9);
+      font-size: 0.84rem;
+      font-weight: 700;
+      margin-bottom: 0.7rem;
+      backdrop-filter: blur(8px);
+    }
+
+    .dashboard-hero .btn {
+      border-radius: 999px;
+      font-weight: 700;
+      padding: 0.7rem 1.05rem;
+    }
+
+    .dashboard-hero .btn-outline-light {
+      border-color: rgba(255,255,255,0.3);
+      color: #fff;
+    }
+
+    .dashboard-hero .btn-outline-light:hover {
+      background: rgba(255,255,255,0.16);
+      color: #fff;
+    }
+
+    .dashboard-stat-card {
+      border: 0;
+      background: linear-gradient(135deg, #ffffff 0%, #f8fbff 100%);
+      border-radius: 24px;
+      box-shadow: 0 16px 38px rgba(15, 23, 42, 0.07);
+    }
+
+    .dashboard-stat-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 18px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+      flex-shrink: 0;
+    }
+
+    .dashboard-stat-value {
+      font-size: 1.7rem;
+      font-weight: 800;
+      line-height: 1;
+      color: #0f172a;
+    }
+
+    .dashboard-stat-label {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: #64748b;
+      margin-bottom: 0.35rem;
+    }
+
+    .dashboard-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      padding: 0.4rem 0.75rem;
+      border-radius: 999px;
+      background: rgba(245, 158, 11, 0.16);
+      color: #92400e;
+      font-size: 0.84rem;
+      font-weight: 700;
+    }
+
     .dashboard-card {
-      border: none;
+      border: 0;
       border-radius: 28px;
       box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
       transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -450,6 +678,11 @@
       color: var(--primary);
     }
 
+    .btn-check:disabled + .role-option-card {
+      opacity: .55;
+      cursor: not-allowed;
+    }
+
     /* Brand-matched pagination */
     .pagination .page-link {
       border: none;
@@ -466,6 +699,225 @@
     .pagination .page-item.active .page-link {
       background: var(--primary);
       color: white;
+    }
+
+    /* ===================== HOME HERO ===================== */
+
+    .home-hero {
+      background: linear-gradient(135deg, var(--primary) 0%, #14273f 100%);
+      padding: 40px clamp(20px, 5vw, 56px) 32px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .home-hero::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 85% 15%, rgba(200, 155, 60, .25), transparent 55%);
+      pointer-events: none;
+    }
+
+    .home-hero-inner {
+      position: relative;
+      z-index: 1;
+    }
+
+    .home-hero-greeting {
+      color: rgba(255, 255, 255, .75);
+      font-weight: 600;
+      font-size: .95rem;
+      margin-bottom: 10px;
+    }
+
+    .home-hero h1 {
+      color: #fff;
+    }
+
+    .home-hero-subtitle {
+      color: rgba(255, 255, 255, .8);
+      font-size: 1.05rem;
+    }
+
+    .home-search-card {
+      background: #fff;
+      border-radius: 18px;
+      padding: 22px;
+      box-shadow: 0 20px 45px rgba(0, 0, 0, .18);
+    }
+
+    .home-search-btn {
+      background: var(--gold);
+      border: none;
+      color: #1E3A5F;
+      font-weight: 700;
+      transition: .15s ease;
+    }
+
+    .home-search-btn:hover {
+      background: #b98a30;
+      color: #fff;
+    }
+
+    /* ===================== HOME QUICK STATS ===================== */
+
+    .home-stat-card {
+      border-radius: 18px;
+      cursor: pointer;
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+
+    .home-stat-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 16px 35px rgba(15, 23, 42, 0.1) !important;
+    }
+
+    .home-stat-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+
+    .home-stat-icon-primary { background: rgba(30, 58, 95, .1); color: var(--primary); }
+    .home-stat-icon-gold { background: rgba(200, 155, 60, .18); color: #92700f; }
+    .home-stat-icon-info { background: rgba(13, 110, 253, .1); color: #0d6efd; }
+    .home-stat-icon-success { background: rgba(16, 185, 129, .12); color: #166534; }
+
+    @media (max-width: 575.98px) {
+      .home-search-card {
+        padding: 16px;
+      }
+    }
+
+    /* ===================== NOTIFICATIONS ===================== */
+
+    .notif-item {
+      padding: 14px 18px;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      transition: .15s ease;
+    }
+
+    .notif-item:last-child {
+      border-bottom: none;
+    }
+
+    .notif-item:hover {
+      background: #F8FAFC;
+    }
+
+    .notif-unread {
+      background: rgba(30, 58, 95, 0.03);
+    }
+
+    .notif-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .notif-icon-low { background: rgba(245, 158, 11, .12); color: #92400e; }
+    .notif-icon-critical { background: rgba(220, 53, 69, .12); color: var(--danger); }
+    .notif-icon-out_rejected { background: rgba(220, 53, 69, .12); color: var(--danger); }
+    .notif-icon-out_approved { background: rgba(16, 185, 129, .12); color: #166534; }
+
+    .notif-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--primary);
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    /* ===================== STATUS TAB CHIPS ===================== */
+
+    .status-tab {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 10px;
+      border-radius: 14px;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 0.92rem;
+      transition: .18s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .status-tab:hover {
+      transform: translateY(-2px);
+    }
+
+    .status-tab-icon {
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
+
+    .status-tab-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .status-tab-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 24px;
+      height: 24px;
+      border-radius: 999px;
+      font-size: .78rem;
+      font-weight: 800;
+      padding: 0 6px;
+      flex-shrink: 0;
+    }
+
+    .status-tab-all { background: rgba(30, 58, 95, 0.08); color: var(--primary); }
+    .status-tab-all .status-tab-count { background: rgba(30, 58, 95, 0.14); color: var(--primary); }
+    .status-tab-all.active { background: var(--primary); color: #fff; box-shadow: 0 10px 22px rgba(30, 58, 95, .28); }
+    .status-tab-all.active .status-tab-count { background: rgba(255,255,255,.25); color: #fff; }
+
+    .status-tab-pending { background: rgba(245, 158, 11, 0.1); color: #92400e; }
+    .status-tab-pending .status-tab-count { background: rgba(245, 158, 11, 0.2); color: #92400e; }
+    .status-tab-pending.active { background: var(--warning); color: #fff; box-shadow: 0 10px 22px rgba(245, 158, 11, .3); }
+    .status-tab-pending.active .status-tab-count { background: rgba(255,255,255,.3); color: #fff; }
+
+    .status-tab-approved { background: rgba(16, 185, 129, 0.1); color: #166534; }
+    .status-tab-approved .status-tab-count { background: rgba(16, 185, 129, 0.2); color: #166534; }
+    .status-tab-approved.active { background: #10b981; color: #fff; box-shadow: 0 10px 22px rgba(16, 185, 129, .3); }
+    .status-tab-approved.active .status-tab-count { background: rgba(255,255,255,.3); color: #fff; }
+
+    .status-tab-rejected { background: rgba(220, 53, 69, 0.1); color: #991b1b; }
+    .status-tab-rejected .status-tab-count { background: rgba(220, 53, 69, 0.18); color: #991b1b; }
+    .status-tab-rejected.active { background: var(--danger); color: #fff; box-shadow: 0 10px 22px rgba(220, 53, 69, .3); }
+    .status-tab-rejected.active .status-tab-count { background: rgba(255,255,255,.3); color: #fff; }
+
+    @media (max-width: 575px) {
+      .status-tab {
+        flex-direction: column;
+        gap: 4px;
+        padding: 12px 6px;
+        font-size: .8rem;
+        text-align: center;
+      }
+
+      .status-tab-label {
+        white-space: normal;
+        line-height: 1.15;
+      }
     }
 
     .product-image-wrapper {
@@ -612,12 +1064,24 @@
 
   <body>
 
-  <nav class="navbar navbar-expand-lg">
-    <div class="container">
+  <nav class="navbar sticky-top">
+    <div class="container-fluid px-3 px-lg-4">
+
+      <!-- MOBILE SIDEBAR TOGGLE -->
+      <button
+        class="sidebar-toggle-btn d-lg-none"
+        type="button"
+        data-bs-toggle="offcanvas"
+        data-bs-target="#mobileSidebar"
+        aria-controls="mobileSidebar"
+        aria-label="فتح القائمة"
+      >
+        <i class="bi bi-list"></i>
+      </button>
 
       <!-- LOGO -->
-      <a class="navbar-brand d-flex align-items-center gap-2" href="/dashboard">
-        <img src="{{ url_for('static', filename='icons/Logo.png') }}" height="48"/>
+      <a class="navbar-brand d-flex align-items-center gap-2 mx-lg-0" href="/dashboard">
+        <img src="{{ url_for('static', filename='icons/Logo.png') }}" height="44"/>
 
         <div class="d-none d-md-block">
           <div class="fw-bold">نظام المستودعات</div>
@@ -625,183 +1089,290 @@
         </div>
       </a>
 
-      <!-- TOGGLER -->
-      <button class="navbar-toggler" data-bs-toggle="collapse" data-bs-target="#mainNavbar">
-        <span class="navbar-toggler-icon"></span>
-      </button>
+      <!-- DESKTOP CENTER NAV -->
+      <div class="d-none d-lg-flex align-items-center gap-2 mx-auto">
 
-      <div class="collapse navbar-collapse" id="mainNavbar">
+        <a class="nav-btn {% if request.path=='/dashboard' %}active{% endif %}" href="/dashboard">
+          <i class="bi bi-speedometer2"></i> لوحة التحكم
+        </a>
 
-        <!-- CENTER NAV -->
-        <div class="navbar-nav mx-auto nav-center d-flex gap-2">
+        <a class="nav-btn {% if request.path.startswith('/products') %}active{% endif %}" href="/products">
+          <i class="bi bi-box-seam"></i> المنتجات
+        </a>
 
-          <a class="nav-btn {% if request.path=='/dashboard' %}active{% endif %}" href="/dashboard">
-            <i class="bi bi-speedometer2"></i> لوحة التحكم
-          </a>
+        {% if current_user.role == "ADMIN" %}
+        <a class="nav-btn {% if request.path.startswith('/activity-logs') %}active{% endif %}" href="{{ url_for('activity_logs') }}">
+          <i class="bi bi-clock-history"></i> النشاطات
+        </a>
+        {% endif %}
 
-          <a class="nav-btn {% if request.path.startswith('/products') %}active{% endif %}" href="/products">
-            <i class="bi bi-box-seam"></i> المنتجات
-          </a>
+        {% if current_user.role == "STORE_MANAGER" %}
+        <a class="nav-btn {% if request.path.startswith('/add-product') %}active{% endif %}" href="/add-product">
+          <i class="bi bi-box-seam"></i> اضافة منتج
+        </a>
+        {% endif %}
 
-          {% if current_user.role == "ADMIN" %}
-          <a class="nav-btn" href="{{ url_for('activity_logs') }}">
-            <i class="bi bi-clock-history"></i> النشاطات
-          </a>
-          {% endif %}
-          {% if current_user.role == "STORE_MANAGER" %}
-                 <a class="nav-btn {% if request.path.startswith('/add-product') %}active{% endif %}" href="/add-product">
-            <i class="bi bi-box-seam"></i> اضافة منتج
-          </a>
-{% endif %}
-               
+        {% if current_user.is_authenticated and current_user.role == "ADMIN" %}
+        <div class="dropdown">
+          <button class="btn nav-btn dropdown-toggle" data-bs-toggle="dropdown">
+            <i class="bi bi-gear"></i>
+            الإدارة
+          </button>
 
-         {% if current_user.is_authenticated and
-            current_user.role == "ADMIN" %}
+          <ul class="dropdown-menu">
+            <li>
+              <a class="dropdown-item" href="/add-product">
+                <i class="bi bi-plus-circle"></i>
+                إضافة منتج
+              </a>
+            </li>
 
-            <div class="dropdown">
-              <button
-                class="btn nav-btn dropdown-toggle"
-                data-bs-toggle="dropdown"
-              >
+            <li>
+              <a class="dropdown-item" href="/add-color">
+                <i class="bi bi-palette"></i>
+                إدارة الألوان
+              </a>
+            </li>
+
+            <li>
+              <a class="dropdown-item" href="/add-size">
+                <i class="bi bi-rulers"></i>
+                إدارة الأحجام
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="{{ url_for('user_list') }}">
+                <i class="bi bi-people-fill"></i>
+                المستخدمون
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="{{ url_for('backups') }}">
+                <i class="bi bi-database"></i>
+                النسخ الاحتياطية
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="{{ url_for('settings_page') }}">
                 <i class="bi bi-gear"></i>
-                الإدارة
-              </button>
+                الإعدادات
+              </a>
+            </li>
+          </ul>
+        </div>
+        {% endif %}
+      </div>
 
-              <ul class="dropdown-menu">
-                <li>
-                  <a class="dropdown-item" href="/add-product">
-                    <i class="bi bi-plus-circle"></i>
-                    إضافة منتج
-                  </a>
-                </li>
+      <!-- RIGHT SIDE -->
+      <div class="d-flex align-items-center gap-2 gap-lg-3">
 
-                <li>
-                  <a class="dropdown-item" href="/add-color">
-                    <i class="bi bi-palette"></i>
-                    إدارة الألوان
-                  </a>
-                </li>
+        <!-- SEARCH (desktop) -->
+        <a href="/" class="icon-btn d-none d-lg-inline-flex">
+          <i class="bi bi-search"></i>
+        </a>
 
-                <li>
-                  <a class="dropdown-item" href="/add-size">
-                    <i class="bi bi-rulers"></i>
-                    إدارة الأحجام
-                  </a>
-                </li>
-                <li>
-                  <a class="nav-link" href="{{ url_for('user_list') }}">
-                    <i class="bi bi-people-fill"></i>
-                    المستخدمون
-                  </a>
-                </li>
-                <li class="nav-item">
-                  <a class="nav-link" href="{{ url_for('backups') }}">
-                    <i class="bi bi-database"></i>
+        <!-- NOTIFICATIONS -->
+        <a href="{{ url_for('notifications') }}" class="icon-btn">
+          <i class="bi bi-bell"></i>
 
-                    النسخ الاحتياطية
-                  </a>
-                </li>
-              </ul>
+          {% if unread_notifications|default(0) > 0 %}
+          <span class="badge-dot">
+            {{ unread_notifications }}
+          </span>
+          {% endif %}
+        </a>
+
+        <!-- REQUESTS (desktop) -->
+        <a href="{{ url_for('stock_requests') }}" class="icon-btn d-none d-lg-inline-flex">
+          <i class="bi bi-clipboard-check"></i>
+
+          {% if pending_requests_count|default(0) > 0 %}
+          <span class="badge-dot">
+            {{ pending_requests_count }}
+          </span>
+          {% endif %}
+        </a>
+
+        <!-- USER -->
+        <div class="dropdown">
+
+          <button class="user-btn dropdown-toggle" data-bs-toggle="dropdown">
+
+            <div class="avatar-circle">
+              {{ current_user.username[:2]|upper if current_user.is_authenticated else "GU" }}
             </div>
 
-            {% endif %}
-        </div>
-
-        <!-- RIGHT SIDE -->
-        <div class="d-flex align-items-center gap-3">
-
-          <!-- SEARCH -->
-          <a href="/" class="icon-btn">
-            <i class="bi bi-search"></i>
-          </a>
-
-          <!-- NOTIFICATIONS -->
-            <a href="{{ url_for('notifications') }}" class="icon-btn">
-              <i class="bi bi-bell"></i>
-
-              {% if unread_notifications|default(0) > 0 %}
-              <span class="badge-dot">
-                {{ unread_notifications }}
-              </span>
-              {% endif %}
-            </a>
-
-          <!-- REQUESTS -->
-          <a href="{{ url_for('stock_requests') }}" class="icon-btn">
-            <i class="bi bi-clipboard-check"></i>
-
-            {% if pending_requests_count|default(0) > 0 %}
-            <span class="badge-dot">
-              {{ pending_requests_count }}
-            </span>
-            {% endif %}
-          </a>
-
-          <!-- USER -->
-          <div class="dropdown">
-
-            <button class="user-btn dropdown-toggle" data-bs-toggle="dropdown">
-
-              <div class="avatar-circle">
-                {{ current_user.username[:2]|upper if current_user.is_authenticated else "GU" }}
+            <div class="d-none d-md-block text-start">
+              <div class="fw-bold small">
+                {{ current_user.username if current_user.is_authenticated else "مستخدم" }}
               </div>
 
-              <div class="d-none d-md-block text-start">
-                <div class="fw-bold small">
-                  {{ current_user.username if current_user.is_authenticated else "مستخدم" }}
-                </div>
+              {% if current_user.is_authenticated %}
 
-                {% if current_user.is_authenticated %}
+                {% if current_user.role == "ADMIN" %}
+                <span class="role-badge role-admin">Admin</span>
 
-                  {% if current_user.role == "ADMIN" %}
-                  <span class="role-badge role-admin">Admin</span>
+                {% elif current_user.role == "STORE_MANAGER" %}
+                <span class="role-badge role-manager">Manager</span>
 
-                  {% elif current_user.role == "STORE_MANAGER" %}
-                  <span class="role-badge role-manager">Manager</span>
-
-                  {% else %}
-                  <span class="role-badge role-emp">Employee</span>
-                  {% endif %}
-
+                {% else %}
+                <span class="role-badge role-emp">Employee</span>
                 {% endif %}
-              </div>
 
-            </button>
-
-            <ul class="dropdown-menu dropdown-menu-end">
-
-              <li>
-                <a class="dropdown-item" href="/profile">
-                  <i class="bi bi-person"></i> الملف الشخصي
-                </a>
-              </li>
-
-              {% if current_user.is_authenticated and current_user.role == "ADMIN" %}
-              <li>
-                <a class="dropdown-item" href="{{ url_for('settings_page') }}">
-                  <i class="bi bi-gear"></i> الإعدادات
-                </a>
-              </li>
               {% endif %}
+            </div>
 
-              <li><hr class="dropdown-divider"></li>
+          </button>
 
-              <li>
-                <a class="dropdown-item text-danger" href="/logout">
-                  <i class="bi bi-box-arrow-right"></i> تسجيل الخروج
-                </a>
-              </li>
+          <ul class="dropdown-menu dropdown-menu-start">
 
-            </ul>
-          </div>
+            <li>
+              <a class="dropdown-item" href="/profile">
+                <i class="bi bi-person"></i> الملف الشخصي
+              </a>
+            </li>
 
+            {% if current_user.is_authenticated and current_user.role == "ADMIN" %}
+            <li>
+              <a class="dropdown-item" href="{{ url_for('settings_page') }}">
+                <i class="bi bi-gear"></i> الإعدادات
+              </a>
+            </li>
+            {% endif %}
+
+            <li><hr class="dropdown-divider"></li>
+
+            <li>
+              <a class="dropdown-item text-danger" href="/logout">
+                <i class="bi bi-box-arrow-right"></i> تسجيل الخروج
+              </a>
+            </li>
+
+          </ul>
         </div>
+
       </div>
     </div>
   </nav>
 
+  <!-- ================= MOBILE SIDEBAR (OFFCANVAS) ================= -->
+  <div class="offcanvas offcanvas-end" tabindex="-1" id="mobileSidebar" aria-labelledby="mobileSidebarLabel">
+
+    <div class="offcanvas-header sidebar-header">
+      <a class="d-flex align-items-center gap-2 text-decoration-none" href="/dashboard">
+        <img src="{{ url_for('static', filename='icons/Logo.png') }}" height="38"/>
+        <div>
+          <div class="fw-bold text-dark" id="mobileSidebarLabel">نظام المستودعات</div>
+          <small class="text-muted">الابراهيم بلاست</small>
+        </div>
+      </a>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="إغلاق"></button>
+    </div>
+
+    <div class="offcanvas-body d-flex flex-column p-0">
+
+      {% if current_user.is_authenticated %}
+      <div class="sidebar-user">
+        <div class="avatar-circle" style="width:48px;height:48px;font-size:16px;">
+          {{ current_user.username[:2]|upper }}
+        </div>
+        <div>
+          <div class="fw-semibold">{{ current_user.username }}</div>
+          {% if current_user.role == "ADMIN" %}
+          <span class="role-badge role-admin">Admin</span>
+          {% elif current_user.role == "STORE_MANAGER" %}
+          <span class="role-badge role-manager">Manager</span>
+          {% else %}
+          <span class="role-badge role-emp">Employee</span>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <div class="sidebar-nav flex-grow-1">
+
+        <a class="sidebar-link {% if request.path=='/dashboard' %}active{% endif %}" href="/dashboard">
+          <i class="bi bi-speedometer2"></i> لوحة التحكم
+        </a>
+
+        <a class="sidebar-link {% if request.path=='/' %}active{% endif %}" href="/">
+          <i class="bi bi-search"></i> البحث
+        </a>
+
+        <a class="sidebar-link {% if request.path.startswith('/products') %}active{% endif %}" href="/products">
+          <i class="bi bi-box-seam"></i> المنتجات
+        </a>
+
+        <a class="sidebar-link {% if request.path.startswith('/notifications') %}active{% endif %}" href="{{ url_for('notifications') }}">
+          <i class="bi bi-bell"></i> الإشعارات
+          {% if unread_notifications|default(0) > 0 %}
+          <span class="badge bg-danger rounded-pill">{{ unread_notifications }}</span>
+          {% endif %}
+        </a>
+
+        <a class="sidebar-link {% if request.path.startswith('/stock-request') %}active{% endif %}" href="{{ url_for('stock_requests') }}">
+          <i class="bi bi-clipboard-check"></i> طلبات الإخراج
+          {% if pending_requests_count|default(0) > 0 %}
+          <span class="badge bg-danger rounded-pill">{{ pending_requests_count }}</span>
+          {% endif %}
+        </a>
+
+        {% if current_user.role == "STORE_MANAGER" %}
+        <a class="sidebar-link {% if request.path.startswith('/add-product') %}active{% endif %}" href="/add-product">
+          <i class="bi bi-plus-circle"></i> إضافة منتج
+        </a>
+        {% endif %}
+
+        {% if current_user.role == "ADMIN" %}
+        <div class="sidebar-section-label">الإدارة</div>
+
+        <a class="sidebar-link {% if request.path=='/add-product' %}active{% endif %}" href="/add-product">
+          <i class="bi bi-plus-circle"></i> إضافة منتج
+        </a>
+
+        <a class="sidebar-link {% if request.path=='/add-color' %}active{% endif %}" href="/add-color">
+          <i class="bi bi-palette"></i> إدارة الألوان
+        </a>
+
+        <a class="sidebar-link {% if request.path=='/add-size' %}active{% endif %}" href="/add-size">
+          <i class="bi bi-rulers"></i> إدارة الأحجام
+        </a>
+
+        <a class="sidebar-link {% if request.path.startswith('/users') %}active{% endif %}" href="{{ url_for('user_list') }}">
+          <i class="bi bi-people-fill"></i> المستخدمون
+        </a>
+
+        <a class="sidebar-link {% if request.path.startswith('/backups') %}active{% endif %}" href="{{ url_for('backups') }}">
+          <i class="bi bi-database"></i> النسخ الاحتياطية
+        </a>
+
+        <a class="sidebar-link {% if request.path.startswith('/activity-logs') %}active{% endif %}" href="{{ url_for('activity_logs') }}">
+          <i class="bi bi-clock-history"></i> النشاطات
+        </a>
+
+        <a class="sidebar-link {% if request.path.startswith('/settings') %}active{% endif %}" href="{{ url_for('settings_page') }}">
+          <i class="bi bi-gear"></i> الإعدادات
+        </a>
+        {% endif %}
+
+      </div>
+
+      {% if current_user.is_authenticated %}
+      <div class="sidebar-footer">
+        <a class="sidebar-link" href="/profile">
+          <i class="bi bi-person"></i> الملف الشخصي
+        </a>
+        <a class="sidebar-link text-danger" href="/logout">
+          <i class="bi bi-box-arrow-right"></i> تسجيل الخروج
+        </a>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+
   <!-- CONTENT -->
-  <div class="container mt-4">
+  <div class="container mt-4 content-shell">
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
@@ -828,8 +1399,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
         row.addEventListener("click", function (e) {
 
-            // avoid clicking buttons
-            if (e.target.tagName === "BUTTON") return;
+            // avoid clicking buttons/links (or icons/text inside them)
+            if (e.target.closest("button, a, form")) return;
 
             document.getElementById("m_product").innerText = this.dataset.product;
             document.getElementById("m_location").innerText = this.dataset.location;

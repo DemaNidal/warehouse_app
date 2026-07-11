@@ -1,47 +1,130 @@
 {% from "macros.html" import csrf %}
 
-{% extends "base.html" %} {% block content %}
+{% extends "base.html" %}
+{% block title %}تعديل مستخدم{% endblock %}
 
-<div class="card shadow-sm">
-  <div class="card-body">
-    <h2>تعديل المستخدم</h2>
+{% block content %}
 
-    <form method="POST">
-      {{ csrf() }}
-      <div class="mb-3">
-        <label> اسم المستخدم </label>
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+  <div class="d-flex align-items-center gap-3">
+    <div class="stat-icon-box">
+      <i class="bi bi-pencil-square fs-4"></i>
+    </div>
+    <div>
+      <h2 class="mb-0">تعديل المستخدم</h2>
+      <small class="text-muted">{{ user.username }}</small>
+    </div>
+  </div>
 
-        <input
-          type="text"
-          name="username"
-          class="form-control"
-          value="{{ user.username }}"
-          required
-        />
+  <a href="{{ url_for('user_list') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-right"></i> رجوع للمستخدمين
+  </a>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
+
+        <form method="POST" novalidate>
+          {{ csrf() }}
+
+          <div class="row g-3">
+
+            <div class="col-12">
+              <label class="form-label">اسم المستخدم</label>
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-person"></i></span>
+                <input
+                  type="text"
+                  name="username"
+                  class="form-control"
+                  value="{{ user.username }}"
+                  required
+                  minlength="3"
+                  maxlength="50"
+                >
+              </div>
+            </div>
+
+            <div class="col-12">
+              <label class="form-label mb-2">الصلاحية</label>
+
+              {% set is_self = user.id == current_user.id %}
+
+              {% if is_self %}
+              <div class="alert alert-warning py-2 px-3 mb-2 small">
+                <i class="bi bi-info-circle"></i>
+                لا يمكنك تغيير صلاحيتك الخاصة — اطلب من مدير آخر تعديلها.
+              </div>
+              {% endif %}
+
+              <div class="row g-2">
+
+                <div class="col-sm-4">
+                  <input
+                    type="radio" class="btn-check" name="role" id="roleEmployee" value="EMPLOYEE"
+                    {% if user.role == "EMPLOYEE" %}checked{% endif %}
+                    {% if is_self %}disabled{% endif %}
+                  >
+                  <label class="role-option-card" for="roleEmployee">
+                    <i class="bi bi-person-badge"></i>
+                    <div class="fw-semibold">موظف</div>
+                    <small class="text-muted">صلاحيات أساسية</small>
+                  </label>
+                </div>
+
+                <div class="col-sm-4">
+                  <input
+                    type="radio" class="btn-check" name="role" id="roleManager" value="STORE_MANAGER"
+                    {% if user.role == "STORE_MANAGER" %}checked{% endif %}
+                    {% if is_self %}disabled{% endif %}
+                  >
+                  <label class="role-option-card" for="roleManager">
+                    <i class="bi bi-box-seam"></i>
+                    <div class="fw-semibold">مسؤول مخازن</div>
+                    <small class="text-muted">إدارة المنتجات والمخزون</small>
+                  </label>
+                </div>
+
+                <div class="col-sm-4">
+                  <input
+                    type="radio" class="btn-check" name="role" id="roleAdmin" value="ADMIN"
+                    {% if user.role == "ADMIN" %}checked{% endif %}
+                    {% if is_self %}disabled{% endif %}
+                  >
+                  <label class="role-option-card" for="roleAdmin">
+                    <i class="bi bi-shield-lock"></i>
+                    <div class="fw-semibold">مدير</div>
+                    <small class="text-muted">صلاحية كاملة على النظام</small>
+                  </label>
+                </div>
+
+              </div>
+
+              {% if is_self %}
+              <input type="hidden" name="role" value="{{ user.role }}">
+              {% endif %}
+
+            </div>
+
+          </div>
+
+          <hr class="my-4">
+
+          <div class="d-flex gap-2">
+            <button class="btn btn-success px-4">
+              <i class="bi bi-check-lg"></i> حفظ التعديلات
+            </button>
+            <a href="{{ url_for('user_list') }}" class="btn btn-light border">
+              إلغاء
+            </a>
+          </div>
+
+        </form>
+
       </div>
-
-      <div class="mb-3">
-        <label> الصلاحية </label>
-
-        <select name="role" class="form-select">
-
-             <option value="ADMIN" {% if user.role == "ADMIN" %}selected{% endif %}>
-    مدير
-  </option>
-
-  <option value="STORE_MANAGER" {% if user.role == "STORE_MANAGER" %}selected{% endif %}>
-    مسؤول مخازن
-  </option>
-
-  <option value="EMPLOYEE" {% if user.role == "EMPLOYEE" %}selected{% endif %}>
-    موظف
-  </option>
-
-        </select>
-      </div>
-
-      <button class="btn btn-success">حفظ</button>
-    </form>
+    </div>
   </div>
 </div>
 

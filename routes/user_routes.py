@@ -12,7 +12,7 @@ from models import db, User
 from utils.activity_logger import log_activity
 from utils.permissions import admin_required
 from utils.system_guard import ensure_system_ready
-from utils.validation.user import validate_add_user
+from utils.validation.user import validate_add_user, validate_edit_user, validate_password
 
 
 def register_user_routes(app):
@@ -27,9 +27,36 @@ def register_user_routes(app):
     @admin_required
     def user_list():
 
-        users = User.query.order_by(User.id.desc()).all()
+        q = request.args.get("q", "").strip()
 
-        return render_template("users.html", users=users)
+        page = request.args.get("page", 1, type=int)
+
+        query = User.query.order_by(User.id.desc())
+
+        if q:
+            query = query.filter(User.username.ilike(f"%{q}%"))
+
+        pagination = query.paginate(
+            page=page,
+            per_page=20,
+            error_out=False
+        )
+
+        total_count = User.query.count()
+
+        active_count = User.query.filter_by(is_active_user=True).count()
+
+        disabled_count = total_count - active_count
+
+        return render_template(
+            "users.html",
+            users=pagination.items,
+            pagination=pagination,
+            q=q,
+            total_count=total_count,
+            active_count=active_count,
+            disabled_count=disabled_count
+        )
 
     @app.route("/user/add", methods=["GET", "POST"])
     @login_required
@@ -146,11 +173,23 @@ def register_user_routes(app):
 
         if request.method == "POST":
 
-            username = request.form["username"].strip()
-            role = request.form["role"]
+            result = validate_edit_user(
+                request.form.get("username", ""),
+                request.form.get("role", "")
+            )
+
+            if not result.valid:
+                flash(result.message, "danger")
+                return redirect(url_for("edit_user", user_id=user.id))
+
+            data = result.data
+
+            if user.id == current_user.id and data["role"] != user.role:
+                flash("لا يمكنك تغيير صلاحيتك الخاصة", "danger")
+                return redirect(url_for("edit_user", user_id=user.id))
 
             exists = User.query.filter(
-                User.username == username,
+                User.username == data["username"],
                 User.id != user.id
             ).first()
 
@@ -158,8 +197,8 @@ def register_user_routes(app):
                 flash("اسم المستخدم موجود مسبقاً", "danger")
                 return redirect(url_for("edit_user", user_id=user.id))
 
-            user.username = username
-            user.role = role
+            user.username = data["username"]
+            user.role = data["role"]
 
             db.session.commit()
 
@@ -225,8 +264,14 @@ def register_user_routes(app):
 
         if request.method == "POST":
 
-            new_password = request.form["new_password"]
-            confirm_password = request.form["confirm_password"]
+            new_password = request.form.get("new_password", "")
+            confirm_password = request.form.get("confirm_password", "")
+
+            password_result = validate_password(new_password)
+
+            if not password_result.valid:
+                flash(password_result.message, "danger")
+                return redirect(url_for("reset_user_password", user_id=user.id))
 
             if new_password != confirm_password:
                 flash("كلمتا المرور غير متطابقتين", "danger")

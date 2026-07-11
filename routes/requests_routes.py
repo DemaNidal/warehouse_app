@@ -6,7 +6,8 @@ from flask import (
     request,
     url_for,
     abort,
-    flash
+    flash,
+    current_app
 )
 
 from flask_login import login_required, current_user
@@ -286,8 +287,9 @@ def register_requests_routes(app):
 
             flash("Request approved successfully", "success")
 
-        except Exception as e:
+        except Exception:
             db.session.rollback()
+            current_app.logger.exception("Approve stock request #%s failed", request_id)
             flash("Approval failed", "danger")
 
         return redirect(url_for("stock_requests"))
@@ -328,6 +330,7 @@ def register_requests_routes(app):
 
         except Exception:
             db.session.rollback()
+            current_app.logger.exception("Reject stock request #%s failed", request_id)
             flash("Reject failed", "danger")
 
         return redirect(url_for("stock_requests"))
