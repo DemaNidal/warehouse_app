@@ -633,6 +633,10 @@
     .meta-item.meta-qty .value.status-low { color: #b45309; }
     .meta-item.meta-qty .value.status-critical { color: #dc2626; }
 
+    .qty-display.status-normal { color: #059669; }
+    .qty-display.status-low { color: #b45309; }
+    .qty-display.status-critical { color: #dc2626; }
+
     /* Product list stat card */
     .stat-icon-box {
       width: 56px;
@@ -1080,7 +1084,7 @@
       </button>
 
       <!-- LOGO -->
-      <a class="navbar-brand d-flex align-items-center gap-2 mx-lg-0" href="/dashboard">
+      <a class="navbar-brand d-flex align-items-center gap-2 mx-lg-0" href="{{ url_for('dashboard') if current_user.role in ['ADMIN', 'STORE_MANAGER'] else url_for('home') }}">
         <img src="{{ url_for('static', filename='icons/Logo.png') }}" height="44"/>
 
         <div class="d-none d-md-block">
@@ -1092,13 +1096,21 @@
       <!-- DESKTOP CENTER NAV -->
       <div class="d-none d-lg-flex align-items-center gap-2 mx-auto">
 
+        {% if current_user.role in ["ADMIN", "STORE_MANAGER"] %}
         <a class="nav-btn {% if request.path=='/dashboard' %}active{% endif %}" href="/dashboard">
           <i class="bi bi-speedometer2"></i> لوحة التحكم
         </a>
+        {% endif %}
 
         <a class="nav-btn {% if request.path.startswith('/products') %}active{% endif %}" href="/products">
           <i class="bi bi-box-seam"></i> المنتجات
         </a>
+
+        {% if current_user.role in ["ADMIN", "STORE_MANAGER"] %}
+        <a class="nav-btn {% if request.path.startswith('/transactions') %}active{% endif %}" href="{{ url_for('transactions_log') }}">
+          <i class="bi bi-arrow-left-right"></i> حركات المخزون
+        </a>
+        {% endif %}
 
         {% if current_user.role == "ADMIN" %}
         <a class="nav-btn {% if request.path.startswith('/activity-logs') %}active{% endif %}" href="{{ url_for('activity_logs') }}">
@@ -1107,9 +1119,35 @@
         {% endif %}
 
         {% if current_user.role == "STORE_MANAGER" %}
-        <a class="nav-btn {% if request.path.startswith('/add-product') %}active{% endif %}" href="/add-product">
-          <i class="bi bi-box-seam"></i> اضافة منتج
-        </a>
+        <div class="dropdown">
+          <button class="btn nav-btn dropdown-toggle" data-bs-toggle="dropdown">
+            <i class="bi bi-box-seam"></i>
+            المنتجات
+          </button>
+
+          <ul class="dropdown-menu">
+            <li>
+              <a class="dropdown-item" href="/add-product">
+                <i class="bi bi-plus-circle"></i>
+                إضافة منتج
+              </a>
+            </li>
+
+            <li>
+              <a class="dropdown-item" href="/add-color">
+                <i class="bi bi-palette"></i>
+                إدارة الألوان
+              </a>
+            </li>
+
+            <li>
+              <a class="dropdown-item" href="/add-size">
+                <i class="bi bi-rulers"></i>
+                إدارة الأحجام
+              </a>
+            </li>
+          </ul>
+        </div>
         {% endif %}
 
         {% if current_user.is_authenticated and current_user.role == "ADMIN" %}
@@ -1172,6 +1210,7 @@
         </a>
 
         <!-- NOTIFICATIONS -->
+        {% if current_user.role in ["ADMIN", "STORE_MANAGER"] %}
         <a href="{{ url_for('notifications') }}" class="icon-btn">
           <i class="bi bi-bell"></i>
 
@@ -1181,8 +1220,10 @@
           </span>
           {% endif %}
         </a>
+        {% endif %}
 
         <!-- REQUESTS (desktop) -->
+        {% if current_user.role == "ADMIN" %}
         <a href="{{ url_for('stock_requests') }}" class="icon-btn d-none d-lg-inline-flex">
           <i class="bi bi-clipboard-check"></i>
 
@@ -1192,6 +1233,7 @@
           </span>
           {% endif %}
         </a>
+        {% endif %}
 
         <!-- USER -->
         <div class="dropdown">
@@ -1259,7 +1301,7 @@
   <div class="offcanvas offcanvas-end" tabindex="-1" id="mobileSidebar" aria-labelledby="mobileSidebarLabel">
 
     <div class="offcanvas-header sidebar-header">
-      <a class="d-flex align-items-center gap-2 text-decoration-none" href="/dashboard">
+      <a class="d-flex align-items-center gap-2 text-decoration-none" href="{{ url_for('dashboard') if current_user.role in ['ADMIN', 'STORE_MANAGER'] else url_for('home') }}">
         <img src="{{ url_for('static', filename='icons/Logo.png') }}" height="38"/>
         <div>
           <div class="fw-bold text-dark" id="mobileSidebarLabel">نظام المستودعات</div>
@@ -1291,9 +1333,11 @@
 
       <div class="sidebar-nav flex-grow-1">
 
+        {% if current_user.role in ["ADMIN", "STORE_MANAGER"] %}
         <a class="sidebar-link {% if request.path=='/dashboard' %}active{% endif %}" href="/dashboard">
           <i class="bi bi-speedometer2"></i> لوحة التحكم
         </a>
+        {% endif %}
 
         <a class="sidebar-link {% if request.path=='/' %}active{% endif %}" href="/">
           <i class="bi bi-search"></i> البحث
@@ -1303,23 +1347,41 @@
           <i class="bi bi-box-seam"></i> المنتجات
         </a>
 
+        {% if current_user.role in ["ADMIN", "STORE_MANAGER"] %}
         <a class="sidebar-link {% if request.path.startswith('/notifications') %}active{% endif %}" href="{{ url_for('notifications') }}">
           <i class="bi bi-bell"></i> الإشعارات
           {% if unread_notifications|default(0) > 0 %}
           <span class="badge bg-danger rounded-pill">{{ unread_notifications }}</span>
           {% endif %}
         </a>
+        {% endif %}
 
+        {% if current_user.role == "ADMIN" %}
         <a class="sidebar-link {% if request.path.startswith('/stock-request') %}active{% endif %}" href="{{ url_for('stock_requests') }}">
           <i class="bi bi-clipboard-check"></i> طلبات الإخراج
           {% if pending_requests_count|default(0) > 0 %}
           <span class="badge bg-danger rounded-pill">{{ pending_requests_count }}</span>
           {% endif %}
         </a>
+        {% endif %}
+
+        {% if current_user.role in ["ADMIN", "STORE_MANAGER"] %}
+        <a class="sidebar-link {% if request.path.startswith('/transactions') %}active{% endif %}" href="{{ url_for('transactions_log') }}">
+          <i class="bi bi-arrow-left-right"></i> حركات المخزون
+        </a>
+        {% endif %}
 
         {% if current_user.role == "STORE_MANAGER" %}
         <a class="sidebar-link {% if request.path.startswith('/add-product') %}active{% endif %}" href="/add-product">
           <i class="bi bi-plus-circle"></i> إضافة منتج
+        </a>
+
+        <a class="sidebar-link {% if request.path=='/add-color' %}active{% endif %}" href="/add-color">
+          <i class="bi bi-palette"></i> إدارة الألوان
+        </a>
+
+        <a class="sidebar-link {% if request.path=='/add-size' %}active{% endif %}" href="/add-size">
+          <i class="bi bi-rulers"></i> إدارة الأحجام
         </a>
         {% endif %}
 

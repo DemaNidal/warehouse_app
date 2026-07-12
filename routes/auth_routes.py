@@ -57,7 +57,10 @@ def register_auth_routes(app):
                     "تسجيل الدخول إلى النظام"
                 )
 
-                return redirect(url_for("dashboard"))
+                if user.role in ["ADMIN", "STORE_MANAGER"]:
+                    return redirect(url_for("dashboard"))
+
+                return redirect(url_for("home"))
 
             flash("بيانات الدخول غير صحيحة", "danger")
 

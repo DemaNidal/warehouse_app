@@ -10,7 +10,7 @@ from flask import (
 from models import db, Color, Product
 from flask_login import current_user, login_required
 from utils.activity_logger import log_activity
-from utils.permissions import admin_required
+from utils.permissions import admin_required, manager_required
 from utils.system_guard import ensure_system_ready
 from utils.validation.color import validate_color_name
 from sqlalchemy.exc import IntegrityError
@@ -22,7 +22,7 @@ def register_color_routes(app):
     # =========================
     @app.route("/add-color", methods=["GET", "POST"])
     @login_required
-    @admin_required
+    @manager_required
     def add_color():
 
         is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"

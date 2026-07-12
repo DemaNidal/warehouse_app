@@ -7,7 +7,8 @@ from models import (
     Notification,
     STOCK_LOW,
     STOCK_CRITICAL,
-    StockRequest
+    StockRequest,
+    TRANSACTION_LABELS
 )
 from utils.permissions import manager_required
 
@@ -64,6 +65,7 @@ def register_dashboard_routes(app):
             unread_notifications=unread_notifications,
             low_stock_products=low_stock_products,
             recent_transactions=recent_transactions,
+            transaction_labels=TRANSACTION_LABELS,
             STOCK_LOW=STOCK_LOW,
             STOCK_CRITICAL=STOCK_CRITICAL
         )

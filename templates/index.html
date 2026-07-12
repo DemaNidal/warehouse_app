@@ -131,6 +131,7 @@
         </div>
     </div>
 
+    {% if current_user.role in ["ADMIN", "STORE_MANAGER"] %}
     <div class="col-6 col-lg-3">
         <a href="{{ url_for('notifications') }}" class="text-decoration-none">
             <div class="card border-0 shadow-sm home-stat-card h-100">
@@ -146,6 +147,7 @@
             </div>
         </a>
     </div>
+    {% endif %}
 
     <div class="col-6 col-lg-3">
         {% if current_user.role in ["ADMIN", "STORE_MANAGER"] %}

@@ -10,7 +10,7 @@ from flask import (
 from models import db, Size, Product
 from flask_login import current_user, login_required
 from utils.activity_logger import log_activity
-from utils.permissions import admin_required
+from utils.permissions import admin_required, manager_required
 from utils.system_guard import ensure_system_ready
 from utils.validation.size import validate_size_name
 from sqlalchemy.exc import IntegrityError
@@ -22,7 +22,7 @@ def register_size_routes(app):
     # =========================
     @app.route("/add-size", methods=["GET", "POST"])
     @login_required
-    @admin_required
+    @manager_required
     def add_size():
 
         is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
