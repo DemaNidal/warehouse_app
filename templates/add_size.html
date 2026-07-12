@@ -88,7 +88,9 @@
                     <th>#</th>
                     <th>الحجم</th>
                     <th>عدد المنتجات المرتبطة</th>
+                    {% if current_user.role == "ADMIN" %}
                     <th width="220">إجراءات</th>
+                    {% endif %}
                 </tr>
             </thead>
 
@@ -105,6 +107,7 @@
                         </span>
                     </td>
 
+                    {% if current_user.role == "ADMIN" %}
                     <td>
 
                         <!-- EDIT BUTTON -->
@@ -137,6 +140,7 @@
                         </form>
 
                     </td>
+                    {% endif %}
 
                 </tr>
                 {% endfor %}

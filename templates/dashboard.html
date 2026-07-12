@@ -19,7 +19,9 @@
         <div class="d-flex flex-wrap gap-2">
             <a href="/products" class="btn btn-outline-light">عرض المنتجات</a>
             <a href="/notifications" class="btn btn-light text-primary">الإشعارات</a>
+            {% if current_user.role == "ADMIN" %}
             <a href="{{ url_for('stock_requests') }}" class="btn btn-outline-light">طلبات الإخراج</a>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -140,8 +142,11 @@
     </div>
     <div class="col-lg-4">
         <div class="card dashboard-card h-100">
-            <div class="card-header border-0 bg-transparent">
+            <div class="card-header border-0 bg-transparent d-flex align-items-center justify-content-between">
                 <h5 class="mb-0">آخر حركات المخزون</h5>
+                <a href="{{ url_for('transactions_log') }}" class="small text-decoration-none">
+                    عرض الكل <i class="bi bi-arrow-left"></i>
+                </a>
             </div>
             <div class="card-body">
                 {% if recent_transactions %}
@@ -150,8 +155,8 @@
                     <div class="list-group-item px-0 py-3 border-0">
                         <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap">
                             <div class="flex-grow-1">
-                                <div class="fw-semibold">{{ t.product.name }}</div>
-                                <small class="text-secondary">{{ t.transaction_type }} • {{ t.user.username if t.user else '-' }}</small>
+                                <div class="fw-semibold">{{ t.product.name if t.product else 'منتج محذوف' }}</div>
+                                <small class="text-secondary">{{ transaction_labels[t.transaction_type] }} • {{ t.user.username if t.user else '-' }}</small>
                             </div>
                             <small class="text-secondary">{{ t.created_at.strftime('%Y-%m-%d %H:%M') }}</small>
                         </div>

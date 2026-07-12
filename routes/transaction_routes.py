@@ -27,6 +27,7 @@ from utils.system_guard import ensure_system_ready
 from utils.validation.transaction import validate_transaction
 from utils.notifications import generate_stock_notifications
 from utils.activity_logger import log_activity
+from sqlalchemy.orm import joinedload
 
 
 def register_transaction_routes(app):
@@ -149,7 +150,8 @@ def register_transaction_routes(app):
                 db.session.commit()
 
                 # 🔔 CENTRALIZED STOCK NOTIFICATIONS ONLY
-                users = User.query.all()
+                # Only ADMIN/STORE_MANAGER can act on stock levels (restock, approve requests)
+                users = User.query.filter(User.role.in_(["ADMIN", "STORE_MANAGER"])).all()
                 generate_stock_notifications(product, users)
 
                 flash("تم تسجيل العملية بنجاح", "success")
@@ -171,4 +173,39 @@ def register_transaction_routes(app):
             locations=locations,
             transaction_types=TRANSACTION_TYPES,
             transaction_labels=TRANSACTION_LABELS
+        )
+
+    # =========================================================
+    # ALL STOCK MOVEMENTS (full history, paginated + filterable)
+    # =========================================================
+    @app.route("/transactions")
+    @login_required
+    @manager_required
+    def transactions_log():
+
+        page = request.args.get("page", 1, type=int)
+        selected_type = request.args.get("type", "")
+
+        query = InventoryTransaction.query.options(
+            joinedload(InventoryTransaction.product),
+            joinedload(InventoryTransaction.user),
+            joinedload(InventoryTransaction.location)
+            .joinedload(InventoryLocation.warehouse),
+            joinedload(InventoryTransaction.destination_location)
+            .joinedload(InventoryLocation.warehouse)
+        )
+
+        if selected_type in TRANSACTION_TYPES:
+            query = query.filter_by(transaction_type=selected_type)
+
+        transactions = query.order_by(
+            InventoryTransaction.created_at.desc()
+        ).paginate(page=page, per_page=30, error_out=False, max_per_page=100)
+
+        return render_template(
+            "transactions_log.html",
+            transactions=transactions,
+            transaction_types=TRANSACTION_TYPES,
+            transaction_labels=TRANSACTION_LABELS,
+            selected_type=selected_type
         )

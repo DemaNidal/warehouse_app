@@ -276,8 +276,9 @@ def register_requests_routes(app):
             db.session.add(req)
             db.session.commit()
 
-            # notifications
-            generate_stock_notifications(req.product, User.query.all())
+            # notifications (only ADMIN/STORE_MANAGER can act on stock levels)
+            notify_users = User.query.filter(User.role.in_(["ADMIN", "STORE_MANAGER"])).all()
+            generate_stock_notifications(req.product, notify_users)
 
             log_activity(
                 current_user.id,

@@ -50,7 +50,7 @@
               {% endfor %}
             </select>
 
-            {% if current_user.role == "ADMIN" %}
+            {% if current_user.role in ["ADMIN", "STORE_MANAGER"] %}
             <button
               type="button"
               class="btn btn-outline-primary"
@@ -74,7 +74,7 @@
               {% endfor %}
             </select>
 
-            {% if current_user.role == "ADMIN" %}
+            {% if current_user.role in ["ADMIN", "STORE_MANAGER"] %}
             <button
               type="button"
               class="btn btn-outline-primary"
@@ -142,7 +142,7 @@
   </div>
 </div>
 
-{% if current_user.role == "ADMIN" %}
+{% if current_user.role in ["ADMIN", "STORE_MANAGER"] %}
 
 <!-- ================= QUICK ADD COLOR MODAL ================= -->
 <div class="modal fade" id="quickAddColorModal" tabindex="-1">

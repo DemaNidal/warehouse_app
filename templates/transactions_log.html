@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% block title %}آخر حركات المخزون{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+  <div class="d-flex align-items-center gap-3">
+    <div class="stat-icon-box">
+      <i class="bi bi-clock-history fs-4"></i>
+    </div>
+    <div>
+      <h2 class="mb-0">آخر حركات المخزون</h2>
+      <small class="text-muted">سجل كامل لكل عمليات الإدخال والإخراج والتحويل والتسوية</small>
+    </div>
+  </div>
+
+  <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-right"></i> رجوع للوحة التحكم
+  </a>
+</div>
+
+<div class="d-flex flex-wrap gap-2 mb-4">
+  <a
+    href="{{ url_for('transactions_log') }}"
+    class="btn btn-sm rounded-pill {{ 'btn-dark' if not selected_type else 'btn-outline-dark' }}"
+  >
+    الكل
+  </a>
+
+  {% for t in transaction_types %}
+  <a
+    href="{{ url_for('transactions_log', type=t) }}"
+    class="btn btn-sm rounded-pill {{ 'btn-dark' if selected_type == t else 'btn-outline-dark' }}"
+  >
+    {{ transaction_labels[t] }}
+  </a>
+  {% endfor %}
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body p-0">
+
+    {% if transactions.items %}
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-dark">
+          <tr>
+            <th>التاريخ</th>
+            <th>المنتج</th>
+            <th>النوع</th>
+            <th>المستخدم</th>
+            <th>الموقع</th>
+            <th>الكمية</th>
+            <th>ملاحظات</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for transaction in transactions.items %}
+
+          <tr>
+            <td class="text-nowrap">{{ transaction.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+
+            <td>
+              {% if transaction.product %}
+              <a href="{{ url_for('product_details', product_id=transaction.product.id) }}" class="fw-semibold text-decoration-none">
+                {{ transaction.product.name }}
+              </a>
+              {% else %}
+              <span class="text-muted">منتج محذوف</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if transaction.transaction_type == "IN" %}
+              <span class="badge bg-success">
+                <i class="bi bi-box-arrow-in-down"></i> إدخال
+              </span>
+              {% elif transaction.transaction_type == "OUT" %}
+              <span class="badge bg-danger">
+                <i class="bi bi-box-arrow-up-right"></i> إخراج
+              </span>
+              {% elif transaction.transaction_type == "ADJUSTMENT" %}
+              <span class="badge bg-warning text-dark">
+                <i class="bi bi-sliders"></i> تسوية
+              </span>
+              {% elif transaction.transaction_type == "TRANSFER" %}
+              <span class="badge bg-info text-dark">
+                <i class="bi bi-arrow-left-right"></i> تحويل
+              </span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if transaction.user %}
+              <span class="badge bg-secondary">
+                <i class="bi bi-person-fill"></i> {{ transaction.user.username }}
+              </span>
+              {% else %}
+              <span class="text-muted">غير معروف</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if transaction.transaction_type == "TRANSFER" %}
+              {{ transaction.location.warehouse.name }} - {{ transaction.location.location }}
+              <i class="bi bi-arrow-left-right text-primary mx-2"></i>
+              {{ transaction.destination_location.warehouse.name }} - {{ transaction.destination_location.location }}
+              {% else %}
+              {{ transaction.location.warehouse.name }} - {{ transaction.location.location }}
+              {% endif %}
+            </td>
+
+            <td>
+              {% if transaction.transaction_type == "IN" %}
+              <span class="text-success fw-bold">+{{ transaction.quantity }}</span>
+              {% elif transaction.transaction_type == "OUT" %}
+              <span class="text-danger fw-bold">-{{ transaction.quantity }}</span>
+              {% elif transaction.transaction_type == "TRANSFER" %}
+              <span class="text-info fw-bold">{{ transaction.quantity }}</span>
+              {% else %}
+              <span class="fw-bold">{{ transaction.quantity }}</span>
+              {% endif %}
+            </td>
+
+            <td>
+              {% if transaction.notes %}
+              {{ transaction.notes }}
+              {% else %}
+              <span class="text-muted">لا يوجد</span>
+              {% endif %}
+            </td>
+          </tr>
+
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% else %}
+
+    <div class="alert alert-info m-4 mb-0">
+      لا توجد حركات مخزون
+      {% if selected_type %}من نوع "{{ transaction_labels[selected_type] }}"{% endif %}.
+    </div>
+
+    {% endif %}
+
+  </div>
+</div>
+
+{% if transactions.pages > 1 %}
+
+<nav class="mt-4">
+  <ul class="pagination justify-content-center">
+
+    {% if transactions.has_prev %}
+    <li class="page-item">
+      <a class="page-link" href="{{ url_for('transactions_log', page=transactions.prev_num, type=selected_type) }}">
+        <i class="bi bi-chevron-right"></i>
+      </a>
+    </li>
+    {% endif %}
+
+    {% for page in transactions.iter_pages() %}
+      {% if page %}
+      <li class="page-item {% if page == transactions.page %}active{% endif %}">
+        <a class="page-link" href="{{ url_for('transactions_log', page=page, type=selected_type) }}">
+          {{ page }}
+        </a>
+      </li>
+      {% endif %}
+    {% endfor %}
+
+    {% if transactions.has_next %}
+    <li class="page-item">
+      <a class="page-link" href="{{ url_for('transactions_log', page=transactions.next_num, type=selected_type) }}">
+        <i class="bi bi-chevron-left"></i>
+      </a>
+    </li>
+    {% endif %}
+
+  </ul>
+</nav>
+
+{% endif %}
+
+{% endblock %}
