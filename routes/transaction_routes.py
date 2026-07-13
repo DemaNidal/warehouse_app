@@ -71,6 +71,7 @@ def register_transaction_routes(app):
                 # =====================================================
                 if transaction_type == "IN":
 
+                    qty_before = location.quantity
                     location.quantity += quantity
 
                     db.session.add(InventoryTransaction(
@@ -78,6 +79,8 @@ def register_transaction_routes(app):
                         location_id=location.id,
                         transaction_type="IN",
                         quantity=quantity,
+                        quantity_before=qty_before,
+                        quantity_after=location.quantity,
                         notes=notes,
                         user_id=current_user.id
                     ))
@@ -93,6 +96,7 @@ def register_transaction_routes(app):
 
                     if current_user.role == "ADMIN":
 
+                        qty_before = location.quantity
                         location.quantity -= quantity
 
                         db.session.add(InventoryTransaction(
@@ -100,6 +104,8 @@ def register_transaction_routes(app):
                             location_id=location.id,
                             transaction_type="OUT",
                             quantity=quantity,
+                            quantity_before=qty_before,
+                            quantity_after=location.quantity,
                             notes=notes,
                             user_id=current_user.id
                         ))
@@ -136,6 +142,7 @@ def register_transaction_routes(app):
                 # =====================================================
                 elif transaction_type == "ADJUSTMENT":
 
+                    qty_before = location.quantity
                     location.quantity = quantity
 
                     db.session.add(InventoryTransaction(
@@ -143,6 +150,8 @@ def register_transaction_routes(app):
                         location_id=location.id,
                         transaction_type="ADJUSTMENT",
                         quantity=quantity,
+                        quantity_before=qty_before,
+                        quantity_after=location.quantity,
                         notes=notes,
                         user_id=current_user.id
                     ))
@@ -153,6 +162,7 @@ def register_transaction_routes(app):
                 # Only ADMIN/STORE_MANAGER can act on stock levels (restock, approve requests)
                 users = User.query.filter(User.role.in_(["ADMIN", "STORE_MANAGER"])).all()
                 generate_stock_notifications(product, users)
+                db.session.commit()
 
                 flash("تم تسجيل العملية بنجاح", "success")
                 return redirect(url_for("product_details", product_id=product.id))

@@ -68,15 +68,17 @@
             <span class="text-muted small d-block mb-1">إجمالي الكمية</span>
             <span class="fs-2 fw-bold qty-display status-{{ stock_status|lower }}">{{ total_quantity }}</span>
           </div>
-          <div>
-            {% if stock_status == STOCK_CRITICAL %}
-            <span class="badge bg-danger fs-6">🔴 نفد المخزون</span>
-            {% elif stock_status == STOCK_LOW %}
-            <span class="badge bg-warning text-dark fs-6">🟡 مخزون منخفض</span>
-            {% else %}
-            <span class="badge bg-success fs-6">🟢 متوفر</span>
-            {% endif %}
-          </div>
+
+                        <div class="value">
+                            {% if product.stock_status == "CRITICAL" %}
+                            <span class="badge bg-danger">نفد</span>
+                            {% elif product.stock_status == "LOW" %}
+                            <span class="badge bg-warning text-dark">منخفض</span>
+                            {% else %}
+                            <span class="badge bg-success">متوفر</span>
+                            {% endif %}
+             
+                    </div>
         </div>
 
         <div class="product-meta-grid mb-3">
@@ -293,6 +295,12 @@
               {% else %}
               <span class="fw-bold">{{ transaction.quantity }}</span>
               {% endif %}
+
+              {% if transaction.quantity_before is not none and transaction.quantity_after is not none %}
+              <div class="text-muted small text-nowrap">
+                {{ transaction.quantity_before }} <i class="bi bi-arrow-left"></i> {{ transaction.quantity_after }}
+              </div>
+              {% endif %}
             </td>
 
             <td>
@@ -343,15 +351,23 @@
           <span class="text-muted small">غير معروف</span>
           {% endif %}
 
-          {% if transaction.transaction_type == "IN" %}
-          <span class="text-success fw-bold">+{{ transaction.quantity }}</span>
-          {% elif transaction.transaction_type == "OUT" %}
-          <span class="text-danger fw-bold">-{{ transaction.quantity }}</span>
-          {% elif transaction.transaction_type == "TRANSFER" %}
-          <span class="text-info fw-bold">{{ transaction.quantity }}</span>
-          {% else %}
-          <span class="fw-bold">{{ transaction.quantity }}</span>
-          {% endif %}
+          <div class="text-end">
+            {% if transaction.transaction_type == "IN" %}
+            <span class="text-success fw-bold">+{{ transaction.quantity }}</span>
+            {% elif transaction.transaction_type == "OUT" %}
+            <span class="text-danger fw-bold">-{{ transaction.quantity }}</span>
+            {% elif transaction.transaction_type == "TRANSFER" %}
+            <span class="text-info fw-bold">{{ transaction.quantity }}</span>
+            {% else %}
+            <span class="fw-bold">{{ transaction.quantity }}</span>
+            {% endif %}
+
+            {% if transaction.quantity_before is not none and transaction.quantity_after is not none %}
+            <div class="text-muted small">
+              {{ transaction.quantity_before }} <i class="bi bi-arrow-left"></i> {{ transaction.quantity_after }}
+            </div>
+            {% endif %}
+          </div>
         </div>
 
         {% if transaction.notes %}
