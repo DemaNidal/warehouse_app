@@ -70,7 +70,13 @@ def register_backup_routes(app):
     @admin_required
     def create_backup():
 
-        backup_name = create_backup_zip()
+        try:
+            backup_name = create_backup_zip()
+
+        except Exception:
+            current_app.logger.exception("Backup creation failed")
+            flash("فشل إنشاء النسخة الاحتياطية", "danger")
+            return redirect(url_for("backups"))
 
         log_activity(
             current_user.id,
@@ -181,11 +187,13 @@ def register_backup_routes(app):
 
             flash("تم استرجاع النسخة الاحتياطية بنجاح", "success")
 
-        except Exception as e:
+        except Exception:
 
             db.session.rollback()
 
-            flash(f"Restore failed: {e}", "danger")
+            current_app.logger.exception("Restore failed")
+
+            flash("فشل استرجاع النسخة الاحتياطية", "danger")
 
         finally:
             config.RESTORE_IN_PROGRESS = False
