@@ -22,7 +22,7 @@ def register_activity_routes(app):
             ActivityLog.query
             .options(joinedload(ActivityLog.user))
             .order_by(ActivityLog.created_at.desc())
-            .paginate(page=page, per_page=50, error_out=False, max_per_page=100)
+            .paginate(page=page, per_page=10, error_out=False, max_per_page=100)
         )
 
         return render_template(
