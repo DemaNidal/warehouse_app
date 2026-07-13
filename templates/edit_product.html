@@ -1,93 +1,68 @@
-{% from "macros.html" import csrf %} {% extends "base.html" %} {% block title %}
-تعديل المنتج {% endblock %} {% block content %}
+{% from "macros.html" import csrf %}
+{% extends "base.html" %}
+{% block title %}تعديل المنتج{% endblock %}
+{% block content %}
 
 <div class="card shadow-sm">
-  <div class="card-body">
-    <h2 class="mb-4">تعديل المنتج</h2>
+  <div class="card-body form-card">
+    <div class="page-header">
+      <div>
+        <h2 class="page-title">تعديل المنتج</h2>
+        <p class="page-description mb-0">تحديث بيانات المنتج وإدارة الصورة والسعر.</p>
+      </div>
+      <a href="/product/{{ product.id }}" class="btn btn-outline-secondary">رجوع للمنتج</a>
+    </div>
 
     <form method="POST" enctype="multipart/form-data">
       {{ csrf() }}
-      <div class="mb-3">
-        <label> اسم المنتج </label>
-
-        <input
-          type="text"
-          name="name"
-          value="{{ product.name }}"
-          class="form-control"
-          required
-        />
-      </div>
-
-      <div class="mb-3">
-        <label>اللون</label>
-
-        <select name="color_id" class="form-select" required>
-          {% for color in colors %}
-
-          <option
-    value="{{ color.id }}"
-    {% if color.id == product.color_id %}selected{% endif %}
->
-    {{ color.name }}
-</option>
-
-          {% endfor %}
-        </select>
-      </div>
-
-      <div class="mb-3">
-        <label>الحجم</label>
-
-        <select name="size_id" class="form-select" required>
-          <option value="">اختر الحجم</option>
-
-          {% for size in sizes %}
-<option
-    value="{{ size.id }}"
-    {% if size.id == product.size_id %}selected{% endif %}
->
-    {{ size.name }}
-</option>
-
-          {% endfor %}
-        </select>
-        <div class="mb-3">
-          <label>الحد الأدنى من المخزون</label>
-
-          <input
-            type="number"
-            name="minimum_stock"
-            value="{{ product.minimum_stock }}"
-            class="form-control"
-            min="0"
-            required
-          />
+      <div class="row g-3">
+        <div class="col-12 col-md-6">
+          <label class="form-label">اسم المنتج</label>
+          <input type="text" name="name" value="{{ product.name }}" class="form-control" required />
         </div>
-      </div>
 
-      <div class="mb-3">
-        <label> صورة جديدة (اختياري) </label>
+        <div class="col-12 col-md-6">
+          <label class="form-label">اللون</label>
+          <select name="color_id" class="form-select" required>
+            {% for color in colors %}
+            <option value="{{ color.id }}" {% if color.id == product.color_id %}selected{% endif %}>{{ color.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
 
-        {% if product.image %}
-        <div class="mb-2">
-          <div class="product-image-wrapper rounded overflow-hidden border" style="max-width:280px;">
-            <img src="{{ url_for('uploaded_file', filename=product.image) }}" class="product-image" alt="{{ product.name }}">
+        <div class="col-12 col-md-6">
+          <label class="form-label">الحجم</label>
+          <select name="size_id" class="form-select" required>
+            <option value="">اختر الحجم</option>
+            {% for size in sizes %}
+            <option value="{{ size.id }}" {% if size.id == product.size_id %}selected{% endif %}>{{ size.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-12 col-md-6">
+          <label class="form-label">الحد الأدنى من المخزون</label>
+          <input type="number" name="minimum_stock" value="{{ product.minimum_stock }}" class="form-control" min="0" required />
+        </div>
+
+        <div class="col-12">
+          <label class="form-label">صورة جديدة (اختياري)</label>
+          {% if product.image %}
+          <div class="mb-3">
+            <div class="product-image-wrapper rounded overflow-hidden border" style="max-width:280px;">
+              <img src="{{ url_for('uploaded_file', filename=product.image) }}" class="product-image" alt="{{ product.name }}">
+            </div>
           </div>
+          <div class="text-muted small mb-2">اترك الحقل فارغًا للاحتفاظ بالصورة الحالية أو اختر ملفًا جديدًا للاستبدال.</div>
+          {% endif %}
+          <input type="file" name="image" class="form-control" />
         </div>
-        <div class="text-muted small mb-2">اترك الحقل فارغًا للاحتفاظ بالصورة الحالية أو اختر ملفًا جديدًا للاستبدال.</div>
-
-        <input type="file" name="image" class="form-control" />
-        {% else %}
-
-        <input type="file" name="image" class="form-control" />
-
-        {% endif %}
       </div>
 
-      <button class="btn btn-success">حفظ التعديلات</button>
-
-      <a href="/product/{{ product.id }}" class="btn btn-secondary"> إلغاء </a>
+      <div class="form-actions mt-4">
+        <button class="btn btn-success">حفظ التعديلات</button>
+        <a href="/product/{{ product.id }}" class="btn btn-secondary">إلغاء</a>
+      </div>
     </form>
   </div>
 </div>

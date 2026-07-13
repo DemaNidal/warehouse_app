@@ -2,29 +2,33 @@
 
 {% extends "base.html" %}
 
+{% block title %}تعديل الموقع{% endblock %}
+
 {% block content %}
 
-<h2>تعديل موقع</h2>
-
-<form method="POST">
-    {{ csrf() }}
-    <div class="mb-3">
-
-        <label>الموقع</label>
-
-        <input
-            type="text"
-            name="location"
-            value="{{ location.location or '' }}"
-            class="form-control"
-        >
-
+<div class="card shadow-sm">
+  <div class="card-body form-card">
+    <div class="page-header">
+      <div>
+        <h2 class="page-title">تعديل الموقع</h2>
+        <p class="page-description mb-0">تعديل اسم الموقع المرتبط بالمنتج.</p>
+      </div>
+      <a href="/product/{{ location.product_id }}" class="btn btn-outline-secondary">رجوع للمنتج</a>
     </div>
 
-    <button class="btn btn-success">
-        حفظ
-    </button>
+    <form method="POST">
+      {{ csrf() }}
+      <div class="mb-3">
+        <label class="form-label">الموقع</label>
+        <input type="text" name="location" value="{{ location.location or '' }}" class="form-control">
+      </div>
 
-</form>
+      <div class="form-actions mt-4">
+        <button class="btn btn-success">حفظ</button>
+        <a href="/product/{{ location.product_id }}" class="btn btn-secondary">إلغاء</a>
+      </div>
+    </form>
+  </div>
+</div>
 
 {% endblock %}

@@ -12,7 +12,8 @@ from models import (
     db,
     Product,
     Warehouse,
-    InventoryLocation
+    InventoryLocation,
+    InventoryTransaction
 )
 
 from utils.activity_logger import log_activity
@@ -67,10 +68,21 @@ def register_location_routes(app):
             db.session.add(location)
             db.session.commit()
 
+            if location.quantity > 0:
+                db.session.add(InventoryTransaction(
+                    product_id=product.id,
+                    location_id=location.id,
+                    transaction_type="IN",
+                    quantity=location.quantity,
+                    notes=f"إضافة موقع جديد: {location.location or 'بدون موقع'}",
+                    user_id=current_user.id
+                ))
+                db.session.commit()
+
             log_activity(
                 current_user.id,
                 "ADD_LOCATION",
-                f"إضافة الموقع {location.location} للمنتج {product.name}"
+                f"إضافة الموقع {location.location or 'بدون موقع'} للمنتج {product.name}"
             )
 
             flash("تمت إضافة الموقع بنجاح", "success")
