@@ -591,6 +591,54 @@
       vertical-align: middle;
     }
 
+    .page-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .page-title {
+      font-size: 1.75rem;
+      font-weight: 700;
+      margin: 0;
+    }
+
+    .page-description {
+      color: #64748b;
+      font-size: 0.95rem;
+      margin: 0.35rem 0 0;
+    }
+
+    .form-card {
+      border-radius: 22px;
+      padding: 1.75rem;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 18px 42px rgba(15, 23, 42, 0.08);
+    }
+
+    .form-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      justify-content: flex-end;
+    }
+
+    .form-actions .btn {
+      min-width: 140px;
+    }
+
+    @media (max-width: 767.98px) {
+      .form-actions {
+        justify-content: stretch;
+      }
+      .form-actions .btn {
+        flex: 1 1 100%;
+      }
+    }
+
     /* Soft product card styles */
     .product-card {
       border: 0;

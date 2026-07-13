@@ -1,82 +1,68 @@
-{% extends "base.html" %} {% block content %}
+{% extends "base.html" %}
+
+{% block title %}سجل النشاطات{% endblock %}
+
+{% block content %}
 
 <div class="card shadow-sm">
-  <div class="card-header bg-dark text-white">
-    <h4 class="mb-0">
-      <i class="bi bi-clock-history"></i>
-      سجل النشاطات
-    </h4>
-  </div>
+  <div class="card-body form-card">
+    <div class="page-header">
+      <div>
+        <h2 class="page-title">سجل النشاطات</h2>
+        <p class="page-description mb-0">عرض كامل لنشاطات النظام وأحداث حركات المخزون.</p>
+      </div>
+      <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">عودة للوحة التحكم</a>
+    </div>
 
-  <div class="card-body">
     <div class="table-responsive">
       <table class="table table-hover align-middle">
         <thead class="table-light">
           <tr>
             <th>#</th>
-
             <th>المستخدم</th>
-
             <th>العملية</th>
-
             <th>التفاصيل</th>
-
             <th>التاريخ</th>
           </tr>
         </thead>
 
         <tbody>
           {% for log in logs.items %}
-
           <tr>
             <td>{{ log.id }}</td>
-
             <td>
-              <span class="badge bg-primary"> {{ log.user.username }} </span>
+              <span class="badge bg-primary">{{ log.user.username }}</span>
             </td>
-
             <td>
-              <span class="badge bg-secondary"> {{ log.action }} </span>
+              <span class="badge bg-secondary">{{ log.action }}</span>
             </td>
-
             <td>{{ log.description }}</td>
-
             <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
           </tr>
-
           {% endfor %}
         </tbody>
       </table>
-      <nav>
-        <ul class="pagination">
-          {% if logs.has_prev %}
-          <li class="page-item">
-            <a
-              class="page-link"
-              href="{{ url_for('activity_logs', page=logs.prev_num) }}"
-            >
-              السابق
-            </a>
-          </li>
-          {% endif %}
-
-          <li class="page-item active">
-            <span class="page-link"> {{ logs.page }} </span>
-          </li>
-
-          {% if logs.has_next %}
-          <li class="page-item">
-            <a
-              class="page-link"
-              href="{{ url_for('activity_logs', page=logs.next_num) }}"
-            >
-              التالي
-            </a>
-          </li>
-          {% endif %}
-        </ul>
-      </nav>
     </div>
+
+    <nav class="mt-4">
+      <ul class="pagination justify-content-center">
+        {% if logs.has_prev %}
+        <li class="page-item">
+          <a class="page-link" href="{{ url_for('activity_logs', page=logs.prev_num) }}">السابق</a>
+        </li>
+        {% endif %}
+
+        <li class="page-item active">
+          <span class="page-link">{{ logs.page }}</span>
+        </li>
+
+        {% if logs.has_next %}
+        <li class="page-item">
+          <a class="page-link" href="{{ url_for('activity_logs', page=logs.next_num) }}">التالي</a>
+        </li>
+        {% endif %}
+      </ul>
+    </nav>
   </div>
 </div>
 
