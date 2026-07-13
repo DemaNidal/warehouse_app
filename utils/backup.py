@@ -1,5 +1,6 @@
 import os
 import json
+import logging
 import zipfile
 import shutil
 from datetime import datetime
@@ -7,6 +8,9 @@ from sqlalchemy import text
 from sqlalchemy.inspection import inspect
 from models import db
 from datetime import datetime, date
+
+logger = logging.getLogger(__name__)
+
 # =========================
 # CONFIG
 # =========================
@@ -37,7 +41,7 @@ def get_all_tables():
 
 
 def export_database(export_dir):
-    print("📦 EXPORT DB STARTED")
+    logger.info("Backup export started")
     os.makedirs(export_dir, exist_ok=True)
 
     inspector = inspect(db.engine)
@@ -45,16 +49,17 @@ def export_database(export_dir):
 
     for table in tables:
         try:
-            result = db.session.execute(text(f"SELECT * FROM {table}"))
+            result = db.session.execute(text(f'SELECT * FROM "{table}"'))
             rows = [dict(r._mapping) for r in result]
 
-            print(f"✔ {table}: {len(rows)} rows")
+            logger.info("Exported table %s: %s rows", table, len(rows))
 
             with open(os.path.join(export_dir, f"{table}.json"), "w", encoding="utf-8") as f:
-                json.dump(rows, f, ensure_ascii=False, indent=4)
+                json.dump(rows, f, ensure_ascii=False, indent=4, default=str)
 
-        except Exception as e:
-            print(f"❌ {table} FAILED:", str(e))
+        except Exception:
+            logger.exception("Failed to export table %s", table)
+            raise
 
 
 # =========================
@@ -63,11 +68,9 @@ def export_database(export_dir):
 
 def export_uploads(temp_dir):
 
-    print("📁 EXPORT UPLOADS")
-
     uploads_dst = os.path.join(temp_dir, "uploads")
 
-    print("UPLOAD SOURCE EXISTS:", os.path.exists(UPLOAD_FOLDER))
+    logger.info("Exporting uploads (source exists: %s)", os.path.exists(UPLOAD_FOLDER))
 
     if os.path.exists(UPLOAD_FOLDER):
         shutil.copytree(UPLOAD_FOLDER, uploads_dst, dirs_exist_ok=True)
@@ -105,14 +108,6 @@ def zip_backup(temp_dir):
     backup_name = f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip"
     backup_path = os.path.join(BACKUP_FOLDER, backup_name)
 
-    # 🔥 DEBUG BEFORE ZIP
-    print("🧪 FILES THAT WILL BE ZIPPED:")
-
-    for root, _, files in os.walk(temp_dir):
-        for f in files:
-            full_path = os.path.join(root, f)
-            print(" -", full_path)
-
     # ZIP CREATION
     with zipfile.ZipFile(backup_path, "w", zipfile.ZIP_DEFLATED) as zipf:
 
@@ -130,7 +125,7 @@ def zip_backup(temp_dir):
 # =========================
 
 def create_backup_zip():
-    print("🔥 BACKUP STARTED")
+    logger.info("Creating backup zip")
     temp_dir = os.path.join(
         TEMP_FOLDER,
         f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"

@@ -1,111 +1,196 @@
 {% from "macros.html" import csrf %}
 
-{% extends "base.html" %} {% block content %}
+{% extends "base.html" %}
+{% block title %}النسخ الاحتياطية{% endblock %}
 
-<div class="card shadow-sm">
-  <div class="card-header bg-dark text-white d-flex justify-content-between">
-    <h4 class="mb-0">
-      <i class="bi bi-database"></i>
-      النسخ الاحتياطية
-    </h4>
-    <h5>
-      عدد النسخ:
-      <span class="badge bg-primary"> {{ files|length }} </span>
-    </h5>
-     <form
-            method="POST"
-            action="/backup/create"
-        >
-            {{ csrf() }}
+{% block content %}
 
-            <button
-                class="btn btn-success"
-            >
-                إنشاء نسخة احتياطية
-            </button>
-
-        </form>
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+  <div class="d-flex align-items-center gap-3">
+    <div class="stat-icon-box">
+      <i class="bi bi-database fs-4"></i>
+    </div>
+    <div>
+      <h2 class="mb-0">النسخ الاحتياطية</h2>
+      <small class="text-muted">إنشاء وتحميل واسترجاع نسخ احتياطية من قاعدة البيانات والملفات</small>
+    </div>
   </div>
 
-  <div class="card-body">
-    {% if files %}
-
-    <table class="table table-hover">
-      <thead>
-        <tr>
-          <th>الملف</th>
-
-          <th>الحجم</th>
-
-          <th>تحميل</th>
-        </tr>
-      </thead>
-
-      <tbody>
-        {% for file in files %}
-
-        <tr>
-          <td>
-            <i class="bi bi-file-earmark-zip"></i>
-
-            {{ file.name }}
-          </td>
-
-          <td>{{ file.size }} KB</td>
-
-          <td>
-            <a
-              href="/backup/download/{{ file.name }}"
-              class="btn btn-success btn-sm"
-            >
-              <i class="bi bi-download"></i>
-              تحميل
-            </a>
-            <form
-                method="POST"
-                action="{{ url_for('delete_backup', filename=file.name) }}"
-                style="display:inline"
-                onsubmit="return confirm('هل تريد حذف النسخة الاحتياطية؟')"
-            >
-                {{ csrf() }}
-                <button class="btn btn-danger btn-sm">
-                    <i class="bi bi-trash"></i>
-                    حذف
-                </button>
-            </form>
-          </td>
-        </tr>
-
-        {% endfor %}
-      </tbody>
-    </table>
-
-    {% else %}
-
-    <div class="alert alert-info">لا توجد نسخ احتياطية</div>
-
-    {% endif %}
-    <hr>
-
-<form method="POST" action="/backup/restore" enctype="multipart/form-data">
-
+  <form method="POST" action="{{ url_for('create_backup') }}" id="createBackupForm">
     {{ csrf() }}
-
-    <input type="file" name="backup_file" required>
-
-    <input type="password"
-           name="restore_secret"
-           class="form-control mt-2"
-           placeholder="Developer restore key"
-           required>
-
-    <button class="btn btn-danger mt-2"
-            onclick="return confirm('This will overwrite the database. Continue?')">
-        Restore Backup
+    <button class="btn btn-success" id="createBackupBtn">
+      <i class="bi bi-plus-circle"></i>
+      إنشاء نسخة احتياطية
     </button>
+  </form>
+</div>
 
-</form>
+<!-- ================= SUMMARY ================= -->
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm rounded-4 h-100">
+      <div class="card-body">
+        <small class="text-muted">عدد النسخ</small>
+        <h2 class="fw-bold mb-0">{{ files|length }}</h2>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-6 col-lg-3">
+    <div class="card border-0 shadow-sm rounded-4 h-100">
+      <div class="card-body">
+        <small class="text-muted">الحجم الإجمالي</small>
+        <h2 class="fw-bold mb-0">{{ "%.1f"|format(files|sum(attribute="size") / 1024) if files else 0 }} MB</h2>
+      </div>
+    </div>
   </div>
 </div>
+
+<!-- ================= LIST ================= -->
+<div class="card shadow-sm border-0 rounded-4 mb-4">
+  <div class="card-body">
+
+    <h5 class="mb-3">النسخ المتوفرة</h5>
+
+    {% if files %}
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>الملف</th>
+            <th>التاريخ</th>
+            <th>الحجم</th>
+            <th class="text-center">إجراءات</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for file in files %}
+          <tr>
+            <td>
+              <i class="bi bi-file-earmark-zip text-primary"></i>
+              {{ file.name }}
+            </td>
+            <td>{{ file.date.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td>{{ file.size }} KB</td>
+            <td class="text-center text-nowrap">
+              <a href="{{ url_for('download_backup', filename=file.name) }}" class="btn btn-outline-primary btn-sm" title="تحميل">
+                <i class="bi bi-download"></i>
+              </a>
+              <form
+                method="POST"
+                action="{{ url_for('delete_backup', filename=file.name) }}"
+                class="d-inline"
+                onsubmit="return confirm('هل تريد حذف هذه النسخة الاحتياطية؟');"
+              >
+                {{ csrf() }}
+                <button class="btn btn-outline-danger btn-sm" title="حذف">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {% else %}
+    <div class="text-center py-5">
+      <i class="bi bi-database-x fs-1 text-muted"></i>
+      <h5 class="mt-3">لا توجد نسخ احتياطية بعد</h5>
+      <p class="text-muted mb-0">اضغط "إنشاء نسخة احتياطية" أعلاه لإنشاء أول نسخة</p>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<!-- ================= RESTORE (DANGER ZONE) ================= -->
+<div class="card shadow-sm border-0 rounded-4 restore-danger-zone">
+  <div class="card-body">
+
+    <div class="d-flex align-items-center gap-2 mb-2">
+      <i class="bi bi-exclamation-triangle-fill text-danger fs-5"></i>
+      <h5 class="mb-0">استرجاع نسخة احتياطية</h5>
+    </div>
+
+    <p class="text-muted small mb-3">
+      هذه العملية تحذف <strong>جميع البيانات الحالية</strong> وتستبدلها ببيانات النسخة المرفوعة، ولا يمكن التراجع عنها.
+      يحتاج الاسترجاع إلى <strong>الرمز السري للاسترجاع</strong> (<code>RESTORE_SECRET</code>) المحفوظ في إعدادات السيرفر (ملف <code>.env</code>) —
+      إذا لم تكن تعرف هذا الرمز فتواصل مع الشخص الذي قام بإعداد السيرفر، ولا تشارك هذا الرمز مع أي شخص لا تثق به.
+    </p>
+
+    <form
+      method="POST"
+      action="{{ url_for('restore_backup') }}"
+      enctype="multipart/form-data"
+      id="restoreForm"
+      onsubmit="return confirm('سيتم حذف جميع البيانات الحالية واستبدالها بالكامل. هل أنت متأكد؟');"
+    >
+
+      {{ csrf() }}
+
+      <div class="row g-3">
+
+        <div class="col-md-6">
+          <label class="form-label">ملف النسخة الاحتياطية (ZIP)</label>
+          <input type="file" name="backup_file" accept=".zip" class="form-control" required>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">الرمز السري للاسترجاع</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-shield-lock"></i></span>
+            <input
+              type="password"
+              name="restore_secret"
+              id="restoreSecretInput"
+              class="form-control"
+              placeholder="RESTORE_SECRET"
+              required
+            >
+            <button type="button" class="btn btn-outline-secondary" id="toggleRestoreSecret" tabindex="-1">
+              <i class="bi bi-eye" id="toggleRestoreSecretIcon"></i>
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <button type="submit" class="btn btn-danger mt-3" id="restoreBtn">
+        <i class="bi bi-arrow-counterclockwise"></i>
+        استرجاع النسخة الاحتياطية
+      </button>
+
+    </form>
+
+  </div>
+</div>
+
+<script>
+document.getElementById("createBackupForm").addEventListener("submit", function () {
+  const btn = document.getElementById("createBackupBtn");
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> جارٍ الإنشاء...';
+});
+
+document.getElementById("restoreForm").addEventListener("submit", function (e) {
+  if (e.defaultPrevented) return;
+  const btn = document.getElementById("restoreBtn");
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> جارٍ الاسترجاع...';
+});
+
+document.getElementById("toggleRestoreSecret").addEventListener("click", function () {
+  const input = document.getElementById("restoreSecretInput");
+  const icon = document.getElementById("toggleRestoreSecretIcon");
+  const isHidden = input.type === "password";
+  input.type = isHidden ? "text" : "password";
+  icon.classList.toggle("bi-eye", !isHidden);
+  icon.classList.toggle("bi-eye-slash", isHidden);
+});
+</script>
 
 {% endblock %}
