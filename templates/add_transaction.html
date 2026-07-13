@@ -8,87 +8,142 @@
 
 {% block content %}
 
-
-<h2>{{ product.name }}</h2>
-
-<hr>
-
-<form method="POST">
-    {{ csrf() }}
-    <div class="mb-3">
-
-        <label>الموقع</label>
-
-        <select
-            name="location_id"
-            class="form-select"
-            required
-        >
-
-            {% for location in locations %}
-
-            <option value="{{ location.id }}">
-                {{ location.warehouse.name }}
-                -
-                {{ location.location }}
-            </option>
-
-            {% endfor %}
-
-        </select>
-
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+  <div class="d-flex align-items-center gap-3">
+    <div class="stat-icon-box">
+      <i class="bi bi-arrow-left-right fs-4"></i>
     </div>
-
-    <div class="mb-3">
-
-        <label>نوع الحركة</label>
-
-<select
-    name="transaction_type"
-    class="form-select"
-    required
->
-
-    {% for t in transaction_types if t != "TRANSFER" %}
-
-    <option value="{{ t }}">
-        {{ transaction_labels[t] }}
-    </option>
-
-    {% endfor %}
-
-</select>
-
+    <div>
+      <h2 class="mb-0">إضافة حركة مخزون</h2>
+      <small class="text-muted">{{ product.name }}</small>
     </div>
+  </div>
 
-    <div class="mb-3">
+  <a href="{{ url_for('product_details', product_id=product.id) }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-right"></i> رجوع للمنتج
+  </a>
+</div>
 
-        <label>الكمية</label>
+<div class="row justify-content-center">
+  <div class="col-lg-8">
+    <div class="card shadow-sm">
+      <div class="card-body p-4">
 
-        <input
-            type="number"
-            name="quantity"
-            class="form-control"
-            required
-        >
+        <form method="POST" id="addTransactionForm" novalidate>
+          {{ csrf() }}
 
+          <div class="mb-3">
+            <label class="form-label">الموقع</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-geo-alt"></i></span>
+              <select name="location_id" id="locationSelect" class="form-select" required>
+                {% for location in locations %}
+                <option value="{{ location.id }}" data-qty="{{ location.quantity }}">
+                  {{ location.warehouse.name }} - {{ location.location }}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-text">
+              الكمية الحالية بهذا الموقع: <span class="fw-bold" id="currentQtyDisplay">-</span>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label mb-2">نوع الحركة</label>
+            <div class="row g-2">
+
+              {% for t in transaction_types if t != "TRANSFER" %}
+              <div class="col-sm-4">
+                <input
+                  type="radio"
+                  class="btn-check"
+                  name="transaction_type"
+                  id="type{{ t }}"
+                  value="{{ t }}"
+                  data-help="{% if t == 'IN' %}تُضاف الكمية إلى الكمية الحالية بالموقع{% elif t == 'OUT' %}تُخصم الكمية من الموقع (تحتاج موافقة أدمن إن لم تكن أدمن){% else %}تحدد الكمية الفعلية بعد الجرد، وتستبدل الكمية الحالية{% endif %}"
+                  {% if loop.first %}checked{% endif %}
+                >
+                <label class="role-option-card" for="type{{ t }}">
+                  {% if t == "IN" %}
+                  <i class="bi bi-box-arrow-in-down text-success"></i>
+                  {% elif t == "OUT" %}
+                  <i class="bi bi-box-arrow-up-right text-danger"></i>
+                  {% else %}
+                  <i class="bi bi-sliders text-warning"></i>
+                  {% endif %}
+                  <div class="fw-semibold">{{ transaction_labels[t] }}</div>
+                </label>
+              </div>
+              {% endfor %}
+
+            </div>
+            <div class="form-text" id="typeHelpText"></div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">الكمية</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-hash"></i></span>
+              <input
+                type="number"
+                name="quantity"
+                class="form-control"
+                min="1"
+                required
+              >
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">ملاحظات</label>
+            <textarea name="notes" class="form-control" rows="3" placeholder="اختياري"></textarea>
+          </div>
+
+          <hr class="my-4">
+
+          <div class="d-flex flex-wrap gap-2">
+            <button class="btn btn-success px-4">
+              <i class="bi bi-check-lg"></i> حفظ الحركة
+            </button>
+            <a href="{{ url_for('product_details', product_id=product.id) }}" class="btn btn-light border">
+              إلغاء
+            </a>
+          </div>
+
+        </form>
+
+      </div>
     </div>
+  </div>
+</div>
 
-    <div class="mb-3">
+<script>
+document.addEventListener("DOMContentLoaded", function () {
 
-        <label>ملاحظات</label>
+  const locationSelect = document.getElementById("locationSelect");
+  const currentQtyDisplay = document.getElementById("currentQtyDisplay");
 
-        <textarea
-            name="notes"
-            class="form-control"
-        ></textarea>
+  function updateQtyDisplay() {
+    const selected = locationSelect.options[locationSelect.selectedIndex];
+    currentQtyDisplay.textContent = selected ? selected.dataset.qty : "-";
+  }
 
-    </div>
+  locationSelect.addEventListener("change", updateQtyDisplay);
+  updateQtyDisplay();
 
-    <button class="btn btn-success">
-        حفظ الحركة
-    </button>
+  const typeInputs = document.querySelectorAll('input[name="transaction_type"]');
+  const typeHelpText = document.getElementById("typeHelpText");
 
-</form>
+  function updateTypeHelp() {
+    const checked = document.querySelector('input[name="transaction_type"]:checked');
+    typeHelpText.textContent = checked ? checked.dataset.help : "";
+  }
+
+  typeInputs.forEach(input => input.addEventListener("change", updateTypeHelp));
+  updateTypeHelp();
+
+});
+</script>
 
 {% endblock %}

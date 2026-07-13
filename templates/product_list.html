@@ -75,21 +75,21 @@
             <div class="product-image-wrapper">
 
                 {% if product.image %}
-
-                <div class="product-image-inner">
-                  <img
-                      src="{{ url_for('uploaded_file', filename=product.image) }}"
-                      class="product-image"
-                      alt="{{ product.name }}"
-                  >
-                </div>
-
+                <a href="/product/{{ product.id }}" class="product-image-link">
+                  <div class="product-image-inner">
+                    <img
+                        src="{{ url_for('uploaded_file', filename=product.image) }}"
+                        class="product-image"
+                        alt="{{ product.name }}"
+                    >
+                  </div>
+                </a>
                 {% else %}
-
-                <div class="product-image-inner product-image-placeholder">
-                    <i class="bi bi-image"></i>
-                </div>
-
+                <a href="/product/{{ product.id }}" class="product-image-link">
+                  <div class="product-image-inner product-image-placeholder">
+                      <i class="bi bi-image"></i>
+                  </div>
+                </a>
                 {% endif %}
 
                 <span class="badge-color">{{ product.color.name }}</span>

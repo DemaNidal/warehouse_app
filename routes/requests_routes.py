@@ -256,6 +256,7 @@ def register_requests_routes(app):
 
         try:
             # reduce stock
+            qty_before = location.quantity
             location.quantity -= req.quantity
 
             # log transaction
@@ -264,6 +265,8 @@ def register_requests_routes(app):
                 location_id=req.location_id,
                 transaction_type="OUT",
                 quantity=req.quantity,
+                quantity_before=qty_before,
+                quantity_after=location.quantity,
                 notes=req.notes,
                 user_id=req.requested_by
             ))
@@ -279,6 +282,7 @@ def register_requests_routes(app):
             # notifications (only ADMIN/STORE_MANAGER can act on stock levels)
             notify_users = User.query.filter(User.role.in_(["ADMIN", "STORE_MANAGER"])).all()
             generate_stock_notifications(req.product, notify_users)
+            db.session.commit()
 
             log_activity(
                 current_user.id,

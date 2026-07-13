@@ -976,39 +976,56 @@
       position: relative;
       width: 100%;
       aspect-ratio: 4 / 3;
-      padding: 14px; /* give breathing room around image */
+      padding: 0;
       box-sizing: border-box;
-      background:white;
+      background: #f8fafc;
       overflow: hidden;
       display: flex;
-      align-items: center;
-      justify-content: center;
+      align-items: stretch;
+      justify-content: stretch;
+      border-bottom: 1px solid #e2e8f0;
     }
 
-    /* Image treatment: slightly reduced height and a gentle hover zoom */
+    .product-image-link {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Image treatment: clean framed image with gentle hover scale */
     .product-image-inner {
       width: 100%;
       height: 100%;
-      border-radius: 12px;
-      background: linear-gradient(180deg, #f3faf2 0%, #eef7ee 100%);
+      border-radius: 0;
+      background: #ffffff;
       display: flex;
       align-items: center;
       justify-content: center;
       overflow: hidden;
-      padding: 8px;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.7);
     }
 
     .product-image {
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
       display: block;
-      transition: transform 0.25s ease, filter 0.25s ease;
+      transition: transform 0.3s ease, filter 0.3s ease;
     }
 
     .product-image-wrapper:hover .product-image {
-      transform: scale(1.02);
+      transform: scale(1.04);
+    }
+
+    .product-image-placeholder {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #94a3b8;
+      font-size: 2.2rem;
+      background: linear-gradient(135deg, #fafbff 0%, #edf2f7 100%);
     }
 
     /* price badge */

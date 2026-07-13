@@ -75,6 +75,7 @@ def register_transfer_routes(app):
                     flash("الكمية المطلوبة أكبر من المتوفر", "danger")
                     return redirect(url_for("transfer_stock", product_id=product.id))
 
+                source_qty_before = source_location.quantity
                 source_location.quantity -= quantity
                 destination_location.quantity += quantity
 
@@ -84,6 +85,8 @@ def register_transfer_routes(app):
                     destination_location_id=destination_location.id,
                     transaction_type="TRANSFER",
                     quantity=quantity,
+                    quantity_before=source_qty_before,
+                    quantity_after=source_location.quantity,
                     notes=notes,
                     user_id=current_user.id
                 )

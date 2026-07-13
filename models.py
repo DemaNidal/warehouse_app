@@ -227,6 +227,16 @@ class InventoryTransaction(db.Model):
         nullable=False
     )
 
+    quantity_before = db.Column(
+        db.Integer,
+        nullable=True
+    )
+
+    quantity_after = db.Column(
+        db.Integer,
+        nullable=True
+    )
+
     notes = db.Column(
         db.String(255)
     )
