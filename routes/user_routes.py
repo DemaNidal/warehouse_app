@@ -13,6 +13,7 @@ from utils.activity_logger import log_activity
 from utils.permissions import admin_required
 from utils.system_guard import ensure_system_ready
 from utils.validation.user import validate_add_user, validate_edit_user, validate_password
+from sqlalchemy.exc import IntegrityError
 
 
 def register_user_routes(app):
@@ -94,8 +95,14 @@ def register_user_routes(app):
 
             user.set_password(data["password"])
 
-            db.session.add(user)
-            db.session.commit()
+            try:
+                db.session.add(user)
+                db.session.commit()
+
+            except IntegrityError:
+                db.session.rollback()
+                flash("اسم المستخدم موجود", "danger")
+                return redirect(url_for("add_user"))
 
             log_activity(
                 current_user.id,

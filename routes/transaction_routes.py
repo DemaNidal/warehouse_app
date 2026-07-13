@@ -55,10 +55,12 @@ def register_transaction_routes(app):
 
             data = result.data
 
+            # lock the row so a concurrent transaction on the same location
+            # can't read a stale quantity and overwrite this one's update
             location = InventoryLocation.query.filter_by(
                 id=data["location_id"],
                 product_id=product.id
-            ).first_or_404()
+            ).with_for_update().first_or_404()
 
             transaction_type = data["transaction_type"]
             quantity = data["quantity"]

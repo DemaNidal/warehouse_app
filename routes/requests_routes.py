@@ -248,13 +248,43 @@ def register_requests_routes(app):
             flash("Request already processed", "warning")
             return redirect(url_for("stock_requests"))
 
-        location = InventoryLocation.query.get_or_404(req.location_id)
-
-        if location.quantity < req.quantity:
-            flash("Not enough stock available", "danger")
-            return redirect(url_for("stock_requests"))
-
         try:
+            # lock the request row itself too and re-check its status — without
+            # this, two admins approving the same request at the same instant
+            # could both pass the PENDING check above and double-deduct stock
+            req = (
+                StockRequest.query
+                .filter_by(id=request_id)
+                .with_for_update()
+                .first()
+            )
+
+            if not req:
+                abort(404)
+
+            if req.status != "PENDING":
+                db.session.rollback()
+                flash("Request already processed", "warning")
+                return redirect(url_for("stock_requests"))
+
+            # lock the location row so a concurrent transaction/approval on
+            # the same location can't read a stale quantity and overwrite
+            # this update
+            location = (
+                InventoryLocation.query
+                .filter_by(id=req.location_id)
+                .with_for_update()
+                .first()
+            )
+
+            if not location:
+                abort(404)
+
+            if location.quantity < req.quantity:
+                flash("Not enough stock available", "danger")
+                db.session.rollback()
+                return redirect(url_for("stock_requests"))
+
             # reduce stock
             qty_before = location.quantity
             location.quantity -= req.quantity
