@@ -6,7 +6,8 @@ from flask import (
     redirect,
     url_for,
     flash,
-    current_app
+    current_app,
+    abort
 )
 from flask_login import login_required, current_user
 
@@ -51,8 +52,8 @@ def register_transfer_routes(app):
 
             data = result.data
 
-            source_id = data["source_location_id"]
-            destination_id = data["destination_location_id"]
+            source_id = data["source"]
+            destination_id = data["destination"]
             quantity = data["quantity"]
             notes = data["notes"]
 
@@ -61,15 +62,27 @@ def register_transfer_routes(app):
                 return redirect(url_for("transfer_stock", product_id=product.id))
 
             try:
-                source_location = InventoryLocation.query.filter_by(
-                    id=source_id,
-                    product_id=product.id
-                ).first_or_404()
+                # Lock both rows in a consistent order (ascending id) regardless
+                # of which is source/destination, so two transfers that cross the
+                # same pair of locations in opposite directions can't deadlock —
+                # they'll simply queue for the same lock order instead.
+                locked_locations = {
+                    loc.id: loc
+                    for loc in InventoryLocation.query
+                        .filter(
+                            InventoryLocation.id.in_([source_id, destination_id]),
+                            InventoryLocation.product_id == product.id
+                        )
+                        .order_by(InventoryLocation.id.asc())
+                        .with_for_update()
+                        .all()
+                }
 
-                destination_location = InventoryLocation.query.filter_by(
-                    id=destination_id,
-                    product_id=product.id
-                ).first_or_404()
+                source_location = locked_locations.get(source_id)
+                destination_location = locked_locations.get(destination_id)
+
+                if not source_location or not destination_location:
+                    abort(404)
 
                 if source_location.quantity < quantity:
                     flash("الكمية المطلوبة أكبر من المتوفر", "danger")
