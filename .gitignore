@@ -1,0 +1,14 @@
+.env
+.flaskenv
+
+__pycache__/
+*.pyc
+
+venv/
+.venv/
+
+backups/*.zip
+backup_temp/
+restore_temp/
+
+scripts/backup_task.log
