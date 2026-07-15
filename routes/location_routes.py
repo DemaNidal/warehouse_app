@@ -3,7 +3,8 @@ from flask import (
     request,
     redirect,
     url_for,
-    flash
+    flash,
+    current_app
 )
 
 from flask_login import login_required, current_user
@@ -102,7 +103,7 @@ def register_location_routes(app):
     # =========================
     @app.route("/location/<int:location_id>/edit", methods=["GET", "POST"])
     @login_required
-    @admin_required
+    @manager_required
     def edit_location(location_id):
 
         if not ensure_system_ready():
@@ -174,13 +175,32 @@ def register_location_routes(app):
             flash("لا يمكن حذف موقع يحتوي على كمية", "danger")
             return redirect(url_for("product_details", product_id=product_id))
 
-        db.session.delete(location)
-        db.session.commit()
+        has_history = InventoryTransaction.query.filter(
+            db.or_(
+                InventoryTransaction.location_id == location.id,
+                InventoryTransaction.destination_location_id == location.id
+            )
+        ).first() is not None
+
+        if has_history:
+            flash("لا يمكن حذف هذا الموقع لوجود سجل حركات مرتبط به", "danger")
+            return redirect(url_for("product_details", product_id=product_id))
+
+        location_name = location.location
+
+        try:
+            db.session.delete(location)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            current_app.logger.exception("Delete location #%s failed", location_id)
+            flash("تعذر حذف الموقع بسبب بيانات مرتبطة به", "danger")
+            return redirect(url_for("product_details", product_id=product_id))
 
         log_activity(
             current_user.id,
             "DELETE_LOCATION",
-            f"حذف الموقع {location.location}"
+            f"حذف الموقع {location_name}"
         )
 
         flash("تم حذف الموقع بنجاح", "success")
