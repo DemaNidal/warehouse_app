@@ -47,12 +47,14 @@ def register_location_routes(app):
                 return redirect(url_for("add_location", product_id=product.id))
 
             data = result.data
+            warehouse = Warehouse.query.get(data["warehouse_id"])
+            resolved_location_name = data["location"] or (warehouse.name if warehouse else "")
 
             # safety: prevent duplicates (DB-level safety still recommended)
             exists = InventoryLocation.query.filter_by(
                 product_id=product.id,
                 warehouse_id=data["warehouse_id"],
-                location=data["location"]
+                location=resolved_location_name
             ).first()
 
             if exists:
@@ -63,7 +65,7 @@ def register_location_routes(app):
                 product_id=product.id,
                 warehouse_id=data["warehouse_id"],
                 quantity=data["quantity"],
-                location=data["location"]
+                location=resolved_location_name
             )
 
             db.session.add(location)
@@ -114,10 +116,8 @@ def register_location_routes(app):
         if request.method == "POST":
 
             name = request.form.get("location", "").strip()
-
             if not name:
-                flash("الموقع مطلوب", "danger")
-                return redirect(url_for("edit_location", location_id=location.id))
+                name = location.warehouse.name if location.warehouse else ""
 
             if len(name) > 255:
                 flash("اسم الموقع طويل جداً", "danger")

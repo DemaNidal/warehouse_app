@@ -3,6 +3,8 @@
 
 {% block content %}
 
+{% set active_filters = (q or date) %}
+
 <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
   <div class="d-flex align-items-center gap-3">
     <div class="stat-icon-box">
@@ -14,14 +16,75 @@
     </div>
   </div>
 
-  <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
-    <i class="bi bi-arrow-right"></i> رجوع للوحة التحكم
-  </a>
+  <div class="d-flex flex-wrap gap-2">
+    <button
+      type="button"
+      class="btn btn-outline-primary rounded-pill"
+      data-bs-toggle="offcanvas"
+      data-bs-target="#filtersPanel"
+    >
+      <i class="bi bi-funnel"></i>
+      فلترة وبحث
+      {% if active_filters %}
+      <span class="badge bg-primary rounded-pill ms-1"><i class="bi bi-check-lg"></i></span>
+      {% endif %}
+    </button>
+
+    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-right"></i> رجوع للوحة التحكم
+    </a>
+  </div>
+</div>
+
+<!-- ===================== FILTERS (OFFCANVAS FROM TOP) ===================== -->
+<div class="offcanvas offcanvas-top" tabindex="-1" id="filtersPanel" style="height: auto;">
+  <div class="offcanvas-header border-bottom">
+    <h5 class="offcanvas-title"><i class="bi bi-funnel"></i> فلترة وبحث</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="إغلاق"></button>
+  </div>
+
+  <div class="offcanvas-body">
+    <form method="GET">
+      <input type="hidden" name="type" value="{{ selected_type }}">
+
+      <div class="row g-3 align-items-end">
+
+        <div class="col-12 col-md-6 col-lg-4">
+          <label class="form-label fw-semibold">بحث (بالعميل، الملاحظات، أو اسم المنتج)</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input
+              type="text"
+              class="form-control"
+              name="q"
+              value="{{ q }}"
+              placeholder="مثال: اسم العميل، ملاحظة، اسم منتج..."
+            >
+          </div>
+        </div>
+
+        <div class="col-12 col-md-6 col-lg-4">
+          <label class="form-label fw-semibold">التاريخ</label>
+          <input type="date" class="form-control" name="date" value="{{ date }}">
+        </div>
+
+      </div>
+
+      <div class="d-flex flex-wrap gap-2 justify-content-end mt-4">
+        <a href="{{ url_for('transactions_log', type=selected_type) }}" class="btn btn-outline-secondary">
+          <i class="bi bi-x-circle"></i> مسح الفلاتر
+        </a>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-funnel"></i> تطبيق الفلاتر
+        </button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <div class="d-flex flex-wrap gap-2 mb-4">
   <a
-    href="{{ url_for('transactions_log') }}"
+    href="{{ url_for('transactions_log', q=q, date=date) }}"
     class="btn btn-sm rounded-pill {{ 'btn-dark' if not selected_type else 'btn-outline-dark' }}"
   >
     الكل
@@ -29,7 +92,7 @@
 
   {% for t in transaction_types %}
   <a
-    href="{{ url_for('transactions_log', type=t) }}"
+    href="{{ url_for('transactions_log', type=t, q=q, date=date) }}"
     class="btn btn-sm rounded-pill {{ 'btn-dark' if selected_type == t else 'btn-outline-dark' }}"
   >
     {{ transaction_labels[t] }}
@@ -38,11 +101,12 @@
 </div>
 
 <div class="card shadow-sm">
-  <div class="card-body form-card p-4">
+  <div class="card-body p-0">
 
     {% if transactions.items %}
 
-    <div class="table-responsive">
+    <!-- desktop table -->
+    <div class="table-responsive d-none d-md-block">
       <table class="table table-hover align-middle mb-0">
         <thead class="table-dark">
           <tr>
@@ -50,6 +114,7 @@
             <th>المنتج</th>
             <th>النوع</th>
             <th>المستخدم</th>
+            <th>العميل</th>
             <th>الموقع</th>
             <th>الكمية</th>
             <th>ملاحظات</th>
@@ -103,6 +168,16 @@
             </td>
 
             <td>
+              {% if transaction.customer %}
+              <span class="badge bg-info text-dark">
+                <i class="bi bi-person-badge"></i> {{ transaction.customer.name }}
+              </span>
+              {% else %}
+              <span class="text-muted">-</span>
+              {% endif %}
+            </td>
+
+            <td>
               {% if transaction.transaction_type == "TRANSFER" %}
               {{ transaction.location.warehouse.name }} - {{ transaction.location.location }}
               <i class="bi bi-arrow-left-right text-primary mx-2"></i>
@@ -144,10 +219,89 @@
       </table>
     </div>
 
+    <!-- mobile card list -->
+    <div class="d-md-none">
+      {% for transaction in transactions.items %}
+      <div class="p-3 border-bottom">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          {% if transaction.transaction_type == "IN" %}
+          <span class="badge bg-success"><i class="bi bi-box-arrow-in-down"></i> إدخال</span>
+          {% elif transaction.transaction_type == "OUT" %}
+          <span class="badge bg-danger"><i class="bi bi-box-arrow-up-right"></i> إخراج</span>
+          {% elif transaction.transaction_type == "ADJUSTMENT" %}
+          <span class="badge bg-warning text-dark"><i class="bi bi-sliders"></i> تسوية</span>
+          {% elif transaction.transaction_type == "TRANSFER" %}
+          <span class="badge bg-info text-dark"><i class="bi bi-arrow-left-right"></i> تحويل</span>
+          {% endif %}
+
+          <span class="text-muted small">{{ transaction.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+        </div>
+
+        <div class="mb-2">
+          {% if transaction.product %}
+          <a href="{{ url_for('product_details', product_id=transaction.product.id) }}" class="fw-semibold text-decoration-none">
+            {{ transaction.product.name }}
+          </a>
+          {% else %}
+          <span class="text-muted">منتج محذوف</span>
+          {% endif %}
+        </div>
+
+        {% if transaction.customer %}
+        <div class="mb-2">
+          <span class="badge bg-info text-dark">
+            <i class="bi bi-person-badge"></i> {{ transaction.customer.name }}
+          </span>
+        </div>
+        {% endif %}
+
+        <div class="small mb-2">
+          {% if transaction.transaction_type == "TRANSFER" %}
+          {{ transaction.location.warehouse.name }} - {{ transaction.location.location }}
+          <i class="bi bi-arrow-left-right text-primary mx-1"></i>
+          {{ transaction.destination_location.warehouse.name }} - {{ transaction.destination_location.location }}
+          {% else %}
+          {{ transaction.location.warehouse.name }} - {{ transaction.location.location }}
+          {% endif %}
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center">
+          {% if transaction.user %}
+          <span class="badge bg-secondary"><i class="bi bi-person-fill"></i> {{ transaction.user.username }}</span>
+          {% else %}
+          <span class="text-muted small">غير معروف</span>
+          {% endif %}
+
+          <div class="text-end">
+            {% if transaction.transaction_type == "IN" %}
+            <span class="text-success fw-bold">+{{ transaction.quantity }}</span>
+            {% elif transaction.transaction_type == "OUT" %}
+            <span class="text-danger fw-bold">-{{ transaction.quantity }}</span>
+            {% elif transaction.transaction_type == "TRANSFER" %}
+            <span class="text-info fw-bold">{{ transaction.quantity }}</span>
+            {% else %}
+            <span class="fw-bold">{{ transaction.quantity }}</span>
+            {% endif %}
+
+            {% if transaction.quantity_before is not none and transaction.quantity_after is not none %}
+            <div class="text-muted small">
+              {{ transaction.quantity_before }} <i class="bi bi-arrow-left"></i> {{ transaction.quantity_after }}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        {% if transaction.notes %}
+        <div class="text-muted small mt-1">{{ transaction.notes }}</div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+
     {% else %}
 
     <div class="alert alert-info m-4 mb-0">
-      لا توجد حركات مخزون
+      لا توجد حركات مخزون تطابق البحث
       {% if selected_type %}من نوع "{{ transaction_labels[selected_type] }}"{% endif %}.
     </div>
 
@@ -163,7 +317,7 @@
 
     {% if transactions.has_prev %}
     <li class="page-item">
-      <a class="page-link" href="{{ url_for('transactions_log', page=transactions.prev_num, type=selected_type) }}">
+      <a class="page-link" href="{{ url_for('transactions_log', page=transactions.prev_num, type=selected_type, q=q, date=date) }}">
         <i class="bi bi-chevron-right"></i>
       </a>
     </li>
@@ -172,7 +326,7 @@
     {% for page in transactions.iter_pages() %}
       {% if page %}
       <li class="page-item {% if page == transactions.page %}active{% endif %}">
-        <a class="page-link" href="{{ url_for('transactions_log', page=page, type=selected_type) }}">
+        <a class="page-link" href="{{ url_for('transactions_log', page=page, type=selected_type, q=q, date=date) }}">
           {{ page }}
         </a>
       </li>
@@ -181,7 +335,7 @@
 
     {% if transactions.has_next %}
     <li class="page-item">
-      <a class="page-link" href="{{ url_for('transactions_log', page=transactions.next_num, type=selected_type) }}">
+      <a class="page-link" href="{{ url_for('transactions_log', page=transactions.next_num, type=selected_type, q=q, date=date) }}">
         <i class="bi bi-chevron-left"></i>
       </a>
     </li>

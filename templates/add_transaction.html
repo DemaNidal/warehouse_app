@@ -26,6 +26,27 @@
 
 <div class="row justify-content-center">
   <div class="col-lg-8">
+
+    {% if not locations %}
+    <div class="card shadow-sm">
+      <div class="card-body p-4 text-center">
+        <i class="bi bi-geo-alt fs-1 text-muted"></i>
+        <h5 class="mt-3">لا توجد مواقع لهذا المنتج</h5>
+        <p class="text-muted">
+          يجب إضافة موقع للمنتج أولاً قبل تسجيل أي حركة مخزون عليه (لا يمكن إدخال أو إخراج كمية بدون تحديد الموقع).
+        </p>
+        <div class="d-flex flex-wrap gap-2 justify-content-center mt-3">
+          <a href="{{ url_for('add_location', product_id=product.id) }}" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> إضافة موقع
+          </a>
+          <a href="{{ url_for('product_details', product_id=product.id) }}" class="btn btn-light border">
+            رجوع للمنتج
+          </a>
+        </div>
+      </div>
+    </div>
+    {% else %}
+
     <div class="card shadow-sm">
       <div class="card-body p-4">
 
@@ -81,6 +102,34 @@
             <div class="form-text" id="typeHelpText"></div>
           </div>
 
+          <div class="mb-3" id="customerFieldWrapper" style="display:none;">
+            <label class="form-label">العميل</label>
+            <div class="searchable-picker">
+              <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-person"></i></span>
+                <input
+                  type="text"
+                  id="customerSearchInput"
+                  class="form-control"
+                  placeholder="اكتب اسم العميل للبحث..."
+                  autocomplete="off"
+                >
+                <button
+                  type="button"
+                  class="btn btn-outline-primary"
+                  data-bs-toggle="modal"
+                  data-bs-target="#quickAddCustomerModal"
+                  title="إضافة عميل جديد"
+                >
+                  <i class="bi bi-plus-lg"></i>
+                </button>
+              </div>
+              <div class="searchable-picker-list" id="customerPickerList"></div>
+            </div>
+            <input type="hidden" name="customer_id" id="customerIdInput">
+            <div class="form-text">يجب اختيار العميل عند تسجيل حركة إخراج، حتى يُعرف لمين راحت البضاعة</div>
+          </div>
+
           <div class="mb-3">
             <label class="form-label">الكمية</label>
             <div class="input-group">
@@ -115,10 +164,119 @@
 
       </div>
     </div>
+    {% endif %}
+
+  </div>
+</div>
+
+{% if locations %}
+<!-- ================= QUICK ADD CUSTOMER MODAL ================= -->
+<div class="modal fade" id="quickAddCustomerModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-person"></i> إضافة عميل جديد</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <label class="form-label" for="quickCustomerName">اسم العميل</label>
+        <input
+          type="text"
+          id="quickCustomerName"
+          class="form-control"
+          placeholder="أدخل اسم العميل"
+          onkeydown="if(event.key==='Enter'){event.preventDefault(); quickAddCustomer();}"
+        >
+        <div class="text-danger small mt-2 d-none" id="quickCustomerError"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+        <button type="button" class="btn btn-success" id="quickCustomerSaveBtn" onclick="quickAddCustomer()">
+          <i class="bi bi-check-lg"></i> حفظ
+        </button>
+      </div>
+
+    </div>
   </div>
 </div>
 
 <script>
+const CSRF_TOKEN = "{{ csrf_token() }}";
+
+let currentCustomerMatches = [];
+let activeCustomerIndex = -1;
+let customerSearchDebounceTimer = null;
+
+function renderCustomerList(matches = currentCustomerMatches) {
+  const pickerList = document.getElementById("customerPickerList");
+  currentCustomerMatches = matches;
+  activeCustomerIndex = -1;
+
+  if (!matches.length) {
+    pickerList.innerHTML = '<div class="searchable-picker-empty">لا يوجد عميل مطابق، استخدم زر + للإضافة</div>';
+  } else {
+    pickerList.innerHTML = matches.map((c, i) =>
+      `<div class="searchable-picker-item" data-index="${i}">${c.name}</div>`
+    ).join("");
+  }
+
+  pickerList.classList.add("show");
+}
+
+function closeCustomerList() {
+  document.getElementById("customerPickerList").classList.remove("show");
+  activeCustomerIndex = -1;
+}
+
+function selectCustomer(customer) {
+  document.getElementById("customerSearchInput").value = customer.name;
+  document.getElementById("customerIdInput").value = customer.id;
+  document.getElementById("customerSearchInput").classList.remove("is-invalid");
+  closeCustomerList();
+}
+
+function highlightActiveCustomerItem() {
+  const items = document.querySelectorAll("#customerPickerList .searchable-picker-item");
+  items.forEach((el, i) => el.classList.toggle("active", i === activeCustomerIndex));
+  if (items[activeCustomerIndex]) {
+    items[activeCustomerIndex].scrollIntoView({ block: "nearest" });
+  }
+}
+
+async function searchCustomers(query) {
+  const pickerList = document.getElementById("customerPickerList");
+  const trimmed = query.trim();
+
+  if (!trimmed) {
+    renderCustomerList([]);
+    pickerList.innerHTML = '<div class="searchable-picker-empty">ابدأ بالكتابة للبحث عن العميل</div>';
+    return;
+  }
+
+  pickerList.innerHTML = '<div class="searchable-picker-empty">جاري البحث...</div>';
+  pickerList.classList.add("show");
+
+  try {
+    const response = await fetch(`{{ url_for('search_customers') }}?q=${encodeURIComponent(trimmed)}&limit=10`, {
+      headers: { "X-Requested-With": "XMLHttpRequest" }
+    });
+    const data = await response.json();
+    renderCustomerList(Array.isArray(data) ? data : []);
+  } catch (error) {
+    pickerList.innerHTML = '<div class="searchable-picker-empty">تعذر البحث عن العملاء الآن</div>';
+  }
+}
+
+function scheduleCustomerSearch() {
+  clearTimeout(customerSearchDebounceTimer);
+  customerSearchDebounceTimer = setTimeout(() => {
+    searchCustomers(document.getElementById("customerSearchInput").value);
+  }, 250);
+}
+
 document.addEventListener("DOMContentLoaded", function () {
 
   const locationSelect = document.getElementById("locationSelect");
@@ -134,16 +292,140 @@ document.addEventListener("DOMContentLoaded", function () {
 
   const typeInputs = document.querySelectorAll('input[name="transaction_type"]');
   const typeHelpText = document.getElementById("typeHelpText");
+  const customerFieldWrapper = document.getElementById("customerFieldWrapper");
+  const customerSearchInput = document.getElementById("customerSearchInput");
+  const customerIdInput = document.getElementById("customerIdInput");
+  const customerPickerList = document.getElementById("customerPickerList");
 
   function updateTypeHelp() {
     const checked = document.querySelector('input[name="transaction_type"]:checked');
     typeHelpText.textContent = checked ? checked.dataset.help : "";
+
+    const isOut = checked && checked.value === "OUT";
+    customerFieldWrapper.style.display = isOut ? "" : "none";
+
+    if (!isOut) {
+      customerSearchInput.value = "";
+      customerIdInput.value = "";
+      customerSearchInput.classList.remove("is-invalid");
+    }
   }
 
   typeInputs.forEach(input => input.addEventListener("change", updateTypeHelp));
   updateTypeHelp();
 
+  customerSearchInput.addEventListener("focus", function () {
+    if (customerSearchInput.value.trim()) {
+      scheduleCustomerSearch();
+    } else {
+      renderCustomerList([]);
+      customerPickerList.innerHTML = '<div class="searchable-picker-empty">ابدأ بالكتابة للبحث عن العميل</div>';
+    }
+  });
+
+  customerSearchInput.addEventListener("input", function () {
+    customerIdInput.value = "";
+    scheduleCustomerSearch();
+  });
+
+  customerSearchInput.addEventListener("keydown", function (e) {
+    if (!customerPickerList.classList.contains("show")) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      activeCustomerIndex = Math.min(activeCustomerIndex + 1, currentCustomerMatches.length - 1);
+      highlightActiveCustomerItem();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      activeCustomerIndex = Math.max(activeCustomerIndex - 1, 0);
+      highlightActiveCustomerItem();
+    } else if (e.key === "Enter") {
+      if (activeCustomerIndex >= 0 && currentCustomerMatches[activeCustomerIndex]) {
+        e.preventDefault();
+        selectCustomer(currentCustomerMatches[activeCustomerIndex]);
+      }
+    } else if (e.key === "Escape") {
+      closeCustomerList();
+    }
+  });
+
+  customerPickerList.addEventListener("click", function (e) {
+    const item = e.target.closest(".searchable-picker-item");
+    if (!item) return;
+    selectCustomer(currentCustomerMatches[parseInt(item.dataset.index, 10)]);
+  });
+
+  document.addEventListener("click", function (e) {
+    if (!e.target.closest(".searchable-picker")) {
+      closeCustomerList();
+    }
+  });
+
+  document.getElementById("addTransactionForm").addEventListener("submit", function (e) {
+    const checked = document.querySelector('input[name="transaction_type"]:checked');
+    const isOut = checked && checked.value === "OUT";
+
+    if (isOut && !customerIdInput.value) {
+      e.preventDefault();
+      customerSearchInput.classList.add("is-invalid");
+      customerSearchInput.focus();
+    }
+  });
+
 });
+
+async function quickAddCustomer() {
+  const input = document.getElementById("quickCustomerName");
+  const errorEl = document.getElementById("quickCustomerError");
+  const btn = document.getElementById("quickCustomerSaveBtn");
+  const name = input.value;
+
+  errorEl.classList.add("d-none");
+
+  if (!name.trim()) {
+    errorEl.textContent = "الاسم مطلوب";
+    errorEl.classList.remove("d-none");
+    return;
+  }
+
+  btn.disabled = true;
+
+  try {
+    const resp = await fetch("{{ url_for('add_customer') }}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-CSRFToken": CSRF_TOKEN,
+        "X-Requested-With": "XMLHttpRequest"
+      },
+      body: new URLSearchParams({ name: name })
+    });
+
+    const data = await resp.json();
+
+    if (!resp.ok || !data.success) {
+      errorEl.textContent = data.message || "حدث خطأ، حاول مرة أخرى";
+      errorEl.classList.remove("d-none");
+      return;
+    }
+
+    const newCustomer = { id: data.id, name: data.name };
+    currentCustomerMatches = [newCustomer, ...currentCustomerMatches.filter(c => c.id !== newCustomer.id)].slice(0, 10);
+    renderCustomerList(currentCustomerMatches);
+    selectCustomer(newCustomer);
+
+    input.value = "";
+    bootstrap.Modal.getInstance(document.getElementById("quickAddCustomerModal")).hide();
+
+  } catch (err) {
+    errorEl.textContent = "تعذر الاتصال بالخادم";
+    errorEl.classList.remove("d-none");
+
+  } finally {
+    btn.disabled = false;
+  }
+}
 </script>
+{% endif %}
 
 {% endblock %}
