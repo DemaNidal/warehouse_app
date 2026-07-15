@@ -41,6 +41,21 @@ class Color(db.Model):
         viewonly=True
     )
 
+class Customer(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+
+    name = db.Column(
+        db.String(150),
+        unique=True,
+        nullable=False
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        default=datetime.now,
+        nullable=False
+    )
+
 class Size(db.Model):
 
     id = db.Column(
@@ -248,6 +263,15 @@ class InventoryTransaction(db.Model):
     user = db.relationship(
         "User"
     )
+
+    customer_id = db.Column(
+        db.Integer,
+        db.ForeignKey("customer.id")
+    )
+    customer = db.relationship(
+        "Customer"
+    )
+
     created_at = db.Column(
         db.DateTime,
         default=db.func.now(),
@@ -389,6 +413,7 @@ class StockRequest(db.Model):
     quantity = db.Column(db.Integer)
     notes = db.Column(db.String(255))
 
+    customer_id = db.Column(db.Integer, db.ForeignKey("customer.id"))
 
     status = db.Column(
         db.String(20),
@@ -416,6 +441,7 @@ class StockRequest(db.Model):
     # ✅ IMPORTANT RELATIONSHIPS
     product = db.relationship("Product")
     location = db.relationship("InventoryLocation")
+    customer = db.relationship("Customer")
     requester = db.relationship(
         "User",
         foreign_keys=[requested_by]

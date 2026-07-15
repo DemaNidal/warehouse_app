@@ -356,6 +356,8 @@
 
                     <th>مطلوب بواسطة</th>
 
+                    <th>العميل</th>
+
                     <th class="d-none d-md-table-cell">معالجة بواسطة</th>
 
                     <th>{{ sort_link('status', 'الحالة') }}</th>
@@ -379,6 +381,7 @@
                     data-location="{{ r.location.warehouse.name }}{% if r.location.location %} - {{ r.location.location }}{% endif %}"
                     data-qty="{{ r.quantity }}"
                     data-user="{{ r.requester.username }}"
+                    data-customer="{{ r.customer.name if r.customer else '' }}"
                     data-status="{% if r.status == 'PENDING' %}قيد الانتظار{% elif r.status == 'APPROVED' %}تمت الموافقة{% else %}مرفوض{% endif %}"
                     data-notes="{{ r.notes or '' }}"
                 >
@@ -418,6 +421,17 @@
                         {{ r.requester.username }}
 
                     </td>
+
+                    <td>
+                        {% if r.customer %}
+                        <span class="badge bg-info text-dark">
+                            <i class="bi bi-person-badge"></i> {{ r.customer.name }}
+                        </span>
+                        {% else %}
+                        <span class="text-muted">-</span>
+                        {% endif %}
+                    </td>
+
                     <td class="d-none d-md-table-cell">
                         {% if r.approver %}
                             {{ r.approver.username }}
@@ -526,7 +540,7 @@
 
                 <tr>
 
-                    <td colspan="9" class="text-center py-5">
+                    <td colspan="10" class="text-center py-5">
 
                         <i class="bi bi-inbox fs-1 text-muted"></i>
 
@@ -560,6 +574,7 @@
             data-location="{{ r.location.warehouse.name }}{% if r.location.location %} - {{ r.location.location }}{% endif %}"
             data-qty="{{ r.quantity }}"
             data-user="{{ r.requester.username }}"
+            data-customer="{{ r.customer.name if r.customer else '' }}"
             data-status="{% if r.status == 'PENDING' %}قيد الانتظار{% elif r.status == 'APPROVED' %}تمت الموافقة{% else %}مرفوض{% endif %}"
             data-notes="{{ r.notes or '' }}"
         >
@@ -580,6 +595,14 @@
                 <i class="bi bi-geo-alt"></i>
                 {{ r.location.warehouse.name }}{% if r.location.location %} - {{ r.location.location }}{% endif %}
             </div>
+
+            {% if r.customer %}
+            <div class="mb-2">
+                <span class="badge bg-info text-dark">
+                    <i class="bi bi-person-badge"></i> {{ r.customer.name }}
+                </span>
+            </div>
+            {% endif %}
 
             <div class="d-flex justify-content-between align-items-center mb-2">
                 <span class="text-muted small">
@@ -721,6 +744,11 @@
               <div class="col-md-4">
                 <label class="text-muted">مطلوب بواسطة</label>
                 <h6 id="m_user"></h6>
+              </div>
+
+              <div class="col-md-4">
+                <label class="text-muted">العميل</label>
+                <h6 id="m_customer"></h6>
               </div>
 
               <div class="col-md-4">

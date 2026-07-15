@@ -1,5 +1,12 @@
 import os
 import shutil
+import logging
+
+logging.basicConfig(
+    level=logging.WARNING,
+    format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+)
+logging.getLogger("werkzeug").setLevel(logging.INFO)
 
 from flask import (
     Flask,
@@ -35,6 +42,7 @@ from routes.backup_routes import (
 from routes.notifications_routes import register_notifications_routes
 from routes.settings_routes import register_settings_routes
 from routes.create_admin_route import register_create_admin_route
+from routes.customer_routes import register_customer_routes
 from flask_wtf.csrf import CSRFProtect
 import click
 import config
@@ -88,6 +96,7 @@ def not_found(error):
 def server_error(error):
 
     db.session.rollback()
+    app.logger.exception("Unhandled 500 error on %s %s", request.method, request.path)
 
     return render_template(
         "500.html"
@@ -153,6 +162,7 @@ register_context_processors(app)
 register_requests_routes(app)
 register_settings_routes(app)
 register_create_admin_route(app)
+register_customer_routes(app)
 
 
 @app.cli.command("create-admin")

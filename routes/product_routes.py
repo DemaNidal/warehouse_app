@@ -144,7 +144,10 @@ def register_product_routes(app):
                 .joinedload(InventoryLocation.warehouse),
 
                 joinedload(Product.transactions)
-                .joinedload(InventoryTransaction.user)
+                .joinedload(InventoryTransaction.user),
+
+                joinedload(Product.transactions)
+                .joinedload(InventoryTransaction.customer)
             )
             .filter_by(id=product_id)
             .first_or_404()

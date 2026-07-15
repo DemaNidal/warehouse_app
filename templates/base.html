@@ -735,6 +735,50 @@
       cursor: not-allowed;
     }
 
+    /* Searchable picker (type-to-filter dropdown) */
+    .searchable-picker {
+      position: relative;
+    }
+
+    .searchable-picker-list {
+      position: absolute;
+      top: calc(100% + 6px);
+      right: 0;
+      left: 0;
+      z-index: 40;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.14);
+      max-height: 260px;
+      overflow-y: auto;
+      display: none;
+    }
+
+    .searchable-picker-list.show {
+      display: block;
+    }
+
+    .searchable-picker-item {
+      padding: 10px 14px;
+      cursor: pointer;
+      font-size: 0.92rem;
+      color: var(--text);
+    }
+
+    .searchable-picker-item:hover,
+    .searchable-picker-item.active {
+      background: #F1F5F9;
+      color: var(--primary);
+    }
+
+    .searchable-picker-empty {
+      padding: 10px 14px;
+      color: #94a3b8;
+      font-size: 0.88rem;
+      text-align: center;
+    }
+
     /* Brand-matched pagination */
     .pagination .page-link {
       border: none;
@@ -1218,6 +1262,13 @@
                 إدارة الأحجام
               </a>
             </li>
+
+            <li>
+              <a class="dropdown-item" href="{{ url_for('add_customer') }}">
+                <i class="bi bi-people"></i>
+                إدارة العملاء
+              </a>
+            </li>
           </ul>
         </div>
         {% endif %}
@@ -1248,6 +1299,12 @@
               <a class="dropdown-item" href="/add-size">
                 <i class="bi bi-rulers"></i>
                 إدارة الأحجام
+              </a>
+            </li>
+            <li>
+              <a class="dropdown-item" href="{{ url_for('add_customer') }}">
+                <i class="bi bi-people"></i>
+                إدارة العملاء
               </a>
             </li>
             <li>
@@ -1455,6 +1512,10 @@
         <a class="sidebar-link {% if request.path=='/add-size' %}active{% endif %}" href="/add-size">
           <i class="bi bi-rulers"></i> إدارة الأحجام
         </a>
+
+        <a class="sidebar-link {% if request.path=='/add-customer' %}active{% endif %}" href="{{ url_for('add_customer') }}">
+          <i class="bi bi-people"></i> إدارة العملاء
+        </a>
         {% endif %}
 
         {% if current_user.role == "ADMIN" %}
@@ -1470,6 +1531,10 @@
 
         <a class="sidebar-link {% if request.path=='/add-size' %}active{% endif %}" href="/add-size">
           <i class="bi bi-rulers"></i> إدارة الأحجام
+        </a>
+
+        <a class="sidebar-link {% if request.path=='/add-customer' %}active{% endif %}" href="{{ url_for('add_customer') }}">
+          <i class="bi bi-people"></i> إدارة العملاء
         </a>
 
         <a class="sidebar-link {% if request.path.startswith('/users') %}active{% endif %}" href="{{ url_for('user_list') }}">
@@ -1540,6 +1605,7 @@ document.addEventListener("DOMContentLoaded", function () {
             document.getElementById("m_location").innerText = this.dataset.location;
             document.getElementById("m_qty").innerText = this.dataset.qty;
             document.getElementById("m_user").innerText = this.dataset.user;
+            document.getElementById("m_customer").innerText = this.dataset.customer || "-";
 
             let status = this.dataset.status;
             document.getElementById("m_status").innerText = status;

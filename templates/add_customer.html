@@ -1,0 +1,233 @@
+{% from "macros.html" import csrf %}
+
+{% extends "base.html" %}
+{% block title %}إدارة العملاء{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+  <div class="d-flex align-items-center gap-3">
+    <div class="stat-icon-box">
+      <i class="bi bi-people fs-4"></i>
+    </div>
+    <div>
+      <h2 class="mb-0">إدارة العملاء</h2>
+      <small class="text-muted">قائمة العملاء المستخدمة عند تسجيل حركات الإخراج</small>
+    </div>
+  </div>
+
+  <a href="{{ url_for('settings_page') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-right"></i> رجوع للإعدادات
+  </a>
+</div>
+
+<!-- ================= ADD CUSTOMER ================= -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+
+        <h5 class="mb-3">إضافة عميل جديد</h5>
+
+        <form method="POST" action="{{ url_for('add_customer') }}">
+            {{ csrf() }}
+            <div class="row g-2">
+
+                <div class="col-md-10">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                        <input
+                            type="text"
+                            name="name"
+                            class="form-control"
+                            placeholder="اسم العميل"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <div class="col-md-2">
+                    <button class="btn btn-success w-100">
+                        <i class="bi bi-plus-lg"></i> إضافة
+                    </button>
+                </div>
+
+            </div>
+        </form>
+
+    </div>
+</div>
+
+
+<!-- ================= LIST ================= -->
+<div class="card shadow-sm">
+    <div class="card-body">
+
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+            <h5 class="mb-0">العملاء الحاليون <span class="badge bg-secondary">{{ customers|length }}</span></h5>
+
+            {% if customers %}
+            <div style="max-width:260px; width:100%;">
+                <input
+                    type="text"
+                    id="customerSearchInput"
+                    class="form-control form-control-sm"
+                    placeholder="بحث عن عميل..."
+                    onkeyup="filterTable('customerSearchInput', 'customersTable')"
+                >
+            </div>
+            {% endif %}
+        </div>
+
+        {% if customers %}
+
+        <div class="table-responsive">
+        <table class="table table-hover align-middle" id="customersTable">
+
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>اسم العميل</th>
+                    <th>تاريخ الإضافة</th>
+                    {% if current_user.role == "ADMIN" %}
+                    <th width="220">إجراءات</th>
+                    {% endif %}
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for customer in customers %}
+                <tr>
+
+                    <td>{{ customer.id }}</td>
+                    <td>{{ customer.name }}</td>
+                    <td>{{ customer.created_at.strftime('%Y-%m-%d') }}</td>
+
+                    {% if current_user.role == "ADMIN" %}
+                    <td>
+
+                        <!-- EDIT BUTTON -->
+                        <button
+                            class="btn btn-warning btn-sm"
+                            data-id="{{ customer.id }}"
+                            data-name="{{ customer.name }}"
+                            onclick="openCustomerModal(this)"
+                        >
+                            <i class="bi bi-pencil"></i> تعديل
+                        </button>
+
+                        <!-- DELETE BUTTON -->
+                        <form
+                            method="POST"
+                            action="{{ url_for('delete_customer', customer_id=customer.id) }}"
+                            class="d-inline"
+                            onsubmit="return confirm('هل تريد حذف هذا العميل؟');"
+                        >
+                            {{ csrf() }}
+                            <button
+                                class="btn btn-outline-danger btn-sm"
+                                {% if customer.id in used_customer_ids %}
+                                disabled
+                                title="لا يمكن الحذف لوجود حركات أو طلبات مرتبطة به"
+                                {% endif %}
+                            >
+                                <i class="bi bi-trash"></i> حذف
+                            </button>
+                        </form>
+
+                    </td>
+                    {% endif %}
+
+                </tr>
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+        </div>
+
+        {% else %}
+        <div class="alert alert-info">
+            لا يوجد عملاء مضافون بعد
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+
+<!-- ================= MODAL ================= -->
+<div class="modal fade" id="editCustomerModal" tabindex="-1">
+    <div class="modal-dialog">
+
+        <div class="modal-content">
+
+            <form method="POST" id="editCustomerForm">
+                {{ csrf() }}
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-person"></i> تعديل العميل</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+
+                    <label class="form-label">اسم العميل</label>
+
+                    <input
+                        type="text"
+                        name="name"
+                        id="customer_name"
+                        class="form-control"
+                        required
+                    >
+
+                </div>
+
+                <div class="modal-footer">
+
+                    <button class="btn btn-primary">
+                        حفظ
+                    </button>
+
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        إلغاء
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+</div>
+
+
+<!-- ================= JS ================= -->
+<script>
+function openCustomerModal(btn) {
+
+    const id = btn.getAttribute("data-id");
+    const name = btn.getAttribute("data-name");
+
+    document.getElementById("customer_name").value = name;
+
+    document.getElementById("editCustomerForm").action =
+        "/customer/" + id + "/edit";
+
+    new bootstrap.Modal(
+        document.getElementById('editCustomerModal')
+    ).show();
+}
+
+function filterTable(inputId, tableId) {
+    const filter = document.getElementById(inputId).value.trim().toLowerCase();
+    const rows = document.getElementById(tableId).querySelectorAll("tbody tr");
+
+    rows.forEach(row => {
+        const text = row.children[1].textContent.toLowerCase();
+        row.style.display = text.includes(filter) ? "" : "none";
+    });
+}
+</script>
+
+{% endblock %}

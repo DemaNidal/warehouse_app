@@ -1,8 +1,8 @@
 """Initial database
 
-Revision ID: 1c93aed295e1
+Revision ID: 62d276077ef9
 Revises: 
-Create Date: 2026-07-14 07:58:31.941100
+Create Date: 2026-07-15 10:57:30.206537
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '1c93aed295e1'
+revision = '62d276077ef9'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -21,6 +21,13 @@ def upgrade():
     op.create_table('color',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=100), nullable=False),
+    sa.PrimaryKeyConstraint('id'),
+    sa.UniqueConstraint('name')
+    )
+    op.create_table('customer',
+    sa.Column('id', sa.Integer(), nullable=False),
+    sa.Column('name', sa.String(length=150), nullable=False),
+    sa.Column('created_at', sa.DateTime(), nullable=False),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('name')
     )
@@ -100,7 +107,9 @@ def upgrade():
     sa.Column('quantity_after', sa.Integer(), nullable=True),
     sa.Column('notes', sa.String(length=255), nullable=True),
     sa.Column('user_id', sa.Integer(), nullable=True),
+    sa.Column('customer_id', sa.Integer(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=False),
+    sa.ForeignKeyConstraint(['customer_id'], ['customer.id'], ),
     sa.ForeignKeyConstraint(['destination_location_id'], ['inventory_location.id'], ),
     sa.ForeignKeyConstraint(['location_id'], ['inventory_location.id'], ),
     sa.ForeignKeyConstraint(['product_id'], ['product.id'], ),
@@ -113,6 +122,7 @@ def upgrade():
     sa.Column('location_id', sa.Integer(), nullable=True),
     sa.Column('quantity', sa.Integer(), nullable=True),
     sa.Column('notes', sa.String(length=255), nullable=True),
+    sa.Column('customer_id', sa.Integer(), nullable=True),
     sa.Column('status', sa.String(length=20), nullable=False),
     sa.Column('requested_by', sa.Integer(), nullable=False),
     sa.Column('approved_by', sa.Integer(), nullable=True),
@@ -120,6 +130,7 @@ def upgrade():
     sa.Column('rejected_at', sa.DateTime(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.ForeignKeyConstraint(['approved_by'], ['user.id'], ),
+    sa.ForeignKeyConstraint(['customer_id'], ['customer.id'], ),
     sa.ForeignKeyConstraint(['location_id'], ['inventory_location.id'], ),
     sa.ForeignKeyConstraint(['product_id'], ['product.id'], ),
     sa.ForeignKeyConstraint(['requested_by'], ['user.id'], ),
@@ -139,5 +150,6 @@ def downgrade():
     op.drop_table('warehouse')
     op.drop_table('user')
     op.drop_table('size')
+    op.drop_table('customer')
     op.drop_table('color')
     # ### end Alembic commands ###

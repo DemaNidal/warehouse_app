@@ -28,6 +28,8 @@ from utils.validation.transaction import validate_transaction
 from utils.notifications import generate_stock_notifications
 from utils.activity_logger import log_activity
 from sqlalchemy.orm import joinedload
+from sqlalchemy import or_
+from datetime import datetime, timedelta
 
 
 def register_transaction_routes(app):
@@ -109,7 +111,8 @@ def register_transaction_routes(app):
                             quantity_before=qty_before,
                             quantity_after=location.quantity,
                             notes=notes,
-                            user_id=current_user.id
+                            user_id=current_user.id,
+                            customer_id=data["customer_id"]
                         ))
 
                     else:
@@ -131,7 +134,8 @@ def register_transaction_routes(app):
                             quantity=quantity,
                             notes=notes,
                             requested_by=current_user.id,
-                            status="PENDING"
+                            status="PENDING",
+                            customer_id=data["customer_id"]
                         ))
 
                         db.session.commit()   # ✅ IMPORTANT HERE
@@ -197,10 +201,13 @@ def register_transaction_routes(app):
 
         page = request.args.get("page", 1, type=int)
         selected_type = request.args.get("type", "")
+        q = request.args.get("q", "").strip()
+        date = request.args.get("date", "")
 
         query = InventoryTransaction.query.options(
             joinedload(InventoryTransaction.product),
             joinedload(InventoryTransaction.user),
+            joinedload(InventoryTransaction.customer),
             joinedload(InventoryTransaction.location)
             .joinedload(InventoryLocation.warehouse),
             joinedload(InventoryTransaction.destination_location)
@@ -209,6 +216,31 @@ def register_transaction_routes(app):
 
         if selected_type in TRANSACTION_TYPES:
             query = query.filter_by(transaction_type=selected_type)
+
+        if q:
+            query = (
+                query
+                .outerjoin(Product, InventoryTransaction.product_id == Product.id)
+                .outerjoin(Customer, InventoryTransaction.customer_id == Customer.id)
+                .filter(
+                    or_(
+                        InventoryTransaction.notes.ilike(f"%{q}%"),
+                        Product.name.ilike(f"%{q}%"),
+                        Customer.name.ilike(f"%{q}%")
+                    )
+                )
+            )
+
+        if date:
+            try:
+                selected_date = datetime.strptime(date, "%Y-%m-%d")
+                next_day = selected_date + timedelta(days=1)
+                query = query.filter(
+                    InventoryTransaction.created_at >= selected_date,
+                    InventoryTransaction.created_at < next_day
+                )
+            except ValueError:
+                date = ""
 
         transactions = query.order_by(
             InventoryTransaction.created_at.desc()
@@ -219,5 +251,7 @@ def register_transaction_routes(app):
             transactions=transactions,
             transaction_types=TRANSACTION_TYPES,
             transaction_labels=TRANSACTION_LABELS,
-            selected_type=selected_type
+            selected_type=selected_type,
+            q=q,
+            date=date
         )

@@ -20,9 +20,24 @@ def validate_transaction(form):
 
     notes = form.get("notes", "").strip()
 
+    customer_id = None
+
+    if transaction_type == "OUT":
+
+        raw_customer_id = form.get("customer_id", "").strip()
+
+        if not raw_customer_id:
+            return fail("يجب اختيار العميل عند الإخراج")
+
+        try:
+            customer_id = int(raw_customer_id)
+        except ValueError:
+            return fail("العميل غير صحيح")
+
     return success({
         "transaction_type": transaction_type,
         "location_id": location_id,
         "quantity": quantity,
-        "notes": notes
+        "notes": notes,
+        "customer_id": customer_id
     })

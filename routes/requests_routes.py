@@ -102,7 +102,8 @@ def register_requests_routes(app):
                 joinedload(StockRequest.product),
                 joinedload(StockRequest.location),
                 joinedload(StockRequest.requester),
-                joinedload(StockRequest.approver)
+                joinedload(StockRequest.approver),
+                joinedload(StockRequest.customer)
             )
             .join(Product)
         )
@@ -298,7 +299,8 @@ def register_requests_routes(app):
                 quantity_before=qty_before,
                 quantity_after=location.quantity,
                 notes=req.notes,
-                user_id=req.requested_by
+                user_id=req.requested_by,
+                customer_id=req.customer_id
             ))
 
             # update request
