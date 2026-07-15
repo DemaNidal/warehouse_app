@@ -104,7 +104,7 @@
         </div>
 
         <div class="d-flex flex-wrap gap-2">
-          {% if current_user.is_authenticated and current_user.role == "ADMIN" %}
+          {% if current_user.is_authenticated and current_user.role in ["ADMIN","STORE_MANAGER"] %}
           <a class="btn btn-warning" href="/product/{{ product.id }}/edit">
             <i class="bi bi-pencil-square"></i> تعديل
           </a>
@@ -150,7 +150,7 @@
             <th>المستودع</th>
             <th>الموقع</th>
             <th>الكمية</th>
-            {% if current_user.role == "ADMIN" %}
+            {% if current_user.role in ["ADMIN","STORE_MANAGER"] %}
             <th>إجراءات</th>
             {% endif %}
           </tr>
@@ -161,11 +161,18 @@
           <tr>
             <td>{{ location.warehouse.name }}</td>
             <td>{{ location.location }}</td>
-            <td><span class="badge bg-primary">{{ location.quantity }}</span></td>
-            {% if current_user.role == "ADMIN" %}
+            <td>
+              {% if location.quantity == 0 %}
+              <span class="badge bg-secondary">فارغ</span>
+              {% else %}
+              <span class="badge bg-primary">{{ location.quantity }}</span>
+              {% endif %}
+            </td>
+            {% if current_user.role in ["ADMIN","STORE_MANAGER"] %}
             <td>
               <a href="/location/{{ location.id }}/edit" class="btn btn-warning btn-sm">تعديل</a>
 
+              {% if current_user.role == "ADMIN" %}
               <form
                 method="POST"
                 action="/location/{{ location.id }}/delete"
@@ -175,6 +182,7 @@
                 {{ csrf() }}
                 <button type="submit" class="btn btn-danger btn-sm">حذف</button>
               </form>
+              {% endif %}
             </td>
             {% endif %}
           </tr>
@@ -192,13 +200,18 @@
             <div class="fw-bold">{{ location.warehouse.name }}</div>
             <div class="text-muted small">{{ location.location }}</div>
           </div>
+          {% if location.quantity == 0 %}
+          <span class="badge bg-secondary fs-6">فارغ</span>
+          {% else %}
           <span class="badge bg-primary fs-6">{{ location.quantity }}</span>
+          {% endif %}
         </div>
 
-        {% if current_user.role == "ADMIN" %}
+        {% if current_user.role in ["ADMIN","STORE_MANAGER"] %}
         <div class="d-flex gap-2">
           <a href="/location/{{ location.id }}/edit" class="btn btn-warning btn-sm flex-fill">تعديل</a>
 
+          {% if current_user.role == "ADMIN" %}
           <form
             method="POST"
             action="/location/{{ location.id }}/delete"
@@ -208,6 +221,7 @@
             {{ csrf() }}
             <button type="submit" class="btn btn-danger btn-sm w-100">حذف</button>
           </form>
+          {% endif %}
         </div>
         {% endif %}
       </div>

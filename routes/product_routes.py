@@ -175,7 +175,7 @@ def register_product_routes(app):
     methods=["GET", "POST"]
     )
     @login_required
-    @admin_required
+    @manager_required
     def edit_product(product_id):
         if config.RESTORE_IN_PROGRESS:
             flash("System is restoring backup. Try again later.", "warning")
