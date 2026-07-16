@@ -16,6 +16,7 @@ from models import (
     db,
     Notification
 )
+from sqlalchemy.orm import joinedload
 
 
 def register_notifications_routes(app):
@@ -28,7 +29,9 @@ def register_notifications_routes(app):
 
         page = request.args.get("page", 1, type=int)
 
-        query = Notification.query.filter_by(
+        query = Notification.query.options(
+            joinedload(Notification.product)
+        ).filter_by(
             user_id=current_user.id
         )
 

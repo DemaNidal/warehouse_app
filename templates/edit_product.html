@@ -1,70 +1,135 @@
 {% from "macros.html" import csrf %}
+
 {% extends "base.html" %}
-{% block title %}تعديل المنتج{% endblock %}
+
+{% block title %}
+تعديل المنتج
+{% endblock %}
+
 {% block content %}
 
-<div class="card shadow-sm">
-  <div class="card-body form-card">
-    <div class="page-header">
-      <div>
-        <h2 class="page-title">تعديل المنتج</h2>
-        <p class="page-description mb-0">تحديث بيانات المنتج وإدارة الصورة والسعر.</p>
-      </div>
-      <a href="/product/{{ product.id }}" class="btn btn-outline-secondary">رجوع للمنتج</a>
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+  <div class="d-flex align-items-center gap-3">
+    <div class="stat-icon-box">
+      <i class="bi bi-pencil-square fs-4"></i>
     </div>
+    <div>
+      <h2 class="mb-0">تعديل المنتج</h2>
+      <small class="text-muted">{{ product.name }}</small>
+    </div>
+  </div>
 
-    <form method="POST" enctype="multipart/form-data">
+  <a href="{{ url_for('product_details', product_id=product.id) }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-right"></i> رجوع للمنتج
+  </a>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-body p-4">
+
+    <form method="POST" enctype="multipart/form-data" novalidate>
       {{ csrf() }}
+
       <div class="row g-3">
-        <div class="col-12 col-md-6">
-          <label class="form-label">اسم المنتج</label>
-          <input type="text" name="name" value="{{ product.name }}" class="form-control" required />
-        </div>
-
-        <div class="col-12 col-md-6">
-          <label class="form-label">اللون</label>
-          <select name="color_id" class="form-select" required>
-            {% for color in colors %}
-            <option value="{{ color.id }}" {% if color.id == product.color_id %}selected{% endif %}>{{ color.name }}</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div class="col-12 col-md-6">
-          <label class="form-label">الحجم</label>
-          <select name="size_id" class="form-select" required>
-            <option value="">اختر الحجم</option>
-            {% for size in sizes %}
-            <option value="{{ size.id }}" {% if size.id == product.size_id %}selected{% endif %}>{{ size.name }}</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <div class="col-12 col-md-6">
-          <label class="form-label">الحد الأدنى من المخزون</label>
-          <input type="number" name="minimum_stock" value="{{ product.minimum_stock }}" class="form-control" min="0" required />
-        </div>
 
         <div class="col-12">
-          <label class="form-label">صورة جديدة (اختياري)</label>
-          {% if product.image %}
-          <div class="mb-3">
-            <div class="product-image-wrapper rounded overflow-hidden border" style="max-width:280px;">
-              <img src="{{ url_for('uploaded_file', filename=product.image) }}" class="product-image" alt="{{ product.name }}">
+          <label class="form-label">اسم المنتج</label>
+          <input type="text" name="name" value="{{ product.name }}" class="form-control" required>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">اللون</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-palette"></i></span>
+            <select name="color_id" class="form-select" required>
+              <option value="">اختر اللون</option>
+              {% for color in colors %}
+              <option value="{{ color.id }}" {% if color.id == product.color_id %}selected{% endif %}>{{ color.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">الحجم</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-rulers"></i></span>
+            <select name="size_id" class="form-select" required>
+              <option value="">اختر الحجم</option>
+              {% for size in sizes %}
+              <option value="{{ size.id }}" {% if size.id == product.size_id %}selected{% endif %}>{{ size.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">الحد الأدنى من المخزون</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-hash"></i></span>
+            <input type="number" name="minimum_stock" value="{{ product.minimum_stock }}" class="form-control" min="0" required>
+          </div>
+          <div class="form-text">يتم تنبيهك عند وصول الكمية لهذا الحد</div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">صورة جديدة <small class="text-muted">(اختياري)</small></label>
+          <input type="file" name="image" id="productImageInput" class="form-control" accept="image/png,image/jpeg,image/webp">
+          <div class="form-text">اترك الحقل فارغًا للاحتفاظ بالصورة الحالية، أو اختر ملفًا جديدًا للاستبدال.</div>
+        </div>
+
+        <div class="col-12" id="imagePreviewWrapper" {% if not product.image %}style="display:none;"{% endif %}>
+          <div class="product-image-wrapper" style="max-width:200px; border:1px solid var(--border); border-radius:14px;">
+            <div class="product-image-inner">
+              <img
+                id="imagePreview"
+                class="product-image"
+                alt="{{ product.name }}"
+                {% if product.image %}src="{{ url_for('uploaded_file', filename=product.image) }}"{% endif %}
+              >
             </div>
           </div>
-          <div class="text-muted small mb-2">اترك الحقل فارغًا للاحتفاظ بالصورة الحالية أو اختر ملفًا جديدًا للاستبدال.</div>
-          {% endif %}
-          <input type="file" name="image" class="form-control" />
         </div>
+
       </div>
 
-      <div class="form-actions mt-4">
-        <button class="btn btn-success">حفظ التعديلات</button>
-        <a href="/product/{{ product.id }}" class="btn btn-secondary">إلغاء</a>
+      <hr class="my-4">
+
+      <div class="d-flex flex-wrap gap-2">
+        <button class="btn btn-success px-4">
+          <i class="bi bi-check-lg"></i> حفظ التعديلات
+        </button>
+        <a href="{{ url_for('product_details', product_id=product.id) }}" class="btn btn-light border">
+          إلغاء
+        </a>
       </div>
+
     </form>
+
   </div>
 </div>
+
+<script>
+document.getElementById("productImageInput").addEventListener("change", function (e) {
+  const file = e.target.files[0];
+  const wrapper = document.getElementById("imagePreviewWrapper");
+  const preview = document.getElementById("imagePreview");
+
+  if (!file) {
+    wrapper.style.display = "{{ 'block' if product.image else 'none' }}";
+    {% if product.image %}
+    preview.src = "{{ url_for('uploaded_file', filename=product.image) }}";
+    {% endif %}
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function (evt) {
+    preview.src = evt.target.result;
+    wrapper.style.display = "block";
+  };
+  reader.readAsDataURL(file);
+});
+</script>
 
 {% endblock %}

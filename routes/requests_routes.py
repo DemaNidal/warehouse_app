@@ -137,14 +137,16 @@ def register_requests_routes(app):
             )
 
         if date:
-            selected_date = datetime.strptime(date, "%Y-%m-%d")
+            try:
+                selected_date = datetime.strptime(date, "%Y-%m-%d")
+                next_day = selected_date + timedelta(days=1)
 
-            next_day = selected_date + timedelta(days=1)
-
-            query = query.filter(
-                StockRequest.created_at >= selected_date,
-                StockRequest.created_at < next_day
-            )
+                query = query.filter(
+                    StockRequest.created_at >= selected_date,
+                    StockRequest.created_at < next_day
+                )
+            except ValueError:
+                date = ""
 
         # ----------------------------------
         # Sorting
@@ -246,7 +248,7 @@ def register_requests_routes(app):
         req = StockRequest.query.get_or_404(request_id)
 
         if req.status != "PENDING":
-            flash("Request already processed", "warning")
+            flash("تمت معالجة هذا الطلب مسبقاً", "warning")
             return redirect(url_for("stock_requests"))
 
         try:
@@ -265,7 +267,7 @@ def register_requests_routes(app):
 
             if req.status != "PENDING":
                 db.session.rollback()
-                flash("Request already processed", "warning")
+                flash("تمت معالجة هذا الطلب مسبقاً", "warning")
                 return redirect(url_for("stock_requests"))
 
             # lock the location row so a concurrent transaction/approval on
@@ -282,7 +284,7 @@ def register_requests_routes(app):
                 abort(404)
 
             if location.quantity < req.quantity:
-                flash("Not enough stock available", "danger")
+                flash("الكمية غير كافية بالمخزون", "danger")
                 db.session.rollback()
                 return redirect(url_for("stock_requests"))
 
@@ -322,12 +324,12 @@ def register_requests_routes(app):
                 f"Request #{req.id}"
             )
 
-            flash("Request approved successfully", "success")
+            flash("تمت الموافقة على الطلب بنجاح", "success")
 
         except Exception:
             db.session.rollback()
             current_app.logger.exception("Approve stock request #%s failed", request_id)
-            flash("Approval failed", "danger")
+            flash("فشلت عملية الموافقة", "danger")
 
         return redirect(url_for("stock_requests"))
 
@@ -342,7 +344,7 @@ def register_requests_routes(app):
         req = StockRequest.query.get_or_404(request_id)
 
         if req.status != "PENDING":
-            flash("Request already processed", "warning")
+            flash("تمت معالجة هذا الطلب مسبقاً", "warning")
             return redirect(url_for("stock_requests"))
 
         try:
@@ -363,12 +365,12 @@ def register_requests_routes(app):
 
             db.session.commit()
 
-            flash("Request rejected", "warning")
+            flash("تم رفض الطلب", "warning")
 
         except Exception:
             db.session.rollback()
             current_app.logger.exception("Reject stock request #%s failed", request_id)
-            flash("Reject failed", "danger")
+            flash("فشلت عملية الرفض", "danger")
 
         return redirect(url_for("stock_requests"))
     

@@ -17,7 +17,7 @@ from sqlalchemy.orm import joinedload
 from flask_login import login_required, current_user
 from utils.activity_logger import log_activity
 from utils.permissions import admin_required, manager_required
-import config
+from utils.system_guard import ensure_system_ready
 from utils.validation.product import validate_product_form
 ALLOWED_EXTENSIONS = {
     "png",
@@ -43,8 +43,7 @@ def register_product_routes(app):
     @login_required
     @manager_required
     def add_product():
-        if config.RESTORE_IN_PROGRESS:
-            flash("System is restoring backup. Try again later.", "warning")
+        if not ensure_system_ready():
             return redirect(url_for("dashboard"))
         if request.method == "POST":
 
@@ -180,8 +179,7 @@ def register_product_routes(app):
     @login_required
     @manager_required
     def edit_product(product_id):
-        if config.RESTORE_IN_PROGRESS:
-            flash("System is restoring backup. Try again later.", "warning")
+        if not ensure_system_ready():
             return redirect(url_for("dashboard"))
         product = Product.query.get_or_404(
             product_id
@@ -189,16 +187,18 @@ def register_product_routes(app):
 
         if request.method == "POST":
 
-            product.name = request.form["name"]
+            result = validate_product_form(request.form)
 
-            product.size_id = int(request.form["size_id"])
+            if not result.valid:
+                flash(result.message, "danger")
+                return redirect(url_for("edit_product", product_id=product.id))
 
-            product.color_id = int(
-                request.form["color_id"]
-            )
-            product.minimum_stock = int(
-                request.form["minimum_stock"]
-            )
+            data = result.data
+
+            product.name = data["name"]
+            product.size_id = data["size_id"]
+            product.color_id = data["color_id"]
+            product.minimum_stock = data["minimum_stock"]
 
             image = request.files["image"]
 
@@ -213,7 +213,7 @@ def register_product_routes(app):
                         image.filename
                     )
                 )
-                
+
                 if image and image.filename:
 
                     if not allowed_file(image.filename):
@@ -224,7 +224,7 @@ def register_product_routes(app):
                         )
 
                         return redirect(
-                            url_for("add_product")
+                            url_for("edit_product", product_id=product.id)
                         )
 
 
