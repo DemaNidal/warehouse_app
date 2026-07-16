@@ -4,66 +4,195 @@
 
 {% block content %}
 
-<div class="card shadow-sm">
-  <div class="card-body form-card">
-    <div class="page-header">
-      <div>
-        <h2 class="page-title">سجل النشاطات</h2>
-        <p class="page-description mb-0">عرض كامل لنشاطات النظام وأحداث حركات المخزون.</p>
-      </div>
-      <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">عودة للوحة التحكم</a>
+{% set active_filters = (q or user_id or action or date) %}
+
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+  <div class="d-flex align-items-center gap-3">
+    <div class="stat-icon-box">
+      <i class="bi bi-journal-text fs-4"></i>
     </div>
-
-    <div class="table-responsive">
-      <table class="table table-hover align-middle">
-        <thead class="table-light">
-          <tr>
-            <th>#</th>
-            <th>المستخدم</th>
-            <th>العملية</th>
-            <th>التفاصيل</th>
-            <th>التاريخ</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {% for log in logs.items %}
-          <tr>
-            <td>{{ log.id }}</td>
-            <td>
-              <span class="badge bg-primary">{{ log.user.username }}</span>
-            </td>
-            <td>
-              <span class="badge bg-secondary">{{ log.action }}</span>
-            </td>
-            <td>{{ log.description }}</td>
-            <td>{{ log.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+    <div>
+      <h2 class="mb-0">سجل النشاطات</h2>
+      <small class="text-muted">عرض كامل لنشاطات النظام وأحداث حركات المخزون</small>
     </div>
+  </div>
 
-    <nav class="mt-4">
-      <ul class="pagination justify-content-center">
-        {% if logs.has_prev %}
-        <li class="page-item">
-          <a class="page-link" href="{{ url_for('activity_logs', page=logs.prev_num) }}">السابق</a>
-        </li>
-        {% endif %}
+  <div class="d-flex flex-wrap gap-2">
+    <button
+      type="button"
+      class="btn btn-outline-primary rounded-pill"
+      data-bs-toggle="offcanvas"
+      data-bs-target="#filtersPanel"
+    >
+      <i class="bi bi-funnel"></i>
+      فلترة وبحث
+      {% if active_filters %}
+      <span class="badge bg-primary rounded-pill ms-1"><i class="bi bi-check-lg"></i></span>
+      {% endif %}
+    </button>
 
-        <li class="page-item active">
-          <span class="page-link">{{ logs.page }}</span>
-        </li>
-
-        {% if logs.has_next %}
-        <li class="page-item">
-          <a class="page-link" href="{{ url_for('activity_logs', page=logs.next_num) }}">التالي</a>
-        </li>
-        {% endif %}
-      </ul>
-    </nav>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-right"></i> رجوع للوحة التحكم
+    </a>
   </div>
 </div>
+
+<!-- ===================== FILTERS (OFFCANVAS FROM TOP) ===================== -->
+<div class="offcanvas offcanvas-top" tabindex="-1" id="filtersPanel" style="height: auto;">
+  <div class="offcanvas-header border-bottom">
+    <h5 class="offcanvas-title"><i class="bi bi-funnel"></i> فلترة وبحث</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="إغلاق"></button>
+  </div>
+
+  <div class="offcanvas-body">
+    <form method="GET">
+      <div class="row g-3 align-items-end">
+
+        <div class="col-12 col-md-6 col-lg-3">
+          <label class="form-label fw-semibold">بحث بالتفاصيل</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="text" class="form-control" name="q" value="{{ q }}" placeholder="ابحث...">
+          </div>
+        </div>
+
+        <div class="col-12 col-md-6 col-lg-3">
+          <label class="form-label fw-semibold">المستخدم</label>
+          <select class="form-select" name="user">
+            <option value="">جميع المستخدمين</option>
+            {% for u in users %}
+            <option value="{{ u.id }}" {% if user_id == u.id %}selected{% endif %}>{{ u.username }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-12 col-md-6 col-lg-3">
+          <label class="form-label fw-semibold">نوع العملية</label>
+          <select class="form-select" name="action">
+            <option value="">جميع العمليات</option>
+            {% for a in actions %}
+            <option value="{{ a }}" {% if action == a %}selected{% endif %}>{{ a }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div class="col-12 col-md-6 col-lg-3">
+          <label class="form-label fw-semibold">التاريخ</label>
+          <input type="date" class="form-control" name="date" value="{{ date }}">
+        </div>
+
+      </div>
+
+      <div class="d-flex flex-wrap gap-2 justify-content-end mt-4">
+        <a href="{{ url_for('activity_logs') }}" class="btn btn-outline-secondary">
+          <i class="bi bi-x-circle"></i> مسح الفلاتر
+        </a>
+        <button type="submit" class="btn btn-primary">
+          <i class="bi bi-funnel"></i> تطبيق الفلاتر
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ===================== TABLE ===================== -->
+<div class="card shadow-sm border-0 rounded-4">
+
+  <div class="table-responsive d-none d-md-block">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>#</th>
+          <th>المستخدم</th>
+          <th>العملية</th>
+          <th>التفاصيل</th>
+          <th>التاريخ</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {% for log in logs.items %}
+        <tr>
+          <td>{{ log.id }}</td>
+          <td><span class="badge bg-primary">{{ log.user.username }}</span></td>
+          <td><span class="badge bg-secondary">{{ log.action }}</span></td>
+          <td>{{ log.description }}</td>
+          <td class="text-nowrap">{{ log.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="5" class="text-center py-5">
+            <i class="bi bi-inbox fs-1 text-muted"></i>
+            <h5 class="mt-3">لا توجد نشاطات مطابقة</h5>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <!-- mobile card list -->
+  <div class="d-md-none">
+    {% for log in logs.items %}
+    <div class="p-3 border-bottom">
+      <div class="d-flex justify-content-between align-items-start mb-2 gap-2">
+        <span class="badge bg-primary">{{ log.user.username }}</span>
+        <span class="text-muted small text-nowrap">{{ log.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+      </div>
+      <div class="mb-2">
+        <span class="badge bg-secondary">{{ log.action }}</span>
+      </div>
+      {% if log.description %}
+      <div class="small">{{ log.description }}</div>
+      {% endif %}
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+      <i class="bi bi-inbox fs-1 text-muted"></i>
+      <h5 class="mt-3">لا توجد نشاطات مطابقة</h5>
+    </div>
+    {% endfor %}
+  </div>
+
+</div>
+
+<!-- ===================== PAGINATION ===================== -->
+{% if logs.pages > 1 %}
+
+<nav class="mt-4">
+  <ul class="pagination justify-content-center flex-wrap">
+
+    {% if logs.has_prev %}
+    <li class="page-item">
+      <a class="page-link" href="{{ url_for('activity_logs', page=logs.prev_num, q=q, user=user_id, action=action, date=date) }}">
+        <i class="bi bi-chevron-right"></i>
+      </a>
+    </li>
+    {% endif %}
+
+    {% for page in logs.iter_pages() %}
+      {% if page %}
+      <li class="page-item {% if page == logs.page %}active{% endif %}">
+        <a class="page-link" href="{{ url_for('activity_logs', page=page, q=q, user=user_id, action=action, date=date) }}">
+          {{ page }}
+        </a>
+      </li>
+      {% else %}
+      <li class="page-item disabled"><span class="page-link">…</span></li>
+      {% endif %}
+    {% endfor %}
+
+    {% if logs.has_next %}
+    <li class="page-item">
+      <a class="page-link" href="{{ url_for('activity_logs', page=logs.next_num, q=q, user=user_id, action=action, date=date) }}">
+        <i class="bi bi-chevron-left"></i>
+      </a>
+    </li>
+    {% endif %}
+
+  </ul>
+</nav>
+
+{% endif %}
 
 {% endblock %}
