@@ -14,6 +14,7 @@ from models import (
     db,
     Product,
     User,
+    Customer,
     StockRequest,
     Notification,
     InventoryLocation,
