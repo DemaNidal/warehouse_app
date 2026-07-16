@@ -55,7 +55,7 @@ def register_search_routes(app):
                 )
             )
 
-        query = query.distinct(Product.id)
+        query = query.distinct(Product.id).order_by(Product.id.desc())
 
         pagination = query.paginate(
             page=page,

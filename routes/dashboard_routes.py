@@ -11,7 +11,6 @@ from models import (
     Notification,
     STOCK_LOW,
     STOCK_CRITICAL,
-    StockRequest,
     TRANSACTION_LABELS
 )
 from utils.permissions import manager_required
@@ -61,8 +60,6 @@ def register_dashboard_routes(app):
             1 for p in low_stock_products
             if p.stock_status == STOCK_CRITICAL
         )
-
-        pending_requests_count = StockRequest.query.filter_by(status="PENDING").count()
 
         unread_notifications = Notification.query.filter_by(
             user_id=current_user.id,

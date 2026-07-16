@@ -243,6 +243,12 @@ def register_user_routes(app):
                 flash("تأكيد كلمة المرور غير متطابق", "danger")
                 return redirect(url_for("change_password"))
 
+            password_result = validate_password(new_password)
+
+            if not password_result.valid:
+                flash(password_result.message, "danger")
+                return redirect(url_for("change_password"))
+
             current_user.set_password(new_password)
             db.session.commit()
 

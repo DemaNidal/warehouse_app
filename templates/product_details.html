@@ -69,16 +69,16 @@
             <span class="fs-2 fw-bold qty-display status-{{ stock_status|lower }}">{{ total_quantity }}</span>
           </div>
 
-                        <div class="value">
-                            {% if product.stock_status == "CRITICAL" %}
-                            <span class="badge bg-danger">نفد</span>
-                            {% elif product.stock_status == "LOW" %}
-                            <span class="badge bg-warning text-dark">منخفض</span>
-                            {% else %}
-                            <span class="badge bg-success">متوفر</span>
-                            {% endif %}
-             
-                    </div>
+          <div class="text-end">
+            <span class="text-muted small d-block mb-1">الحالة</span>
+            {% if stock_status == "CRITICAL" %}
+            <span class="badge bg-danger fs-6">نفد</span>
+            {% elif stock_status == "LOW" %}
+            <span class="badge bg-warning text-dark fs-6">منخفض</span>
+            {% else %}
+            <span class="badge bg-success fs-6">متوفر</span>
+            {% endif %}
+          </div>
         </div>
 
         <div class="product-meta-grid mb-3">
