@@ -14,6 +14,7 @@ from utils.permissions import admin_required, manager_required
 from utils.system_guard import ensure_system_ready
 from utils.validation.size import validate_size_name
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import joinedload
 
 def register_size_routes(app):
 
@@ -82,7 +83,7 @@ def register_size_routes(app):
 
             return redirect(url_for("add_size"))
 
-        sizes = Size.query.order_by(Size.id.desc()).all()
+        sizes = Size.query.options(joinedload(Size.products)).order_by(Size.id.desc()).all()
         return render_template("add_size.html", sizes=sizes)
 
 

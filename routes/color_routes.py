@@ -14,6 +14,7 @@ from utils.permissions import admin_required, manager_required
 from utils.system_guard import ensure_system_ready
 from utils.validation.color import validate_color_name
 from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import joinedload
 
 def register_color_routes(app):
 
@@ -82,7 +83,7 @@ def register_color_routes(app):
 
             return redirect(url_for("add_color"))
 
-        colors = Color.query.order_by(Color.id.desc()).all()
+        colors = Color.query.options(joinedload(Color.products)).order_by(Color.id.desc()).all()
         return render_template("add_color.html", colors=colors)
 
 
