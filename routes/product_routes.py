@@ -14,6 +14,7 @@ from models import (
     STOCK_CRITICAL
 )
 from sqlalchemy.orm import joinedload
+from sqlalchemy import func
 from flask_login import login_required, current_user
 from utils.activity_logger import log_activity
 from utils.permissions import admin_required, manager_required
@@ -283,23 +284,62 @@ def register_product_routes(app):
     def product_list():
 
         page = request.args.get("page", 1, type=int)
+        stock_filter = request.args.get("stock", "")
+        sort = request.args.get("sort", "recent")
 
-        products = (
+        # total quantity per product, computed in SQL so the stock filter
+        # doesn't need to load every Product + its locations into Python
+        location_totals = (
+            db.session.query(
+                InventoryLocation.product_id.label("product_id"),
+                func.sum(InventoryLocation.quantity).label("total_qty")
+            )
+            .group_by(InventoryLocation.product_id)
+            .subquery()
+        )
+
+        total_qty = func.coalesce(location_totals.c.total_qty, 0)
+
+        query = (
             Product.query
             .options(
                 joinedload(Product.color),
-                joinedload(Product.size_data)
+                joinedload(Product.size_data),
+                joinedload(Product.locations)
             )
-            .order_by(Product.id.desc())
-            .paginate(
-                page=page,
-                per_page=20,
-                error_out=False
+            .outerjoin(
+                location_totals,
+                location_totals.c.product_id == Product.id
             )
+        )
+
+        if stock_filter == "critical":
+            query = query.filter(total_qty == 0)
+        elif stock_filter == "low":
+            query = query.filter(total_qty > 0, total_qty <= Product.minimum_stock)
+        elif stock_filter == "normal":
+            query = query.filter(total_qty > Product.minimum_stock)
+        else:
+            stock_filter = ""
+
+        if sort == "oldest":
+            query = query.order_by(Product.id.asc())
+        elif sort == "name":
+            query = query.order_by(Product.name.asc())
+        else:
+            sort = "recent"
+            query = query.order_by(Product.id.desc())
+
+        products = query.paginate(
+            page=page,
+            per_page=20,
+            error_out=False
         )
 
         return render_template(
             "product_list.html",
-            products=products
+            products=products,
+            stock_filter=stock_filter,
+            sort=sort
         )
 
