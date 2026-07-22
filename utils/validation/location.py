@@ -22,5 +22,6 @@ def validate_location(form):
     return success({
         "warehouse_id": int(warehouse_id),
         "quantity": quantity,
-        "location": location or None
+        "location": location or None,
+        "quantity_expression": form.get("quantity_expression", "").strip()[:255] or None
     })

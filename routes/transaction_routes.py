@@ -86,6 +86,7 @@ def register_transaction_routes(app):
                         quantity=quantity,
                         quantity_before=qty_before,
                         quantity_after=location.quantity,
+                        quantity_expression=data.get("quantity_expression"),
                         notes=notes,
                         user_id=current_user.id
                     ))
@@ -111,6 +112,7 @@ def register_transaction_routes(app):
                             quantity=quantity,
                             quantity_before=qty_before,
                             quantity_after=location.quantity,
+                            quantity_expression=data.get("quantity_expression"),
                             notes=notes,
                             user_id=current_user.id,
                             customer_id=data["customer_id"]
@@ -133,6 +135,7 @@ def register_transaction_routes(app):
                             product_id=product.id,
                             location_id=location.id,
                             quantity=quantity,
+                            quantity_expression=data.get("quantity_expression"),
                             notes=notes,
                             requested_by=current_user.id,
                             status="PENDING",
@@ -159,6 +162,7 @@ def register_transaction_routes(app):
                         quantity=quantity,
                         quantity_before=qty_before,
                         quantity_after=location.quantity,
+                        quantity_expression=data.get("quantity_expression"),
                         notes=notes,
                         user_id=current_user.id
                     ))

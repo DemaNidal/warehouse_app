@@ -135,13 +135,18 @@
             <div class="input-group">
               <span class="input-group-text"><i class="bi bi-hash"></i></span>
               <input
-                type="number"
-                name="quantity"
+                type="text"
+                id="quantityExprInput"
                 class="form-control"
-                min="1"
+                inputmode="decimal"
+                autocomplete="off"
+                placeholder="مثال: 1*25*625"
                 required
               >
             </div>
+            <div class="form-text" id="quantityResultText"></div>
+            <input type="hidden" name="quantity" id="quantityHiddenInput">
+            <input type="hidden" name="quantity_expression" id="quantityExpressionHidden">
           </div>
 
           <div class="mb-3">
@@ -290,6 +295,8 @@ document.addEventListener("DOMContentLoaded", function () {
   locationSelect.addEventListener("change", updateQtyDisplay);
   updateQtyDisplay();
 
+  setupQuantityCalculator("quantityExprInput", "quantityHiddenInput", "quantityResultText", "quantityExpressionHidden");
+
   const typeInputs = document.querySelectorAll('input[name="transaction_type"]');
   const typeHelpText = document.getElementById("typeHelpText");
   const customerFieldWrapper = document.getElementById("customerFieldWrapper");
@@ -364,6 +371,15 @@ document.addEventListener("DOMContentLoaded", function () {
   document.getElementById("addTransactionForm").addEventListener("submit", function (e) {
     const checked = document.querySelector('input[name="transaction_type"]:checked');
     const isOut = checked && checked.value === "OUT";
+    const quantityExprInput = document.getElementById("quantityExprInput");
+    const quantityHiddenInput = document.getElementById("quantityHiddenInput");
+
+    if (!quantityHiddenInput.value || parseInt(quantityHiddenInput.value, 10) <= 0) {
+      e.preventDefault();
+      quantityExprInput.classList.add("is-invalid");
+      quantityExprInput.focus();
+      return;
+    }
 
     if (isOut && !customerIdInput.value) {
       e.preventDefault();

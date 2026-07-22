@@ -77,6 +77,7 @@ def register_location_routes(app):
                     location_id=location.id,
                     transaction_type="IN",
                     quantity=location.quantity,
+                    quantity_expression=data.get("quantity_expression"),
                     notes=f"إضافة موقع جديد: {location.location or 'بدون موقع'}",
                     user_id=current_user.id
                 ))

@@ -39,5 +39,6 @@ def validate_transaction(form):
         "location_id": location_id,
         "quantity": quantity,
         "notes": notes,
-        "customer_id": customer_id
+        "customer_id": customer_id,
+        "quantity_expression": form.get("quantity_expression", "").strip()[:255] or None
     })

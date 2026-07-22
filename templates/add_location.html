@@ -30,7 +30,7 @@
     <div class="card shadow-sm">
       <div class="card-body p-4">
 
-        <form method="POST" novalidate>
+        <form method="POST" id="addLocationForm" novalidate>
           {{ csrf() }}
 
           <div class="mb-3">
@@ -49,8 +49,19 @@
             <label class="form-label">الكمية</label>
             <div class="input-group">
               <span class="input-group-text"><i class="bi bi-hash"></i></span>
-              <input type="number" name="quantity" class="form-control" min="0" required>
+              <input
+                type="text"
+                id="quantityExprInput"
+                class="form-control"
+                inputmode="decimal"
+                autocomplete="off"
+                placeholder="مثال: 1*25*625"
+                required
+              >
             </div>
+            <div class="form-text" id="quantityResultText"></div>
+            <input type="hidden" name="quantity" id="quantityHiddenInput">
+            <input type="hidden" name="quantity_expression" id="quantityExpressionHidden">
           </div>
 
           <div class="mb-3">
@@ -84,5 +95,24 @@
 
   </div>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+  setupQuantityCalculator("quantityExprInput", "quantityHiddenInput", "quantityResultText", "quantityExpressionHidden");
+
+  document.getElementById("addLocationForm").addEventListener("submit", function (e) {
+    const quantityExprInput = document.getElementById("quantityExprInput");
+    const quantityHiddenInput = document.getElementById("quantityHiddenInput");
+
+    if (quantityHiddenInput.value === "" || parseInt(quantityHiddenInput.value, 10) < 0) {
+      e.preventDefault();
+      quantityExprInput.classList.add("is-invalid");
+      quantityExprInput.focus();
+    }
+  });
+
+});
+</script>
 
 {% endblock %}

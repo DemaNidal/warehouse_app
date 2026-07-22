@@ -380,6 +380,7 @@
                     data-product="{{ r.product.name }}"
                     data-location="{{ r.location.warehouse.name }}{% if r.location.location %} - {{ r.location.location }}{% endif %}"
                     data-qty="{{ r.quantity }}"
+                    data-qty-expr="{{ r.quantity_expression or '' }}"
                     data-user="{{ r.requester.username }}"
                     data-customer="{{ r.customer.name if r.customer else '' }}"
                     data-status="{% if r.status == 'PENDING' %}قيد الانتظار{% elif r.status == 'APPROVED' %}تمت الموافقة{% else %}مرفوض{% endif %}"
@@ -413,6 +414,10 @@
                             {{ r.quantity }}
 
                         </span>
+
+                        {% if r.quantity_expression %}
+                        <div class="text-muted small text-nowrap">{{ r.quantity_expression }} =</div>
+                        {% endif %}
 
                     </td>
 
@@ -573,6 +578,7 @@
             data-product="{{ r.product.name }}"
             data-location="{{ r.location.warehouse.name }}{% if r.location.location %} - {{ r.location.location }}{% endif %}"
             data-qty="{{ r.quantity }}"
+            data-qty-expr="{{ r.quantity_expression or '' }}"
             data-user="{{ r.requester.username }}"
             data-customer="{{ r.customer.name if r.customer else '' }}"
             data-status="{% if r.status == 'PENDING' %}قيد الانتظار{% elif r.status == 'APPROVED' %}تمت الموافقة{% else %}مرفوض{% endif %}"
@@ -608,7 +614,12 @@
                 <span class="text-muted small">
                     <i class="bi bi-person"></i> {{ r.requester.username }}
                 </span>
-                <span class="badge bg-secondary">{{ r.quantity }}</span>
+                <div class="text-end">
+                    <span class="badge bg-secondary">{{ r.quantity }}</span>
+                    {% if r.quantity_expression %}
+                    <div class="text-muted small">{{ r.quantity_expression }} =</div>
+                    {% endif %}
+                </div>
             </div>
 
             {% if r.status == "PENDING" %}
