@@ -198,6 +198,10 @@
               <span class="fw-bold">{{ transaction.quantity }}</span>
               {% endif %}
 
+              {% if transaction.quantity_expression %}
+              <div class="text-muted small text-nowrap">{{ transaction.quantity_expression }} = {{ transaction.quantity }}</div>
+              {% endif %}
+
               {% if transaction.quantity_before is not none and transaction.quantity_after is not none %}
               <div class="text-muted small text-nowrap">
                 {{ transaction.quantity_before }} <i class="bi bi-arrow-left"></i> {{ transaction.quantity_after }}
@@ -281,6 +285,10 @@
             <span class="text-info fw-bold">{{ transaction.quantity }}</span>
             {% else %}
             <span class="fw-bold">{{ transaction.quantity }}</span>
+            {% endif %}
+
+            {% if transaction.quantity_expression %}
+            <div class="text-muted small">{{ transaction.quantity_expression }} = {{ transaction.quantity }}</div>
             {% endif %}
 
             {% if transaction.quantity_before is not none and transaction.quantity_after is not none %}

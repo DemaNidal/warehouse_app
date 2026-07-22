@@ -100,6 +100,7 @@ def register_transfer_routes(app):
                     quantity=quantity,
                     quantity_before=source_qty_before,
                     quantity_after=source_location.quantity,
+                    quantity_expression=data.get("quantity_expression"),
                     notes=notes,
                     user_id=current_user.id
                 )

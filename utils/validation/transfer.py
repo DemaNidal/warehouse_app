@@ -20,5 +20,6 @@ def validate_transfer(form):
         "source": source,
         "destination": destination,
         "quantity": quantity,
-        "notes": form.get("notes", "").strip()
+        "notes": form.get("notes", "").strip(),
+        "quantity_expression": form.get("quantity_expression", "").strip()[:255] or None
     })

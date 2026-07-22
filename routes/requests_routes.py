@@ -300,6 +300,7 @@ def register_requests_routes(app):
                 quantity=req.quantity,
                 quantity_before=qty_before,
                 quantity_after=location.quantity,
+                quantity_expression=req.quantity_expression,
                 notes=req.notes,
                 user_id=req.requested_by,
                 customer_id=req.customer_id

@@ -427,6 +427,61 @@
   </div>
 <script>
 
+// ==============================
+// QUANTITY CALCULATOR (e.g. "1*25*625" -> shows "= 15625")
+// ==============================
+// Wires a text input where the user can type a multiplication expression
+// instead of the final quantity, live-computing the result into a hidden
+// numeric input that actually gets submitted with the form.
+function setupQuantityCalculator(exprInputId, hiddenInputId, resultTextId, expressionHiddenId) {
+
+    const exprInput = document.getElementById(exprInputId);
+    const hiddenInput = document.getElementById(hiddenInputId);
+    const resultText = resultTextId ? document.getElementById(resultTextId) : null;
+    const expressionHidden = expressionHiddenId ? document.getElementById(expressionHiddenId) : null;
+
+    if (!exprInput || !hiddenInput) return;
+
+    function evaluate() {
+        const raw = exprInput.value.trim();
+
+        if (!raw) {
+            hiddenInput.value = "";
+            if (resultText) resultText.textContent = "";
+            if (expressionHidden) expressionHidden.value = "";
+            exprInput.classList.remove("is-invalid");
+            return;
+        }
+
+        const parts = raw.split(/[*xX×]/).map(p => p.trim());
+        const isValidPart = p => /^\d+$/.test(p);
+
+        if (!parts.every(isValidPart)) {
+            hiddenInput.value = "";
+            if (resultText) resultText.textContent = "";
+            if (expressionHidden) expressionHidden.value = "";
+            exprInput.classList.add("is-invalid");
+            return;
+        }
+
+        const product = parts.reduce((acc, p) => acc * parseInt(p, 10), 1);
+
+        exprInput.classList.remove("is-invalid");
+        hiddenInput.value = product;
+
+        if (parts.length > 1) {
+            if (resultText) resultText.textContent = parts.join(" × ") + " = " + product;
+            if (expressionHidden) expressionHidden.value = parts.join(" × ");
+        } else {
+            if (resultText) resultText.textContent = "";
+            if (expressionHidden) expressionHidden.value = "";
+        }
+    }
+
+    exprInput.addEventListener("input", evaluate);
+    evaluate();
+}
+
 document.addEventListener("DOMContentLoaded", function () {
 
     // ==============================
@@ -442,7 +497,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
             document.getElementById("m_product").innerText = this.dataset.product;
             document.getElementById("m_location").innerText = this.dataset.location;
-            document.getElementById("m_qty").innerText = this.dataset.qty;
+            document.getElementById("m_qty").innerText = this.dataset.qtyExpr
+                ? this.dataset.qtyExpr + " = " + this.dataset.qty
+                : this.dataset.qty;
             document.getElementById("m_user").innerText = this.dataset.user;
             document.getElementById("m_customer").innerText = this.dataset.customer || "-";
 

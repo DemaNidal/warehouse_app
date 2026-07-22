@@ -252,6 +252,11 @@ class InventoryTransaction(db.Model):
         nullable=True
     )
 
+    quantity_expression = db.Column(
+        db.String(255),
+        nullable=True
+    )
+
     notes = db.Column(
         db.String(255)
     )
@@ -411,6 +416,7 @@ class StockRequest(db.Model):
     location_id = db.Column(db.Integer, db.ForeignKey("inventory_location.id"))
 
     quantity = db.Column(db.Integer)
+    quantity_expression = db.Column(db.String(255), nullable=True)
     notes = db.Column(db.String(255))
 
     customer_id = db.Column(db.Integer, db.ForeignKey("customer.id"))
