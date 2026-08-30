@@ -38,26 +38,81 @@
         </div>
 
         <div class="col-md-6">
-          <label class="form-label">اللون</label>
+          <label class="form-label">التصنيف</label>
           <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-palette"></i></span>
-            <select name="color_id" class="form-select" required>
-              <option value="">اختر اللون</option>
-              {% for color in colors %}
-              <option value="{{ color.id }}" {% if color.id == product.color_id %}selected{% endif %}>{{ color.name }}</option>
+            <span class="input-group-text"><i class="bi bi-tags"></i></span>
+            <select name="category_id" class="form-select">
+              <option value="">بدون تصنيف</option>
+              {% for category in categories %}
+              <option value="{{ category.id }}" {% if category.id == product.category_id %}selected{% endif %}>{{ category.name }}</option>
               {% endfor %}
             </select>
           </div>
         </div>
 
         <div class="col-md-6">
-          <label class="form-label">الحجم</label>
+          <label class="form-label">اللون</label>
           <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-rulers"></i></span>
-            <select name="size_id" class="form-select" required>
-              <option value="">اختر الحجم</option>
-              {% for size in sizes %}
+            <span class="input-group-text p-0 justify-content-center" style="width:42px;">
+              <span id="colorSwatchPreview" class="d-inline-block rounded-circle border" style="width:16px; height:16px;"></span>
+            </span>
+            <select
+              name="color_id"
+              id="colorSelect"
+              class="form-select"
+              required
+              onchange="updateColorSwatch('colorSelect','colorSwatchPreview')"
+            >
+              <option value="">اختر اللون</option>
+              {% for color in colors %}
+              <option value="{{ color.id }}" data-hex="{{ color.hex_code or '' }}" {% if color.id == product.color_id %}selected{% endif %}>{{ color.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">لون ثاني <small class="text-muted">(اختياري)</small></label>
+          <div class="input-group">
+            <span class="input-group-text p-0 justify-content-center" style="width:42px;">
+              <span id="secondaryColorSwatchPreview" class="d-inline-block rounded-circle border" style="width:16px; height:16px;"></span>
+            </span>
+            <select
+              name="secondary_color_id"
+              id="secondaryColorSelect"
+              class="form-select"
+              onchange="updateColorSwatch('secondaryColorSelect','secondaryColorSwatchPreview')"
+            >
+              <option value="">بدون لون ثاني</option>
+              {% for color in colors %}
+              <option value="{{ color.id }}" data-hex="{{ color.hex_code or '' }}" {% if color.id == product.secondary_color_id %}selected{% endif %}>{{ color.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-text text-success d-none" id="colorSuggestHint">
+            <i class="bi bi-magic"></i> تم اقتراح اللون تلقائياً من الصورة الجديدة، تأكدي منه أو عدّليه
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">السعة <small class="text-muted">(كم بتسع العبوة)</small></label>
+          <div class="input-group">
+            <select name="size_id" class="form-select">
+              <option value="">بدون سعة</option>
+              {% for size in capacities %}
               <option value="{{ size.id }}" {% if size.id == product.size_id %}selected{% endif %}>{{ size.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">مقاس الرقبة <small class="text-muted">(شو بيركّب عليها)</small></label>
+          <div class="input-group">
+            <select name="neck_size_id" class="form-select">
+              <option value="">بدون مقاس رقبة</option>
+              {% for size in neck_sizes %}
+              <option value="{{ size.id }}" {% if size.id == product.neck_size_id %}selected{% endif %}>{{ size.name }}</option>
               {% endfor %}
             </select>
           </div>
@@ -85,7 +140,7 @@
                 id="imagePreview"
                 class="product-image"
                 alt="{{ product.name }}"
-                {% if product.image %}src="{{ url_for('uploaded_file', filename=product.image) }}"{% endif %}
+                {% if product.image %}src="{{ image_url(product.image) }}"{% endif %}
               >
             </div>
           </div>
@@ -110,6 +165,11 @@
 </div>
 
 <script>
+document.addEventListener("DOMContentLoaded", function () {
+  updateColorSwatch("colorSelect", "colorSwatchPreview");
+  updateColorSwatch("secondaryColorSelect", "secondaryColorSwatchPreview");
+});
+
 document.getElementById("productImageInput").addEventListener("change", function (e) {
   const file = e.target.files[0];
   const wrapper = document.getElementById("imagePreviewWrapper");
@@ -118,7 +178,7 @@ document.getElementById("productImageInput").addEventListener("change", function
   if (!file) {
     wrapper.style.display = "{{ 'block' if product.image else 'none' }}";
     {% if product.image %}
-    preview.src = "{{ url_for('uploaded_file', filename=product.image) }}";
+    preview.src = "{{ image_url(product.image) }}";
     {% endif %}
     return;
   }
@@ -127,6 +187,16 @@ document.getElementById("productImageInput").addEventListener("change", function
   reader.onload = function (evt) {
     preview.src = evt.target.result;
     wrapper.style.display = "block";
+
+    preview.onload = function () {
+      suggestColorsFromImage(preview, {
+        primarySelectId: "colorSelect",
+        primaryPreviewId: "colorSwatchPreview",
+        secondarySelectId: "secondaryColorSelect",
+        secondaryPreviewId: "secondaryColorSwatchPreview",
+        hintId: "colorSuggestHint"
+      });
+    };
   };
   reader.readAsDataURL(file);
 });

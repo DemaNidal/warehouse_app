@@ -30,7 +30,9 @@ def register_search_routes(app):
 
         query = Product.query.options(
             joinedload(Product.color),
+            joinedload(Product.secondary_color),
             joinedload(Product.size_data),
+            joinedload(Product.neck_size),
             joinedload(Product.locations)
         )
 
@@ -43,14 +45,24 @@ def register_search_routes(app):
 
         # search
         if q:
+            secondary_color = aliased(Color)
+
             query = query.join(Color, Product.color_id == Color.id)
-            query = query.join(Size, Product.size_id == Size.id)
+            query = query.outerjoin(secondary_color, Product.secondary_color_id == secondary_color.id)
+            # outer-join both measurement columns: searching "28/410"
+            # must find caps (neck) and "500 مل" must find bottles (capacity)
+            capacity_size = aliased(Size)
+            neck_size_alias = aliased(Size)
+            query = query.outerjoin(capacity_size, Product.size_id == capacity_size.id)
+            query = query.outerjoin(neck_size_alias, Product.neck_size_id == neck_size_alias.id)
 
             query = query.filter(
                 or_(
                     Product.name.ilike(f"%{q}%"),
                     Color.name.ilike(f"%{q}%"),
-                    Size.name.ilike(f"%{q}%"),
+                    secondary_color.name.ilike(f"%{q}%"),
+                    capacity_size.name.ilike(f"%{q}%"),
+                    neck_size_alias.name.ilike(f"%{q}%"),
                     inv.location.ilike(f"%{q}%")
                 )
             )

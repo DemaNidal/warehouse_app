@@ -28,6 +28,11 @@ from utils.system_guard import ensure_system_ready
 from utils.validation.transaction import validate_transaction
 from utils.notifications import generate_stock_notifications
 from utils.activity_logger import log_activity
+from utils.transaction_undo import (
+    compute_undoable_transaction_ids,
+    is_transaction_undoable,
+    undo_transaction
+)
 from sqlalchemy.orm import joinedload
 from sqlalchemy import or_
 from datetime import datetime, timedelta
@@ -251,6 +256,8 @@ def register_transaction_routes(app):
             InventoryTransaction.created_at.desc()
         ).paginate(page=page, per_page=30, error_out=False, max_per_page=100)
 
+        undoable_ids = compute_undoable_transaction_ids(transactions.items)
+
         return render_template(
             "transactions_log.html",
             transactions=transactions,
@@ -258,5 +265,50 @@ def register_transaction_routes(app):
             transaction_labels=TRANSACTION_LABELS,
             selected_type=selected_type,
             q=q,
-            date=date
+            date=date,
+            undoable_ids=undoable_ids
         )
+
+    # =========================================================
+    # UNDO TRANSACTION (only if it's the latest one on every
+    # location it touched — otherwise the reversal would be unsafe)
+    # =========================================================
+    @app.route("/transaction/<int:transaction_id>/undo", methods=["POST"])
+    @login_required
+    @manager_required
+    def undo_transaction_route(transaction_id):
+
+        if not ensure_system_ready():
+            return redirect(url_for("dashboard"))
+
+        transaction = InventoryTransaction.query.get_or_404(transaction_id)
+        next_url = request.form.get("next") or url_for("transactions_log")
+
+        try:
+            if not is_transaction_undoable(transaction):
+                flash(
+                    "لا يمكن التراجع عن هذه الحركة لوجود حركات لاحقة على نفس الموقع",
+                    "danger"
+                )
+                return redirect(next_url)
+
+            product_id = transaction.product_id
+            summary = f"{TRANSACTION_LABELS.get(transaction.transaction_type, transaction.transaction_type)} بكمية {transaction.quantity}"
+
+            undo_transaction(transaction)
+            db.session.commit()
+
+            log_activity(
+                current_user.id,
+                "UNDO_TRANSACTION",
+                f"تراجع عن حركة: {summary} (منتج #{product_id})"
+            )
+
+            flash("تم التراجع عن الحركة بنجاح", "success")
+
+        except Exception:
+            db.session.rollback()
+            current_app.logger.exception("Undo transaction #%s failed", transaction_id)
+            flash("حدث خطأ أثناء التراجع عن الحركة", "danger")
+
+        return redirect(next_url)

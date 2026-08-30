@@ -96,6 +96,13 @@
             </li>
 
             <li>
+              <a class="dropdown-item" href="/add-category">
+                <i class="bi bi-tags"></i>
+                إدارة التصنيفات
+              </a>
+            </li>
+
+            <li>
               <a class="dropdown-item" href="/add-size">
                 <i class="bi bi-rulers"></i>
                 إدارة الأحجام
@@ -131,6 +138,13 @@
               <a class="dropdown-item" href="/add-color">
                 <i class="bi bi-palette"></i>
                 إدارة الألوان
+              </a>
+            </li>
+
+            <li>
+              <a class="dropdown-item" href="/add-category">
+                <i class="bi bi-tags"></i>
+                إدارة التصنيفات
               </a>
             </li>
 
@@ -348,6 +362,10 @@
           <i class="bi bi-palette"></i> إدارة الألوان
         </a>
 
+        <a class="sidebar-link {% if request.path=='/add-category' %}active{% endif %}" href="/add-category">
+          <i class="bi bi-tags"></i> إدارة التصنيفات
+        </a>
+
         <a class="sidebar-link {% if request.path=='/add-size' %}active{% endif %}" href="/add-size">
           <i class="bi bi-rulers"></i> إدارة الأحجام
         </a>
@@ -366,6 +384,10 @@
 
         <a class="sidebar-link {% if request.path=='/add-color' %}active{% endif %}" href="/add-color">
           <i class="bi bi-palette"></i> إدارة الألوان
+        </a>
+
+        <a class="sidebar-link {% if request.path=='/add-category' %}active{% endif %}" href="/add-category">
+          <i class="bi bi-tags"></i> إدارة التصنيفات
         </a>
 
         <a class="sidebar-link {% if request.path=='/add-size' %}active{% endif %}" href="/add-size">
@@ -480,6 +502,221 @@ function setupQuantityCalculator(exprInputId, hiddenInputId, resultTextId, expre
 
     exprInput.addEventListener("input", evaluate);
     evaluate();
+}
+
+// ==============================
+// COLOR SWATCH PREVIEW (mirrors a <select>'s chosen option's
+// data-hex attribute onto a small preview dot)
+// ==============================
+function updateColorSwatch(selectId, previewId) {
+    const select = document.getElementById(selectId);
+    const preview = document.getElementById(previewId);
+    if (!select || !preview) return;
+
+    const option = select.options[select.selectedIndex];
+    const hex = option ? option.dataset.hex : "";
+
+    preview.style.background = hex || "#e2e8f0";
+}
+
+// ==============================
+// AUTO-SUGGEST HEX FROM COLOR NAME (used only on the add-color
+// form, where the picker starts unset — stops suggesting the
+// moment the user manually touches the picker themselves)
+// ==============================
+const COLOR_NAME_HEX_MAP = {
+    "ابيض": "#F8FAFC",
+    "احمر": "#DC2626",
+    "اخضر": "#16A34A",
+    "ازرق": "#2563EB",
+    "اسود": "#111827",
+    "اصفر": "#FACC15",
+    "برتقالي": "#F97316",
+    "بني": "#92400E",
+    "ثلجي": "#DBEAFE",
+    "ذهبي": "#D4AF37",
+    "زهري": "#EC4899",
+    "وردي": "#EC4899",
+    "سكني": "#9CA3AF",
+    "رمادي": "#9CA3AF",
+    "شفاف": "#E5E7EB",
+    "فضي": "#C0C0C0",
+    "فوشي": "#D946EF",
+    "كحلي": "#1E293B",
+    "بحري": "#1E3A5F",
+    "بنفسجي": "#7C3AED",
+    "خزامي": "#C4B5FD",
+    "موف": "#B784A7",
+    "تركواز": "#14B8A6",
+    "فيروزي": "#14B8A6",
+    "زيتي": "#6B7C3A",
+    "كريمي": "#F5E6C8",
+    "بيج": "#E8DCC4",
+    "عنابي": "#7C1F2E",
+    "خمري": "#7C1F2E",
+    "نحاسي": "#B87333",
+    "برونزي": "#CD7F32",
+    "سماوي": "#38BDF8",
+    "نيلي": "#4338CA",
+    "ليموني": "#D9E021",
+    "قرمزي": "#DC143C"
+};
+
+function normalizeColorNameJS(text) {
+    return text
+        .trim()
+        .replace(/[إأآا]/g, "ا")
+        .replace(/ى/g, "ي")
+        .replace(/ة/g, "ه")
+        .replace(/\s+/g, " ")
+        .toLowerCase();
+}
+
+function setupColorNameSuggestion(nameInputId, hexInputId) {
+    const nameInput = document.getElementById(nameInputId);
+    const hexInput = document.getElementById(hexInputId);
+    if (!nameInput || !hexInput) return;
+
+    let hexTouched = false;
+    hexInput.addEventListener("input", function () {
+        hexTouched = true;
+    });
+
+    nameInput.addEventListener("input", function () {
+        if (hexTouched) return;
+
+        const normalized = normalizeColorNameJS(nameInput.value);
+        for (const key in COLOR_NAME_HEX_MAP) {
+            if (normalized.includes(key)) {
+                hexInput.value = COLOR_NAME_HEX_MAP[key];
+                break;
+            }
+        }
+    });
+}
+
+// ==============================
+// SUGGEST PRODUCT COLOR(S) FROM ITS UPLOADED IMAGE
+// (client-side dominant-color extraction, no external service)
+// ==============================
+function extractDominantColors(imageEl, maxColors) {
+    const canvas = document.createElement("canvas");
+    const size = 60;
+    canvas.width = size;
+    canvas.height = size;
+
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(imageEl, 0, 0, size, size);
+
+    let data;
+    try {
+        data = ctx.getImageData(0, 0, size, size).data;
+    } catch (e) {
+        return [];
+    }
+
+    const bucketSize = 24;
+    const buckets = {};
+
+    for (let i = 0; i < data.length; i += 4) {
+        if (data[i + 3] < 128) continue; // skip transparent pixels
+
+        const r = Math.min(255, Math.round(data[i] / bucketSize) * bucketSize);
+        const g = Math.min(255, Math.round(data[i + 1] / bucketSize) * bucketSize);
+        const b = Math.min(255, Math.round(data[i + 2] / bucketSize) * bucketSize);
+        const key = r + "," + g + "," + b;
+
+        buckets[key] = (buckets[key] || 0) + 1;
+    }
+
+    const entries = Object.entries(buckets);
+    const total = entries.reduce((sum, [, count]) => sum + count, 0);
+    if (!total) return [];
+
+    return entries
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, maxColors)
+        .map(([key, count]) => {
+            const [r, g, b] = key.split(",").map(Number);
+            const hex = "#" + [r, g, b].map(v => v.toString(16).padStart(2, "0")).join("");
+            return { hex, ratio: count / total };
+        });
+}
+
+function hexToRgb(hex) {
+    const n = parseInt(hex.replace("#", ""), 16);
+    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+function colorDistance(hex1, hex2) {
+    const c1 = hexToRgb(hex1);
+    const c2 = hexToRgb(hex2);
+    return Math.sqrt((c1.r - c2.r) ** 2 + (c1.g - c2.g) ** 2 + (c1.b - c2.b) ** 2);
+}
+
+function findClosestColorOption(selectEl, targetHex, maxDistance) {
+    let best = null;
+    let bestDist = Infinity;
+
+    for (const opt of selectEl.options) {
+        if (!opt.dataset.hex) continue;
+
+        const dist = colorDistance(opt.dataset.hex, targetHex);
+        if (dist < bestDist) {
+            bestDist = dist;
+            best = opt;
+        }
+    }
+
+    return (best && bestDist <= maxDistance) ? best : null;
+}
+
+function suggestColorsFromImage(imageEl, options) {
+    const MATCH_THRESHOLD = 60;
+    const MIN_RATIO = 0.12;
+    const DISTINCT_THRESHOLD = 60;
+
+    const dominant = extractDominantColors(imageEl, 5)
+        .filter(c => c.ratio >= MIN_RATIO);
+
+    if (!dominant.length) return;
+
+    const primarySelect = document.getElementById(options.primarySelectId);
+    const secondarySelect = options.secondarySelectId
+        ? document.getElementById(options.secondarySelectId)
+        : null;
+    const hint = options.hintId ? document.getElementById(options.hintId) : null;
+
+    let matchedAny = false;
+
+    const primaryMatch = primarySelect
+        ? findClosestColorOption(primarySelect, dominant[0].hex, MATCH_THRESHOLD)
+        : null;
+
+    if (primaryMatch) {
+        primarySelect.value = primaryMatch.value;
+        updateColorSwatch(options.primarySelectId, options.primaryPreviewId);
+        matchedAny = true;
+    }
+
+    if (secondarySelect) {
+        const second = dominant.slice(1).find(
+            c => colorDistance(c.hex, dominant[0].hex) >= DISTINCT_THRESHOLD
+        );
+
+        if (second) {
+            const secondaryMatch = findClosestColorOption(secondarySelect, second.hex, MATCH_THRESHOLD);
+            if (secondaryMatch) {
+                secondarySelect.value = secondaryMatch.value;
+                updateColorSwatch(options.secondarySelectId, options.secondaryPreviewId);
+                matchedAny = true;
+            }
+        }
+    }
+
+    if (hint && matchedAny) {
+        hint.classList.remove("d-none");
+    }
 }
 
 document.addEventListener("DOMContentLoaded", function () {

@@ -42,7 +42,7 @@
           {% if product.image %}
           <div class="product-image-inner">
             <img
-              src="{{ url_for('uploaded_file', filename=product.image) }}"
+              src="{{ image_url(product.image) }}"
               class="product-image"
               alt="{{ product.name }}"
             >
@@ -56,7 +56,15 @@
           </div>
           {% endif %}
 
-          <span class="badge-color">{{ product.color.name }}</span>
+          <span class="badge-color d-inline-flex align-items-center gap-1">
+            <span class="d-inline-block rounded-circle border" style="width:10px; height:10px; background:{{ product.color.hex_code or '#ccc' }};"></span>
+            {{ product.color.name }}
+            {% if product.secondary_color %}
+            <span class="mx-1">/</span>
+            <span class="d-inline-block rounded-circle border" style="width:10px; height:10px; background:{{ product.secondary_color.hex_code or '#ccc' }};"></span>
+            {{ product.secondary_color.name }}
+            {% endif %}
+          </span>
         </div>
       </div>
 
@@ -84,12 +92,45 @@
         <div class="product-meta-grid mb-3">
           <div class="meta-item">
             <span class="label">اللون</span>
-            <div class="value">{{ product.color.name }}</div>
+            <div class="value d-flex align-items-center justify-content-center gap-1">
+              <span class="d-inline-block rounded-circle border" style="width:10px; height:10px; background:{{ product.color.hex_code or '#ccc' }};"></span>
+              {{ product.color.name }}
+              {% if product.secondary_color %}
+              <span class="mx-1">/</span>
+              <span class="d-inline-block rounded-circle border" style="width:10px; height:10px; background:{{ product.secondary_color.hex_code or '#ccc' }};"></span>
+              {{ product.secondary_color.name }}
+              {% endif %}
+            </div>
           </div>
 
           <div class="meta-item">
-            <span class="label">الحجم</span>
+            <span class="label">السعة</span>
             <div class="value">{{ product.size_data.name if product.size_data else "-" }}</div>
+          </div>
+
+          <div class="meta-item">
+            <span class="label">مقاس الرقبة</span>
+            <div class="value">
+              {% if product.neck_size %}
+                {{ product.neck_size.name }}
+              {% else %}
+                <span class="text-muted">غير مسجّل</span>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="meta-item">
+            <span class="label">التصنيف</span>
+            <div class="value">
+              {% if product.category %}
+              <a href="{{ url_for('product_list', category=product.category.id) }}" class="text-decoration-none">
+                <i class="bi {{ product.category.icon or 'bi-tag' }}"></i>
+                {{ product.category.name }}
+              </a>
+              {% else %}
+              <span class="badge bg-warning text-dark">بدون تصنيف</span>
+              {% endif %}
+            </div>
           </div>
 
           <div class="meta-item">
@@ -262,6 +303,7 @@
             <th>الموقع</th>
             <th>الكمية</th>
             <th>ملاحظات</th>
+            <th class="text-center">إجراءات</th>
           </tr>
         </thead>
 
@@ -337,6 +379,24 @@
               <span class="text-muted">لا يوجد</span>
               {% endif %}
             </td>
+
+            <td class="text-center">
+              {% if transaction.id in undoable_ids %}
+              <form
+                method="POST"
+                action="{{ url_for('undo_transaction_route', transaction_id=transaction.id) }}"
+                onsubmit="return confirm('هل تريد التراجع عن هذه الحركة؟ سيتم إرجاع الكمية لحالتها السابقة.');"
+              >
+                {{ csrf() }}
+                <input type="hidden" name="next" value="{{ request.full_path }}">
+                <button type="submit" class="btn btn-outline-danger btn-sm" title="تراجع عن الحركة">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                </button>
+              </form>
+              {% else %}
+              <span class="text-muted">—</span>
+              {% endif %}
+            </td>
           </tr>
           {% endfor %}
         </tbody>
@@ -410,6 +470,21 @@
         {% if transaction.notes %}
         <div class="text-muted small mt-1">{{ transaction.notes }}</div>
         {% endif %}
+
+        {% if transaction.id in undoable_ids %}
+        <form
+          method="POST"
+          action="{{ url_for('undo_transaction_route', transaction_id=transaction.id) }}"
+          class="mt-2"
+          onsubmit="return confirm('هل تريد التراجع عن هذه الحركة؟ سيتم إرجاع الكمية لحالتها السابقة.');"
+        >
+          {{ csrf() }}
+          <input type="hidden" name="next" value="{{ request.full_path }}">
+          <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+            <i class="bi bi-arrow-counterclockwise"></i> تراجع عن الحركة
+          </button>
+        </form>
+        {% endif %}
       </div>
       {% endfor %}
     </div>
@@ -437,7 +512,7 @@
           aria-label="إغلاق"
         ></button>
         <img
-          src="{{ url_for('uploaded_file', filename=product.image) }}"
+          src="{{ image_url(product.image) }}"
           class="img-fluid rounded-3"
           alt="{{ product.name }}"
           style="max-height:85vh;"

@@ -1,3 +1,4 @@
+{% from "macros.html" import csrf %}
 {% extends "base.html" %}
 {% block title %}آخر حركات المخزون{% endblock %}
 
@@ -118,6 +119,7 @@
             <th>الموقع</th>
             <th>الكمية</th>
             <th>ملاحظات</th>
+            <th class="text-center">إجراءات</th>
           </tr>
         </thead>
 
@@ -216,6 +218,24 @@
               <span class="text-muted">لا يوجد</span>
               {% endif %}
             </td>
+
+            <td class="text-center">
+              {% if transaction.id in undoable_ids %}
+              <form
+                method="POST"
+                action="{{ url_for('undo_transaction_route', transaction_id=transaction.id) }}"
+                onsubmit="return confirm('هل تريد التراجع عن هذه الحركة؟ سيتم إرجاع الكمية لحالتها السابقة.');"
+              >
+                {{ csrf() }}
+                <input type="hidden" name="next" value="{{ request.full_path }}">
+                <button type="submit" class="btn btn-outline-danger btn-sm" title="تراجع عن الحركة">
+                  <i class="bi bi-arrow-counterclockwise"></i>
+                </button>
+              </form>
+              {% else %}
+              <span class="text-muted">—</span>
+              {% endif %}
+            </td>
           </tr>
 
           {% endfor %}
@@ -301,6 +321,21 @@
 
         {% if transaction.notes %}
         <div class="text-muted small mt-1">{{ transaction.notes }}</div>
+        {% endif %}
+
+        {% if transaction.id in undoable_ids %}
+        <form
+          method="POST"
+          action="{{ url_for('undo_transaction_route', transaction_id=transaction.id) }}"
+          class="mt-2"
+          onsubmit="return confirm('هل تريد التراجع عن هذه الحركة؟ سيتم إرجاع الكمية لحالتها السابقة.');"
+        >
+          {{ csrf() }}
+          <input type="hidden" name="next" value="{{ request.full_path }}">
+          <button type="submit" class="btn btn-outline-danger btn-sm w-100">
+            <i class="bi bi-arrow-counterclockwise"></i> تراجع عن الحركة
+          </button>
+        </form>
         {% endif %}
       </div>
       {% endfor %}

@@ -1,18 +1,34 @@
 import os
 import shutil
 import logging
+from logging.handlers import RotatingFileHandler
+
+os.makedirs("logs", exist_ok=True)
+
+_log_formatter = logging.Formatter("%(asctime)s %(levelname)s %(name)s: %(message)s")
+
+_file_handler = RotatingFileHandler(
+    "logs/app.log", maxBytes=5 * 1024 * 1024, backupCount=5, encoding="utf-8"
+)
+_file_handler.setFormatter(_log_formatter)
+
+_console_handler = logging.StreamHandler()
+_console_handler.setFormatter(_log_formatter)
 
 logging.basicConfig(
     level=logging.WARNING,
-    format="%(asctime)s %(levelname)s %(name)s: %(message)s"
+    handlers=[_console_handler, _file_handler]
 )
 logging.getLogger("werkzeug").setLevel(logging.INFO)
 
 from flask import (
     Flask,
+    flash,
+    redirect,
     render_template,
     request,
-    send_from_directory
+    send_from_directory,
+    url_for
 )
 
 from models import db, Warehouse, User, Product
@@ -23,6 +39,7 @@ from routes.auth_routes import (
 from datetime import datetime, timedelta
 from routes.product_routes import register_product_routes
 from routes.color_routes import register_color_routes
+from routes.category_routes import register_category_routes
 from routes.requests_routes import register_requests_routes
 from routes.setup_routes import register_setup_routes
 from routes.location_routes import register_location_routes
@@ -32,6 +49,7 @@ from routes.transaction_routes import (
     register_transaction_routes
 )
 from utils.context_processors import register_context_processors
+from utils.storage import init_storage
 from routes.user_routes import register_user_routes
 from routes.transfer_routes import register_transfer_routes
 from routes.size_routes import register_size_routes
@@ -70,6 +88,22 @@ app.config["SQLALCHEMY_DATABASE_URI"] = config.DATABASE_URL
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["UPLOAD_FOLDER"] = "uploads"
 
+# Without a ceiling Flask buffers the whole request body in memory, so one
+# oversized upload can take the process down. Photos straight off a phone are
+# a few MB; 25 is generous and still bounded.
+app.config["MAX_CONTENT_LENGTH"] = 25 * 1024 * 1024
+
+# Session hardening. SECURE must stay off until the app is actually served over
+# HTTPS — turning it on over plain HTTP makes the browser drop the cookie and
+# nobody can log in. Flip SESSION_COOKIE_SECURE=true in .env at that point.
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = (
+    os.getenv("SESSION_COOKIE_SECURE", "false").strip().lower() == "true"
+)
+
+init_storage(app)
+
 db.init_app(app)
 migrate = Migrate(app, db)
 
@@ -90,6 +124,17 @@ def not_found(error):
     return render_template(
         "404.html"
     ), 404
+
+
+@app.errorhandler(413)
+def payload_too_large(error):
+
+    # MAX_CONTENT_LENGTH rejects the request before any view runs, so say what
+    # happened instead of showing a bare server error.
+    limit_mb = app.config["MAX_CONTENT_LENGTH"] // (1024 * 1024)
+    flash(f"الملف كبير جداً — الحد الأقصى {limit_mb} ميجابايت", "danger")
+
+    return redirect(request.referrer or url_for("home")), 302
 
 
 @app.errorhandler(500)
@@ -134,18 +179,36 @@ def home():
     )
 
 
+# Uploaded filenames are UUID-prefixed, so a given name always points at the
+# same bytes — replacing a product image writes a new name. That makes them
+# safe to cache hard, which matters here: the product list renders 20 images
+# and Flask's default (no-cache) makes the browser revalidate every one on
+# every page load, tying up a waitress thread each time.
+UPLOAD_CACHE_SECONDS = 60 * 60 * 24 * 30  # 30 days
+
+
 @app.route("/uploads/<filename>")
 def uploaded_file(filename):
 
-    return send_from_directory(
+    response = send_from_directory(
         app.config["UPLOAD_FOLDER"],
-        filename
+        filename,
+        max_age=UPLOAD_CACHE_SECONDS
     )
+
+    # send_from_directory sets max-age; mark it immutable too so browsers skip
+    # the revalidation round-trip entirely instead of sending If-None-Match.
+    response.headers["Cache-Control"] = (
+        f"public, max-age={UPLOAD_CACHE_SECONDS}, immutable"
+    )
+
+    return response
 
 
 
 register_product_routes(app)
 register_color_routes(app)
+register_category_routes(app)
 register_setup_routes(app)
 register_location_routes(app)
 register_search_routes(app)

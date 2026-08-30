@@ -651,9 +651,14 @@ body {
 }
 
 .product-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  line-height: 1.3;
+  min-height: calc(1.3em * 2);
 }
 
 .meta-item.meta-qty .value.status-normal { color: #059669; }

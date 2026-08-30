@@ -7,7 +7,7 @@ from flask import (
     jsonify
 )
 
-from models import db, Size, Product
+from models import db, Size, Product, SIZE_KINDS, SIZE_KIND_LABELS
 from flask_login import current_user, login_required
 from utils.activity_logger import log_activity
 from utils.permissions import admin_required, manager_required
@@ -35,7 +35,10 @@ def register_size_routes(app):
 
         if request.method == "POST":
 
-            result = validate_size_name(request.form.get("name", ""))
+            result = validate_size_name(
+                request.form.get("name", ""),
+                request.form.get("kind", "")
+            )
 
             if not result.valid:
                 if is_ajax:
@@ -43,7 +46,8 @@ def register_size_routes(app):
                 flash(result.message, "danger")
                 return redirect(url_for("add_size"))
 
-            name = result.data
+            name = result.data["name"]
+            kind = result.data["kind"]
 
             exists = Size.query.filter_by(name=name).first()
             if exists:
@@ -52,7 +56,7 @@ def register_size_routes(app):
                 flash("هذا الحجم موجود مسبقاً", "warning")
                 return redirect(url_for("add_size"))
 
-            size = Size(name=name)
+            size = Size(name=name, kind=kind)
 
             try:
                 db.session.add(size)
@@ -65,7 +69,7 @@ def register_size_routes(app):
                 )
 
                 if is_ajax:
-                    return jsonify(success=True, id=size.id, name=size.name)
+                    return jsonify(success=True, id=size.id, name=size.name, kind=size.kind)
 
                 flash("تمت إضافة الحجم بنجاح", "success")
 
@@ -83,8 +87,19 @@ def register_size_routes(app):
 
             return redirect(url_for("add_size"))
 
-        sizes = Size.query.options(joinedload(Size.products)).order_by(Size.id.desc()).all()
-        return render_template("add_size.html", sizes=sizes)
+        sizes = (
+            Size.query
+            .options(joinedload(Size.products), joinedload(Size.neck_products))
+            .order_by(Size.kind, Size.id.desc())
+            .all()
+        )
+
+        return render_template(
+            "add_size.html",
+            sizes=sizes,
+            size_kinds=SIZE_KINDS,
+            kind_labels=SIZE_KIND_LABELS
+        )
 
 
     # =========================
@@ -98,13 +113,17 @@ def register_size_routes(app):
             return redirect(url_for("dashboard"))
         size = Size.query.get_or_404(size_id)
 
-        result = validate_size_name(request.form.get("name", ""))
+        result = validate_size_name(
+            request.form.get("name", ""),
+            request.form.get("kind", "")
+        )
 
         if not result.valid:
             flash(result.message, "danger")
             return redirect(url_for("add_size"))
 
-        name = result.data
+        name = result.data["name"]
+        kind = result.data["kind"]
 
         exists = Size.query.filter(
             Size.name == name,
@@ -116,6 +135,7 @@ def register_size_routes(app):
             return redirect(url_for("add_size"))
 
         size.name = name
+        size.kind = kind
         db.session.commit()
 
         flash("تم تعديل الحجم بنجاح", "success")
@@ -140,7 +160,12 @@ def register_size_routes(app):
 
         size = Size.query.get_or_404(size_id)
 
-        in_use = Product.query.filter_by(size_id=size.id).first() is not None
+        in_use = Product.query.filter(
+            db.or_(
+                Product.size_id == size.id,
+                Product.neck_size_id == size.id
+            )
+        ).first() is not None
 
         if in_use:
             flash("لا يمكن حذف حجم مستخدم في منتجات", "danger")

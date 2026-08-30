@@ -21,6 +21,14 @@ TRANSACTION_LABELS = {
     "TRANSFER": "تحويل",
     "ADJUSTMENT": "تسوية"
 }
+SIZE_KIND_CAPACITY = "CAPACITY"   # how much it holds: 500 مل، 1 لتر، 48.7 غم
+SIZE_KIND_NECK = "NECK"           # what it screws onto: 28/410، 38، 89
+SIZE_KINDS = [SIZE_KIND_CAPACITY, SIZE_KIND_NECK]
+SIZE_KIND_LABELS = {
+    SIZE_KIND_CAPACITY: "السعة",
+    SIZE_KIND_NECK: "مقاس الرقبة"
+}
+
 STOCK_NORMAL = "NORMAL"
 STOCK_LOW = "LOW"
 STOCK_CRITICAL = "CRITICAL"
@@ -34,11 +42,17 @@ class Color(db.Model):
         nullable=False
     )
 
+    hex_code = db.Column(
+        db.String(7),
+        nullable=True
+    )
+
     products = db.relationship(
         "Product",
         backref="color_data",
         lazy=True,
-        viewonly=True
+        viewonly=True,
+        foreign_keys="Product.color_id"
     )
 
 class Customer(db.Model):
@@ -57,6 +71,14 @@ class Customer(db.Model):
     )
 
 class Size(db.Model):
+    """A measurement a product can carry.
+
+    Two different things used to share this table with no way to tell them
+    apart: how much a container holds ("500 مل") and what thread it screws
+    onto ("28/410"). A bottle has both, a cap only has a neck — so `kind`
+    says which one a row is, and Product points at it through two separate
+    columns: `size_id` for the capacity, `neck_size_id` for the neck.
+    """
 
     id = db.Column(
         db.Integer,
@@ -69,9 +91,67 @@ class Size(db.Model):
         nullable=False
     )
 
+    kind = db.Column(
+        db.String(20),
+        nullable=False,
+        default=SIZE_KIND_CAPACITY,
+        server_default=SIZE_KIND_CAPACITY
+    )
+
     products = db.relationship(
         "Product",
         backref="size_data",
+        lazy=True,
+        foreign_keys="Product.size_id"
+    )
+
+    neck_products = db.relationship(
+        "Product",
+        lazy=True,
+        viewonly=True,
+        foreign_keys="Product.neck_size_id"
+    )
+
+
+class Category(db.Model):
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    name = db.Column(
+        db.String(100),
+        unique=True,
+        nullable=False
+    )
+
+    slug = db.Column(
+        db.String(120),
+        unique=True,
+        nullable=True
+    )
+
+    icon = db.Column(
+        db.String(50),
+        nullable=True
+    )
+
+    sort_order = db.Column(
+        db.Integer,
+        nullable=False,
+        default=0
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        default=datetime.now,
+        nullable=False
+    )
+
+    products = db.relationship(
+        "Product",
+        back_populates="category",
         lazy=True
     )
 
@@ -88,9 +168,21 @@ class Product(db.Model):
         nullable=False
     )
 
+    category_id = db.Column(
+        db.Integer,
+        db.ForeignKey("category.id"),
+        nullable=True
+    )
+
     size_id = db.Column(
         db.Integer,
         db.ForeignKey("size.id")
+    )
+
+    neck_size_id = db.Column(
+        db.Integer,
+        db.ForeignKey("size.id"),
+        nullable=True
     )
 
     image = db.Column(
@@ -101,6 +193,13 @@ class Product(db.Model):
         db.Integer,
         db.ForeignKey("color.id")
     )
+
+    secondary_color_id = db.Column(
+        db.Integer,
+        db.ForeignKey("color.id"),
+        nullable=True
+    )
+
     minimum_stock = db.Column(
         db.Integer,
         nullable=False,
@@ -112,8 +211,6 @@ class Product(db.Model):
         default=db.func.now(),
         nullable=False
     )
-    default=datetime.utcnow
-    onupdate=datetime.utcnow
 
     updated_at = db.Column(
         db.DateTime,
@@ -122,7 +219,18 @@ class Product(db.Model):
         nullable=False
     )
 
-    color = db.relationship("Color")
+    color = db.relationship("Color", foreign_keys=[color_id])
+    secondary_color = db.relationship("Color", foreign_keys=[secondary_color_id])
+
+    category = db.relationship(
+        "Category",
+        back_populates="products"
+    )
+
+    neck_size = db.relationship(
+        "Size",
+        foreign_keys=[neck_size_id]
+    )
 
     locations = db.relationship(
         "InventoryLocation",

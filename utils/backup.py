@@ -66,7 +66,21 @@ def export_database(export_dir):
 # EXPORT FILES (uploads)
 # =========================
 
+def _images_are_local():
+    """Only the local backend keeps images in a folder worth backing up.
+
+    On R2 the images live in the bucket with its own durability, and copying
+    them into every nightly archive just made each backup as large as the whole
+    photo library — 246 MB a night at one point.
+    """
+    return os.getenv("STORAGE_BACKEND", "local").strip().lower() == "local"
+
+
 def export_uploads(temp_dir):
+
+    if not _images_are_local():
+        logger.info("Skipping uploads export — images live in object storage")
+        return
 
     uploads_dst = os.path.join(temp_dir, "uploads")
 
@@ -78,6 +92,8 @@ def export_uploads(temp_dir):
 
 def restore_uploads(temp_dir):
 
+    # Restoring stays unconditional: an older archive may still carry images,
+    # and putting them back is harmless even when the app now reads from R2.
     uploads_src = os.path.join(temp_dir, "uploads")
 
     if os.path.exists(uploads_src):

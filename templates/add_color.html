@@ -31,17 +31,29 @@
             {{ csrf() }}
             <div class="row g-2">
 
-                <div class="col-md-10">
+                <div class="col-md-8">
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-palette"></i></span>
                         <input
                             type="text"
                             name="name"
+                            id="newColorName"
                             class="form-control"
                             placeholder="مثال: أحمر"
                             required
                         >
                     </div>
+                </div>
+
+                <div class="col-md-2">
+                    <input
+                        type="color"
+                        name="hex_code"
+                        id="newColorHex"
+                        class="form-control form-control-color w-100"
+                        value="#94A3B8"
+                        title="اختر لون فعلي"
+                    >
                 </div>
 
                 <div class="col-md-2">
@@ -99,10 +111,17 @@
                 <tr>
 
                     <td>{{ color.id }}</td>
-                    <td>{{ color.name }}</td>
                     <td>
-                        <span class="badge {{ 'bg-light text-dark' if color.products|length == 0 else 'bg-primary' }}">
-                            {{ color.products|length }}
+                        <span
+                            class="d-inline-block rounded-circle border align-middle me-2"
+                            style="width:16px; height:16px; background:{{ color.hex_code or '#e2e8f0' }};"
+                            title="{{ color.hex_code or 'بدون لون محدد' }}"
+                        ></span>
+                        {{ color.name }}
+                    </td>
+                    <td>
+                        <span class="badge {{ 'bg-light text-dark' if usage_counts.get(color.id, 0) == 0 else 'bg-primary' }}">
+                            {{ usage_counts.get(color.id, 0) }}
                         </span>
                     </td>
 
@@ -114,6 +133,7 @@
                             class="btn btn-warning btn-sm"
                             data-id="{{ color.id }}"
                             data-name="{{ color.name }}"
+                            data-hex="{{ color.hex_code or '#94A3B8' }}"
                             onclick="openColorModal(this)"
                         >
                             <i class="bi bi-pencil"></i> تعديل
@@ -129,7 +149,7 @@
                             {{ csrf() }}
                             <button
                                 class="btn btn-outline-danger btn-sm"
-                                {% if color.products|length > 0 %}
+                                {% if usage_counts.get(color.id, 0) > 0 %}
                                 disabled
                                 title="لا يمكن الحذف لاستخدامه في منتجات"
                                 {% endif %}
@@ -176,13 +196,21 @@
 
                     <label class="form-label">اسم اللون</label>
 
-                    <input
-                        type="text"
-                        name="name"
-                        id="color_name"
-                        class="form-control"
-                        required
-                    >
+                    <div class="input-group">
+                        <input
+                            type="text"
+                            name="name"
+                            id="color_name"
+                            class="form-control"
+                            required
+                        >
+                        <input
+                            type="color"
+                            name="hex_code"
+                            id="color_hex"
+                            class="form-control form-control-color"
+                        >
+                    </div>
 
                 </div>
 
@@ -208,12 +236,18 @@
 
 <!-- ================= JS ================= -->
 <script>
+document.addEventListener("DOMContentLoaded", function () {
+    setupColorNameSuggestion("newColorName", "newColorHex");
+});
+
 function openColorModal(btn) {
 
     const id = btn.getAttribute("data-id");
     const name = btn.getAttribute("data-name");
+    const hex = btn.getAttribute("data-hex");
 
     document.getElementById("color_name").value = name;
+    document.getElementById("color_hex").value = hex;
 
     document.getElementById("editColorForm").action =
         "/color/" + id + "/edit";

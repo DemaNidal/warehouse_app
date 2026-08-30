@@ -34,6 +34,7 @@
           <input
             type="text"
             name="name"
+            id="productNameInput"
             class="form-control"
             placeholder="مثال: زجاجة بلاستيك 500 مل"
             required
@@ -41,12 +42,49 @@
         </div>
 
         <div class="col-md-6">
+          <label class="form-label">التصنيف</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-tags"></i></span>
+            <select name="category_id" id="categorySelect" class="form-select" required>
+              <option value="">اختر التصنيف</option>
+              {% for category in categories %}
+              <option value="{{ category.id }}">{{ category.name }}</option>
+              {% endfor %}
+            </select>
+
+            {% if current_user.role in ["ADMIN", "STORE_MANAGER"] %}
+            <button
+              type="button"
+              class="btn btn-outline-primary"
+              data-bs-toggle="modal"
+              data-bs-target="#quickAddCategoryModal"
+              title="إضافة تصنيف جديد"
+            >
+              <i class="bi bi-plus-lg"></i>
+            </button>
+            {% endif %}
+          </div>
+          <div class="form-text text-success d-none" id="categorySuggestHint">
+            <i class="bi bi-magic"></i> تم اقتراح التصنيف من اسم المنتج، تأكدي منه أو عدّليه
+          </div>
+        </div>
+
+        <div class="col-md-6">
           <label class="form-label">اللون</label>
           <div class="input-group">
-            <select name="color_id" class="form-select" required>
+            <span class="input-group-text p-0 justify-content-center" style="width:42px;">
+              <span id="colorSwatchPreview" class="d-inline-block rounded-circle border" style="width:16px; height:16px;"></span>
+            </span>
+            <select
+              name="color_id"
+              id="colorSelect"
+              class="form-select"
+              required
+              onchange="updateColorSwatch('colorSelect','colorSwatchPreview')"
+            >
               <option value="">اختر اللون</option>
               {% for color in colors %}
-              <option value="{{ color.id }}">{{ color.name }}</option>
+              <option value="{{ color.id }}" data-hex="{{ color.hex_code or '' }}">{{ color.name }}</option>
               {% endfor %}
             </select>
 
@@ -65,11 +103,34 @@
         </div>
 
         <div class="col-md-6">
-          <label class="form-label">الحجم</label>
+          <label class="form-label">لون ثاني <small class="text-muted">(اختياري)</small></label>
           <div class="input-group">
-            <select name="size_id" class="form-select" required>
-              <option value="">اختر الحجم</option>
-              {% for size in sizes %}
+            <span class="input-group-text p-0 justify-content-center" style="width:42px;">
+              <span id="secondaryColorSwatchPreview" class="d-inline-block rounded-circle border" style="width:16px; height:16px;"></span>
+            </span>
+            <select
+              name="secondary_color_id"
+              id="secondaryColorSelect"
+              class="form-select"
+              onchange="updateColorSwatch('secondaryColorSelect','secondaryColorSwatchPreview')"
+            >
+              <option value="">بدون لون ثاني</option>
+              {% for color in colors %}
+              <option value="{{ color.id }}" data-hex="{{ color.hex_code or '' }}">{{ color.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-text text-success d-none" id="colorSuggestHint">
+            <i class="bi bi-magic"></i> تم اقتراح اللون تلقائياً من الصورة، تأكدي منه أو عدّليه
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">السعة <small class="text-muted">(كم بتسع العبوة)</small></label>
+          <div class="input-group">
+            <select name="size_id" id="capacitySelect" class="form-select">
+              <option value="">بدون سعة</option>
+              {% for size in capacities %}
               <option value="{{ size.id }}">{{ size.name }}</option>
               {% endfor %}
             </select>
@@ -80,11 +141,40 @@
               class="btn btn-outline-primary"
               data-bs-toggle="modal"
               data-bs-target="#quickAddSizeModal"
-              title="إضافة حجم جديد"
+              data-kind="CAPACITY"
+              title="إضافة سعة جديدة"
             >
               <i class="bi bi-plus-lg"></i>
             </button>
             {% endif %}
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <label class="form-label">مقاس الرقبة <small class="text-muted">(شو بيركّب عليها)</small></label>
+          <div class="input-group">
+            <select name="neck_size_id" id="neckSizeSelect" class="form-select">
+              <option value="">بدون مقاس رقبة</option>
+              {% for size in neck_sizes %}
+              <option value="{{ size.id }}">{{ size.name }}</option>
+              {% endfor %}
+            </select>
+
+            {% if current_user.role in ["ADMIN", "STORE_MANAGER"] %}
+            <button
+              type="button"
+              class="btn btn-outline-primary"
+              data-bs-toggle="modal"
+              data-bs-target="#quickAddSizeModal"
+              data-kind="NECK"
+              title="إضافة مقاس رقبة جديد"
+            >
+              <i class="bi bi-plus-lg"></i>
+            </button>
+            {% endif %}
+          </div>
+          <div class="form-text">
+            الأغطية والبمبات إلها مقاس رقبة بس. العبوات إلها الاتنين.
           </div>
         </div>
 
@@ -177,18 +267,51 @@
   </div>
 </div>
 
+<!-- ================= QUICK ADD CATEGORY MODAL ================= -->
+<div class="modal fade" id="quickAddCategoryModal" tabindex="-1">
+  <div class="modal-dialog">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-tags"></i> إضافة تصنيف جديد</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <label class="form-label" for="quickCategoryName">اسم التصنيف</label>
+        <input
+          type="text"
+          id="quickCategoryName"
+          class="form-control"
+          placeholder="مثال: بمبات وبخاخات"
+          onkeydown="if(event.key==='Enter'){event.preventDefault(); quickAddCategory();}"
+        >
+        <div class="text-danger small mt-2 d-none" id="quickCategoryError"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+        <button type="button" class="btn btn-success" id="quickCategorySaveBtn" onclick="quickAddCategory()">
+          <i class="bi bi-check-lg"></i> حفظ
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <!-- ================= QUICK ADD SIZE MODAL ================= -->
 <div class="modal fade" id="quickAddSizeModal" tabindex="-1">
   <div class="modal-dialog">
     <div class="modal-content">
 
       <div class="modal-header">
-        <h5 class="modal-title"><i class="bi bi-rulers"></i> إضافة حجم جديد</h5>
+        <h5 class="modal-title"><i class="bi bi-rulers"></i> <span id="quickSizeTitle">إضافة قياس جديد</span></h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
 
       <div class="modal-body">
-        <label class="form-label" for="quickSizeName">اسم الحجم</label>
+        <label class="form-label" for="quickSizeName">القياس</label>
         <input
           type="text"
           id="quickSizeName"
@@ -196,6 +319,7 @@
           placeholder="مثال: 500 مل"
           onkeydown="if(event.key==='Enter'){event.preventDefault(); quickAddSize();}"
         >
+        <input type="hidden" id="quickSizeKind" value="CAPACITY">
         <div class="text-danger small mt-2 d-none" id="quickSizeError"></div>
       </div>
 
@@ -230,12 +354,22 @@ document.getElementById("productImageInput").addEventListener("change", function
   reader.onload = function (evt) {
     preview.src = evt.target.result;
     wrapper.style.display = "block";
+
+    preview.onload = function () {
+      suggestColorsFromImage(preview, {
+        primarySelectId: "colorSelect",
+        primaryPreviewId: "colorSwatchPreview",
+        secondarySelectId: "secondaryColorSelect",
+        secondaryPreviewId: "secondaryColorSwatchPreview",
+        hintId: "colorSuggestHint"
+      });
+    };
   };
   reader.readAsDataURL(file);
 });
 
 // ---- quick add (color / size) ----
-async function quickAdd(url, name, selectEl, errorEl, modalId, inputEl, btn) {
+async function quickAdd(url, name, selectEls, errorEl, modalId, inputEl, btn, onAdded, extra) {
   errorEl.classList.add("d-none");
 
   if (!name.trim()) {
@@ -254,7 +388,7 @@ async function quickAdd(url, name, selectEl, errorEl, modalId, inputEl, btn) {
         "X-CSRFToken": CSRF_TOKEN,
         "X-Requested-With": "XMLHttpRequest"
       },
-      body: new URLSearchParams({ name: name })
+      body: new URLSearchParams(Object.assign({ name: name }, extra || {}))
     });
 
     const data = await resp.json();
@@ -265,14 +399,18 @@ async function quickAdd(url, name, selectEl, errorEl, modalId, inputEl, btn) {
       return;
     }
 
-    const option = document.createElement("option");
-    option.value = data.id;
-    option.textContent = data.name;
-    option.selected = true;
-    selectEl.appendChild(option);
+    selectEls.forEach((selectEl, i) => {
+      const option = document.createElement("option");
+      option.value = data.id;
+      option.textContent = data.name;
+      if (i === 0) option.selected = true;
+      selectEl.appendChild(option);
+    });
 
     inputEl.value = "";
     bootstrap.Modal.getInstance(document.getElementById(modalId)).hide();
+
+    if (onAdded) onAdded();
 
   } catch (err) {
     errorEl.textContent = "تعذر الاتصال بالخادم";
@@ -288,26 +426,102 @@ function quickAddColor() {
   quickAdd(
     "{{ url_for('add_color') }}",
     input.value,
-    document.querySelector("select[name='color_id']"),
+    [document.getElementById("colorSelect"), document.getElementById("secondaryColorSelect")],
     document.getElementById("quickColorError"),
     "quickAddColorModal",
     input,
-    document.getElementById("quickColorSaveBtn")
+    document.getElementById("quickColorSaveBtn"),
+    function () { updateColorSwatch("colorSelect", "colorSwatchPreview"); }
   );
 }
 
+// The one modal serves both size fields — whichever "+" opened it decides
+// the kind, so a neck size can never land in the capacity list.
+document.querySelectorAll('[data-bs-target="#quickAddSizeModal"]').forEach(function (btn) {
+  btn.addEventListener("click", function () {
+    const kind = btn.getAttribute("data-kind") || "CAPACITY";
+    document.getElementById("quickSizeKind").value = kind;
+    document.getElementById("quickSizeTitle").textContent =
+      kind === "NECK" ? "إضافة مقاس رقبة" : "إضافة سعة";
+    document.getElementById("quickSizeName").placeholder =
+      kind === "NECK" ? "مثال: 28/410" : "مثال: 500 مل";
+  });
+});
+
 function quickAddSize() {
   const input = document.getElementById("quickSizeName");
+  const kind = document.getElementById("quickSizeKind").value;
+  const target = kind === "NECK"
+    ? document.getElementById("neckSizeSelect")
+    : document.getElementById("capacitySelect");
+
   quickAdd(
     "{{ url_for('add_size') }}",
     input.value,
-    document.querySelector("select[name='size_id']"),
+    [target],
     document.getElementById("quickSizeError"),
     "quickAddSizeModal",
     input,
-    document.getElementById("quickSizeSaveBtn")
+    document.getElementById("quickSizeSaveBtn"),
+    null,
+    { kind: kind }
   );
 }
+
+function quickAddCategory() {
+  const input = document.getElementById("quickCategoryName");
+  quickAdd(
+    "{{ url_for('add_category') }}",
+    input.value,
+    [document.getElementById("categorySelect")],
+    document.getElementById("quickCategoryError"),
+    "quickAddCategoryModal",
+    input,
+    document.getElementById("quickCategorySaveBtn")
+  );
+}
+
+// ---- suggest a category from the product name as it's typed ----
+// The rules live in utils/categorization.py, so the form and the back-fill
+// script can never disagree about what "غطاء بروتين" is.
+(function () {
+  const nameInput = document.getElementById("productNameInput");
+  const categorySelect = document.getElementById("categorySelect");
+  const hint = document.getElementById("categorySuggestHint");
+  if (!nameInput || !categorySelect) return;
+
+  let userTouched = false;
+  let timer = null;
+
+  categorySelect.addEventListener("change", function () {
+    userTouched = true;
+    hint.classList.add("d-none");
+  });
+
+  nameInput.addEventListener("input", function () {
+    if (userTouched) return;
+
+    clearTimeout(timer);
+    timer = setTimeout(async function () {
+      const name = nameInput.value.trim();
+      if (name.length < 2) return;
+
+      try {
+        const resp = await fetch(
+          "{{ url_for('suggest_product_category') }}?name=" + encodeURIComponent(name)
+        );
+        const data = await resp.json();
+
+        if (data.id && !userTouched) {
+          categorySelect.value = data.id;
+          hint.classList.remove("d-none");
+        }
+      } catch (err) {
+        /* suggestion is a convenience - stay silent and let them pick */
+      }
+    }, 350);
+  });
+})();
 </script>
 
 {% endblock %}

@@ -48,7 +48,7 @@
                 {% if product.image %}
                 <div class="product-image-inner">
                   <img
-                      src="{{ url_for('uploaded_file', filename=product.image) }}"
+                      src="{{ image_url(product.image) }}"
                       class="product-image"
                       alt="{{ product.name }}"
                   >
@@ -59,7 +59,15 @@
                 </div>
                 {% endif %}
 
-                <span class="badge-color">{{ product.color.name }}</span>
+                <span class="badge-color d-inline-flex align-items-center gap-1">
+                    <span class="d-inline-block rounded-circle border" style="width:10px; height:10px; background:{{ product.color.hex_code or '#ccc' }};"></span>
+                    {{ product.color.name }}
+                    {% if product.secondary_color %}
+                    <span class="mx-1">/</span>
+                    <span class="d-inline-block rounded-circle border" style="width:10px; height:10px; background:{{ product.secondary_color.hex_code or '#ccc' }};"></span>
+                    {{ product.secondary_color.name }}
+                    {% endif %}
+                </span>
 
             </div>
 

@@ -8,7 +8,13 @@ venv/
 .venv/
 
 backups/*.zip
+backups/images/
 backup_temp/
 restore_temp/
 
 scripts/backup_task.log
+logs/
+
+.pytest_cache/
+.coverage
+htmlcov/

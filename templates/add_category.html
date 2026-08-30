@@ -1,0 +1,277 @@
+{% from "macros.html" import csrf %}
+
+{% extends "base.html" %}
+
+{% block title %}إدارة التصنيفات{% endblock %}
+
+{% block content %}
+
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+  <div class="d-flex align-items-center gap-3">
+    <div class="stat-icon-box">
+      <i class="bi bi-tags fs-4"></i>
+    </div>
+    <div>
+      <h2 class="mb-0">إدارة التصنيفات</h2>
+      <small class="text-muted">تصنيف المنتجات حسب نوع العبوة</small>
+    </div>
+  </div>
+
+  <a href="{{ url_for('settings_page') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-right"></i> رجوع للإعدادات
+  </a>
+</div>
+
+{% if uncategorized_count > 0 %}
+<div class="alert alert-warning d-flex align-items-center gap-3">
+  <i class="bi bi-exclamation-triangle fs-4"></i>
+  <div>
+    <div class="fw-semibold">{{ uncategorized_count }} منتج بدون تصنيف</div>
+    <small>
+      افتح
+      <a href="{{ url_for('product_list', category='none') }}">قائمة المنتجات غير المصنّفة</a>
+      لتصنيفها، أو شغّل سكربت التصنيف التلقائي.
+    </small>
+  </div>
+</div>
+{% endif %}
+
+<!-- ================= ADD CATEGORY ================= -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+
+        <h5 class="mb-3">إضافة تصنيف جديد</h5>
+
+        <form method="POST" action="{{ url_for('add_category') }}">
+            {{ csrf() }}
+            <div class="row g-2">
+
+                <div class="col-md-7">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-tag"></i></span>
+                        <input
+                            type="text"
+                            name="name"
+                            class="form-control"
+                            placeholder="مثال: بمبات وبخاخات"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <div class="col-md-3">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-star"></i></span>
+                        <input
+                            type="text"
+                            name="icon"
+                            class="form-control"
+                            placeholder="أيقونة (اختياري)"
+                        >
+                    </div>
+                </div>
+
+                <div class="col-md-2">
+                    <button class="btn btn-success w-100">
+                        <i class="bi bi-plus-lg"></i> إضافة
+                    </button>
+                </div>
+
+            </div>
+            <div class="form-text mt-2">
+                الأيقونة اختيارية — اسم أيقونة من Bootstrap Icons مثل <code>bi-box</code>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+
+<!-- ================= LIST ================= -->
+<div class="card shadow-sm">
+    <div class="card-body">
+
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+            <h5 class="mb-0">
+                التصنيفات الحالية
+                <span class="badge bg-secondary">{{ categories|length }}</span>
+            </h5>
+
+            {% if categories %}
+            <div style="max-width:260px; width:100%;">
+                <input
+                    type="text"
+                    id="categorySearchInput"
+                    class="form-control form-control-sm"
+                    placeholder="بحث عن تصنيف..."
+                    onkeyup="filterTable('categorySearchInput', 'categoriesTable')"
+                >
+            </div>
+            {% endif %}
+        </div>
+
+        {% if categories %}
+
+        <div class="table-responsive">
+        <table class="table table-hover align-middle" id="categoriesTable">
+
+            <thead>
+                <tr>
+                    <th width="60">#</th>
+                    <th>التصنيف</th>
+                    <th>عدد المنتجات</th>
+                    {% if current_user.role == "ADMIN" %}
+                    <th width="220">إجراءات</th>
+                    {% endif %}
+                </tr>
+            </thead>
+
+            <tbody>
+
+                {% for category in categories %}
+                <tr>
+
+                    <td>{{ category.id }}</td>
+
+                    <td>
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="bi {{ category.icon or 'bi-tag' }} text-primary"></i>
+                            <span class="fw-semibold">{{ category.name }}</span>
+                        </div>
+                    </td>
+
+                    <td>
+                        <a
+                            href="{{ url_for('product_list', category=category.id) }}"
+                            class="badge text-decoration-none {{ 'bg-light text-dark' if category.products|length == 0 else 'bg-primary' }}"
+                        >
+                            {{ category.products|length }}
+                        </a>
+                    </td>
+
+                    {% if current_user.role == "ADMIN" %}
+                    <td>
+
+                        <button
+                            class="btn btn-warning btn-sm"
+                            data-id="{{ category.id }}"
+                            data-name="{{ category.name }}"
+                            data-icon="{{ category.icon or '' }}"
+                            onclick="openEditModal(this)"
+                        >
+                            <i class="bi bi-pencil"></i> تعديل
+                        </button>
+
+                        <form
+                            method="POST"
+                            action="{{ url_for('delete_category', category_id=category.id) }}"
+                            class="d-inline"
+                            onsubmit="return confirm('هل تريد حذف هذا التصنيف؟');"
+                        >
+                            {{ csrf() }}
+                            <button
+                                class="btn btn-outline-danger btn-sm"
+                                {% if category.products|length > 0 %}
+                                disabled
+                                title="لا يمكن الحذف لاستخدامه في منتجات"
+                                {% endif %}
+                            >
+                                <i class="bi bi-trash"></i> حذف
+                            </button>
+                        </form>
+
+                    </td>
+                    {% endif %}
+
+                </tr>
+                {% endfor %}
+
+            </tbody>
+
+        </table>
+        </div>
+
+        {% else %}
+        <div class="alert alert-info">
+            لا توجد تصنيفات مضافة بعد
+        </div>
+        {% endif %}
+
+    </div>
+</div>
+
+
+<!-- ================= MODAL ================= -->
+<div class="modal fade" id="editCategoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <form method="POST" id="editCategoryForm">
+                {{ csrf() }}
+
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="bi bi-tags"></i> تعديل التصنيف</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+
+                <div class="modal-body">
+
+                    <label class="form-label">اسم التصنيف</label>
+                    <input
+                        type="text"
+                        name="name"
+                        id="category_name"
+                        class="form-control mb-3"
+                        required
+                    >
+
+                    <label class="form-label">الأيقونة <small class="text-muted">(اختياري)</small></label>
+                    <input
+                        type="text"
+                        name="icon"
+                        id="category_icon"
+                        class="form-control"
+                        placeholder="bi-box"
+                    >
+
+                </div>
+
+                <div class="modal-footer">
+                    <button class="btn btn-primary">حفظ</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+</div>
+
+
+<!-- ================= JS ================= -->
+<script>
+function openEditModal(btn) {
+
+    document.getElementById("category_name").value = btn.getAttribute("data-name");
+    document.getElementById("category_icon").value = btn.getAttribute("data-icon");
+
+    document.getElementById("editCategoryForm").action =
+        "/category/" + btn.getAttribute("data-id") + "/edit";
+
+    new bootstrap.Modal(
+        document.getElementById('editCategoryModal')
+    ).show();
+}
+
+function filterTable(inputId, tableId) {
+    const filter = document.getElementById(inputId).value.trim().toLowerCase();
+    const rows = document.getElementById(tableId).querySelectorAll("tbody tr");
+
+    rows.forEach(row => {
+        const text = row.children[1].textContent.toLowerCase();
+        row.style.display = text.includes(filter) ? "" : "none";
+    });
+}
+</script>
+
+{% endblock %}

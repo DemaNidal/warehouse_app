@@ -60,7 +60,22 @@
             <div class="card-body">
                 <form method="GET" class="row g-3 align-items-end">
 
-                    <div class="col-12 col-sm-5">
+                    <div class="col-12 col-sm-4">
+                        <label class="form-label fw-semibold">التصنيف</label>
+                        <select name="category" class="form-select" onchange="this.form.submit()">
+                            <option value="" {% if not category_filter %}selected{% endif %}>الكل</option>
+                            {% for category in categories %}
+                            <option value="{{ category.id }}" {% if category_filter == category.id|string %}selected{% endif %}>{{ category.name }}</option>
+                            {% endfor %}
+                            {% if uncategorized_count > 0 %}
+                            <option value="none" {% if category_filter == 'none' %}selected{% endif %}>
+                                بدون تصنيف ({{ uncategorized_count }})
+                            </option>
+                            {% endif %}
+                        </select>
+                    </div>
+
+                    <div class="col-12 col-sm-3">
                         <label class="form-label fw-semibold">حالة المخزون</label>
                         <select name="stock" class="form-select" onchange="this.form.submit()">
                             <option value="" {% if not stock_filter %}selected{% endif %}>الكل</option>
@@ -70,7 +85,7 @@
                         </select>
                     </div>
 
-                    <div class="col-12 col-sm-5">
+                    <div class="col-12 col-sm-3">
                         <label class="form-label fw-semibold">الترتيب</label>
                         <select name="sort" class="form-select" onchange="this.form.submit()">
                             <option value="recent" {% if sort == 'recent' %}selected{% endif %}>الأحدث إضافة</option>
@@ -86,6 +101,8 @@
                     </div>
 
                 </form>
+
+
             </div>
         </div>
     </div>
@@ -111,7 +128,7 @@
                 <a href="/product/{{ product.id }}" class="product-image-link">
                   <div class="product-image-inner">
                     <img
-                        src="{{ url_for('uploaded_file', filename=product.image) }}"
+                        src="{{ image_url(product.image) }}"
                         class="product-image"
                         alt="{{ product.name }}"
                     >
@@ -125,7 +142,15 @@
                 </a>
                 {% endif %}
 
-                <span class="badge-color">{{ product.color.name }}</span>
+                <span class="badge-color d-inline-flex align-items-center gap-1">
+                    <span class="d-inline-block rounded-circle border" style="width:10px; height:10px; background:{{ product.color.hex_code or '#ccc' }};"></span>
+                    {{ product.color.name }}
+                    {% if product.secondary_color %}
+                    <span class="mx-1">/</span>
+                    <span class="d-inline-block rounded-circle border" style="width:10px; height:10px; background:{{ product.secondary_color.hex_code or '#ccc' }};"></span>
+                    {{ product.secondary_color.name }}
+                    {% endif %}
+                </span>
 
             </div>
 
@@ -134,6 +159,16 @@
                 <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
 
                     <div class="flex-grow-1 min-w-0">
+                        {% if product.category %}
+                        <div class="small text-muted mb-1 d-flex align-items-center gap-1">
+                            <i class="bi {{ product.category.icon or 'bi-tag' }}"></i>
+                            {{ product.category.name }}
+                        </div>
+                        {% else %}
+                        <div class="small mb-1">
+                            <span class="badge bg-warning text-dark">بدون تصنيف</span>
+                        </div>
+                        {% endif %}
                         <h5 class="fw-bold mb-1 product-title" title="{{ product.name }}">{{ product.name }}</h5>
                     </div>
 
@@ -142,10 +177,15 @@
                 <div class="product-meta-grid">
 
                     <div class="meta-item">
-                        <span class="label">الحجم</span>
+                        <span class="label">{{ "مقاس الرقبة" if product.neck_size and not product.size_data else "السعة" }}</span>
                         <div class="value">
                             {% if product.size_data %}
                                 {{ product.size_data.name }}
+                                {% if product.neck_size %}
+                                <span class="text-muted small d-block">رقبة {{ product.neck_size.name }}</span>
+                                {% endif %}
+                            {% elif product.neck_size %}
+                                {{ product.neck_size.name }}
                             {% else %}
                                 -
                             {% endif %}

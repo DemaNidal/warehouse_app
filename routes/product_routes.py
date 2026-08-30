@@ -1,14 +1,15 @@
 from flask import flash, render_template, request, redirect, url_for
-from werkzeug.utils import secure_filename
 import os
-import uuid
 from models import (
     db,
     Product,
+    Category,
     Color,
     InventoryLocation,
     InventoryTransaction,
     Size,
+    SIZE_KIND_CAPACITY,
+    SIZE_KIND_NECK,
     STOCK_NORMAL,
     STOCK_LOW,
     STOCK_CRITICAL
@@ -20,6 +21,9 @@ from utils.activity_logger import log_activity
 from utils.permissions import admin_required, manager_required
 from utils.system_guard import ensure_system_ready
 from utils.validation.product import validate_product_form
+from utils.images import optimize_upload, ImageError
+from utils.storage import save_image, delete_image
+from utils.transaction_undo import compute_undoable_transaction_ids
 ALLOWED_EXTENSIONS = {
     "png",
     "jpg",
@@ -38,7 +42,10 @@ def allowed_file(filename):
 
 def register_product_routes(app):
 
-    os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+    # only the local backend writes here; on object storage this would just
+    # leave an empty folder behind on every start
+    if os.getenv("STORAGE_BACKEND", "local").strip().lower() == "local":
+        os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
     @app.route("/add-product", methods=["GET", "POST"])
     @login_required
@@ -48,38 +55,23 @@ def register_product_routes(app):
             return redirect(url_for("dashboard"))
         if request.method == "POST":
 
-            image = request.files["image"]
-            
+            image = request.files.get("image")
+
             filename = ""
-            
+
             if image and image.filename:
-                filename = (
-                    str(uuid.uuid4())
-                    + "_"
-                    + secure_filename(
-                        image.filename
-                    )
-                )
-               
-                if image and image.filename:
 
-                    if not allowed_file(image.filename):
+                if not allowed_file(image.filename):
+                    flash("صيغة الصورة غير مدعومة", "danger")
+                    return redirect(url_for("add_product"))
 
-                        flash(
-                            "صيغة الصورة غير مدعومة",
-                            "danger"
-                        )
+                try:
+                    data, filename = optimize_upload(image)
+                except ImageError as exc:
+                    flash(str(exc), "danger")
+                    return redirect(url_for("add_product"))
 
-                        return redirect(
-                            url_for("add_product")
-                        )
-
-                image.save(
-                    os.path.join(
-                        app.config["UPLOAD_FOLDER"],
-                        filename
-                    )
-                )
+                save_image(data, filename)
 
             result = validate_product_form(request.form)
 
@@ -92,7 +84,10 @@ def register_product_routes(app):
             product = Product(
                 name=data["name"],
                 color_id=data["color_id"],
+                secondary_color_id=data["secondary_color_id"],
                 size_id=data["size_id"],
+                neck_size_id=data["neck_size_id"],
+                category_id=data["category_id"],
                 minimum_stock=data["minimum_stock"],
                 image=filename
             )
@@ -112,13 +107,19 @@ def register_product_routes(app):
             )
 
         colors = Color.query.order_by(Color.name).all()
-        sizes = Size.query.order_by(Size.name).all()
-        
+        capacities = Size.query.filter_by(kind=SIZE_KIND_CAPACITY).order_by(Size.name).all()
+        neck_sizes = Size.query.filter_by(kind=SIZE_KIND_NECK).order_by(Size.name).all()
+        categories = Category.query.order_by(
+            Category.sort_order,
+            Category.id
+        ).all()
 
         return render_template(
             "add_product.html",
             colors=colors,
-            sizes=sizes
+            capacities=capacities,
+            neck_sizes=neck_sizes,
+            categories=categories
         )
 
 
@@ -130,7 +131,10 @@ def register_product_routes(app):
             Product.query
             .options(
                 joinedload(Product.color),
+                joinedload(Product.secondary_color),
                 joinedload(Product.size_data),
+                joinedload(Product.neck_size),
+                joinedload(Product.category),
 
                 joinedload(Product.locations)
                 .joinedload(InventoryLocation.warehouse),
@@ -164,13 +168,16 @@ def register_product_routes(app):
             reverse=True
         )
 
+        undoable_ids = compute_undoable_transaction_ids(transactions)
+
         return render_template(
             "product_details.html",
             product=product,
             locations=locations,
             total_quantity=product.total_quantity,
             transactions=transactions,
-            stock_status=product.stock_status
+            stock_status=product.stock_status,
+            undoable_ids=undoable_ids
         )
     
     @app.route(
@@ -198,56 +205,38 @@ def register_product_routes(app):
 
             product.name = data["name"]
             product.size_id = data["size_id"]
+            product.neck_size_id = data["neck_size_id"]
+            product.category_id = data["category_id"]
             product.color_id = data["color_id"]
+            product.secondary_color_id = data["secondary_color_id"]
             product.minimum_stock = data["minimum_stock"]
 
-            image = request.files["image"]
+            image = request.files.get("image")
 
             if image and image.filename:
 
+                if not allowed_file(image.filename):
+                    flash("صيغة الصورة غير مدعومة", "danger")
+                    return redirect(
+                        url_for("edit_product", product_id=product.id)
+                    )
+
+                try:
+                    data, filename = optimize_upload(image)
+                except ImageError as exc:
+                    flash(str(exc), "danger")
+                    return redirect(
+                        url_for("edit_product", product_id=product.id)
+                    )
+
                 old_image = product.image
 
-                filename = (
-                    str(uuid.uuid4())
-                    + "_"
-                    + secure_filename(
-                        image.filename
-                    )
-                )
-
-                if image and image.filename:
-
-                    if not allowed_file(image.filename):
-
-                        flash(
-                            "صيغة الصورة غير مدعومة",
-                            "danger"
-                        )
-
-                        return redirect(
-                            url_for("edit_product", product_id=product.id)
-                        )
-
-
-                image.save(
-                    os.path.join(
-                        app.config["UPLOAD_FOLDER"],
-                        filename
-                    )
-                )
-
+                save_image(data, filename)
                 product.image = filename
 
+                # only drop the previous file once the new one is stored
                 if old_image:
-
-                    old_path = os.path.join(
-                        app.config["UPLOAD_FOLDER"],
-                        old_image
-                    )
-
-                    if os.path.exists(old_path):
-                        os.remove(old_path)
-            
+                    delete_image(old_image)
 
             db.session.commit()
             log_activity(
@@ -267,15 +256,26 @@ def register_product_routes(app):
             Color.name
         ).all()
 
-        sizes = Size.query.order_by(
-            Size.name
+        capacities = Size.query.filter_by(
+            kind=SIZE_KIND_CAPACITY
+        ).order_by(Size.name).all()
+
+        neck_sizes = Size.query.filter_by(
+            kind=SIZE_KIND_NECK
+        ).order_by(Size.name).all()
+
+        categories = Category.query.order_by(
+            Category.sort_order,
+            Category.id
         ).all()
 
         return render_template(
             "edit_product.html",
             product=product,
             colors=colors,
-            sizes=sizes
+            capacities=capacities,
+            neck_sizes=neck_sizes,
+            categories=categories
         )
     
 
@@ -285,6 +285,7 @@ def register_product_routes(app):
 
         page = request.args.get("page", 1, type=int)
         stock_filter = request.args.get("stock", "")
+        category_filter = request.args.get("category", "")
         sort = request.args.get("sort", "recent")
 
         # total quantity per product, computed in SQL so the stock filter
@@ -304,7 +305,10 @@ def register_product_routes(app):
             Product.query
             .options(
                 joinedload(Product.color),
+                joinedload(Product.secondary_color),
                 joinedload(Product.size_data),
+                joinedload(Product.neck_size),
+                joinedload(Product.category),
                 joinedload(Product.locations)
             )
             .outerjoin(
@@ -312,6 +316,15 @@ def register_product_routes(app):
                 location_totals.c.product_id == Product.id
             )
         )
+
+        # "none" is its own filter so the un-categorised backlog stays findable
+        if category_filter == "none":
+            query = query.filter(Product.category_id.is_(None))
+        elif category_filter:
+            try:
+                query = query.filter(Product.category_id == int(category_filter))
+            except ValueError:
+                category_filter = ""
 
         if stock_filter == "critical":
             query = query.filter(total_qty == 0)
@@ -336,10 +349,22 @@ def register_product_routes(app):
             error_out=False
         )
 
+        categories = Category.query.order_by(
+            Category.sort_order,
+            Category.id
+        ).all()
+
+        uncategorized_count = Product.query.filter(
+            Product.category_id.is_(None)
+        ).count()
+
         return render_template(
             "product_list.html",
             products=products,
             stock_filter=stock_filter,
+            category_filter=category_filter,
+            categories=categories,
+            uncategorized_count=uncategorized_count,
             sort=sort
         )
 

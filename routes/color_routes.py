@@ -14,7 +14,6 @@ from utils.permissions import admin_required, manager_required
 from utils.system_guard import ensure_system_ready
 from utils.validation.color import validate_color_name
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy.orm import joinedload
 
 def register_color_routes(app):
 
@@ -35,7 +34,10 @@ def register_color_routes(app):
 
         if request.method == "POST":
 
-            result = validate_color_name(request.form.get("name", ""))
+            result = validate_color_name(
+                request.form.get("name", ""),
+                request.form.get("hex_code", "")
+            )
 
             if not result.valid:
                 if is_ajax:
@@ -43,16 +45,9 @@ def register_color_routes(app):
                 flash(result.message, "danger")
                 return redirect(url_for("add_color"))
 
-            name = result.data
+            data = result.data
 
-            exists = Color.query.filter_by(name=name).first()
-            if exists:
-                if is_ajax:
-                    return jsonify(success=False, message="هذا اللون موجود مسبقاً"), 409
-                flash("هذا اللون موجود مسبقاً", "warning")
-                return redirect(url_for("add_color"))
-
-            color = Color(name=name)
+            color = Color(name=data["name"], hex_code=data["hex_code"])
 
             try:
                 db.session.add(color)
@@ -83,8 +78,17 @@ def register_color_routes(app):
 
             return redirect(url_for("add_color"))
 
-        colors = Color.query.options(joinedload(Color.products)).order_by(Color.id.desc()).all()
-        return render_template("add_color.html", colors=colors)
+        colors = Color.query.order_by(Color.id.desc()).all()
+
+        usage_counts = {}
+        for row in db.session.query(Product.color_id, db.func.count(Product.id)).group_by(Product.color_id):
+            if row[0] is not None:
+                usage_counts[row[0]] = usage_counts.get(row[0], 0) + row[1]
+        for row in db.session.query(Product.secondary_color_id, db.func.count(Product.id)).group_by(Product.secondary_color_id):
+            if row[0] is not None:
+                usage_counts[row[0]] = usage_counts.get(row[0], 0) + row[1]
+
+        return render_template("add_color.html", colors=colors, usage_counts=usage_counts)
 
 
     # =========================
@@ -99,24 +103,20 @@ def register_color_routes(app):
 
         color = Color.query.get_or_404(color_id)
 
-        result = validate_color_name(request.form.get("name", ""))
+        result = validate_color_name(
+            request.form.get("name", ""),
+            request.form.get("hex_code", ""),
+            exclude_id=color.id
+        )
 
         if not result.valid:
             flash(result.message, "danger")
             return redirect(url_for("add_color"))
 
-        name = result.data
+        data = result.data
 
-        exists = Color.query.filter(
-            Color.name == name,
-            Color.id != color.id
-        ).first()
-
-        if exists:
-            flash("هذا اللون موجود مسبقاً", "warning")
-            return redirect(url_for("add_color"))
-
-        color.name = name
+        color.name = data["name"]
+        color.hex_code = data["hex_code"]
         db.session.commit()
         log_activity(
             current_user.id,
@@ -141,7 +141,12 @@ def register_color_routes(app):
 
         color = Color.query.get_or_404(color_id)
 
-        in_use = Product.query.filter_by(color_id=color.id).first() is not None
+        in_use = Product.query.filter(
+            db.or_(
+                Product.color_id == color.id,
+                Product.secondary_color_id == color.id
+            )
+        ).first() is not None
 
         if in_use:
             flash("لا يمكن حذف لون مستخدم في منتجات", "danger")

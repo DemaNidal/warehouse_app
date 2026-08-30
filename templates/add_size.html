@@ -2,7 +2,7 @@
 
 {% extends "base.html" %}
 
-{% block title %}إدارة الأحجام{% endblock %}
+{% block title %}إدارة القياسات{% endblock %}
 
 {% block content %}
 
@@ -12,8 +12,8 @@
       <i class="bi bi-rulers fs-4"></i>
     </div>
     <div>
-      <h2 class="mb-0">إدارة الأحجام</h2>
-      <small class="text-muted">إضافة وتعديل الأحجام المستخدمة في المنتجات</small>
+      <h2 class="mb-0">إدارة القياسات</h2>
+      <small class="text-muted">السعة (كم بتسع العبوة) ومقاس الرقبة (شو بيركّب عليها)</small>
     </div>
   </div>
 
@@ -26,23 +26,32 @@
 <div class="card shadow-sm mb-4">
     <div class="card-body">
 
-        <h5 class="mb-3">إضافة حجم جديد</h5>
+        <h5 class="mb-3">إضافة قياس جديد</h5>
 
         <form method="POST" action="{{ url_for('add_size') }}">
             {{ csrf() }}
             <div class="row g-2">
 
-                <div class="col-md-10">
+                <div class="col-md-6">
                     <div class="input-group">
                         <span class="input-group-text"><i class="bi bi-rulers"></i></span>
                         <input
                             type="text"
                             name="name"
+                            id="newSizeName"
                             class="form-control"
                             placeholder="مثال: 500 مل"
                             required
                         >
                     </div>
+                </div>
+
+                <div class="col-md-4">
+                    <select name="kind" id="newSizeKind" class="form-select">
+                        {% for k in size_kinds %}
+                        <option value="{{ k }}">{{ kind_labels[k] }}</option>
+                        {% endfor %}
+                    </select>
                 </div>
 
                 <div class="col-md-2">
@@ -63,7 +72,7 @@
     <div class="card-body">
 
         <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-            <h5 class="mb-0">الأحجام الحالية <span class="badge bg-secondary">{{ sizes|length }}</span></h5>
+            <h5 class="mb-0">القياسات الحالية <span class="badge bg-secondary">{{ sizes|length }}</span></h5>
 
             {% if sizes %}
             <div style="max-width:260px; width:100%;">
@@ -71,7 +80,7 @@
                     type="text"
                     id="sizeSearchInput"
                     class="form-control form-control-sm"
-                    placeholder="بحث عن حجم..."
+                    placeholder="بحث عن قياس..."
                     onkeyup="filterTable('sizeSearchInput', 'sizesTable')"
                 >
             </div>
@@ -86,7 +95,8 @@
             <thead>
                 <tr>
                     <th>#</th>
-                    <th>الحجم</th>
+                    <th>القياس</th>
+                    <th>النوع</th>
                     <th>عدد المنتجات المرتبطة</th>
                     {% if current_user.role == "ADMIN" %}
                     <th width="220">إجراءات</th>
@@ -100,10 +110,22 @@
                 <tr>
 
                     <td>{{ size.id }}</td>
-                    <td>{{ size.name }}</td>
+                    <td class="fw-semibold">{{ size.name }}</td>
                     <td>
-                        <span class="badge {{ 'bg-light text-dark' if size.products|length == 0 else 'bg-primary' }}">
-                            {{ size.products|length }}
+                        {% if size.kind == "NECK" %}
+                        <span class="badge" style="background:rgba(200,155,60,.16); color:#92400e;">
+                            مقاس رقبة
+                        </span>
+                        {% else %}
+                        <span class="badge" style="background:rgba(30,58,95,.08); color:#1E3A5F;">
+                            سعة
+                        </span>
+                        {% endif %}
+                    </td>
+                    {% set used = size.products|length + size.neck_products|length %}
+                    <td>
+                        <span class="badge {{ 'bg-light text-dark' if used == 0 else 'bg-primary' }}">
+                            {{ used }}
                         </span>
                     </td>
 
@@ -115,6 +137,7 @@
                             class="btn btn-warning btn-sm"
                             data-id="{{ size.id }}"
                             data-name="{{ size.name }}"
+                            data-kind="{{ size.kind }}"
                             onclick="openEditModal(this)"
                         >
                             <i class="bi bi-pencil"></i> تعديل
@@ -130,7 +153,7 @@
                             {{ csrf() }}
                             <button
                                 class="btn btn-outline-danger btn-sm"
-                                {% if size.products|length > 0 %}
+                                {% if used > 0 %}
                                 disabled
                                 title="لا يمكن الحذف لاستخدامه في منتجات"
                                 {% endif %}
@@ -152,7 +175,7 @@
 
         {% else %}
         <div class="alert alert-info">
-            لا توجد أحجام مضافة بعد
+            لا توجد قياسات مضافة بعد
         </div>
         {% endif %}
 
@@ -169,21 +192,31 @@
             <form method="POST" id="editSizeForm">
                 {{ csrf() }}
                 <div class="modal-header">
-                    <h5 class="modal-title"><i class="bi bi-rulers"></i> تعديل الحجم</h5>
+                    <h5 class="modal-title"><i class="bi bi-rulers"></i> تعديل القياس</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
 
                 <div class="modal-body">
 
-                    <label class="form-label">اسم الحجم</label>
+                    <label class="form-label">القياس</label>
 
                     <input
                         type="text"
                         name="name"
                         id="size_name"
-                        class="form-control"
+                        class="form-control mb-3"
                         required
                     >
+
+                    <label class="form-label">النوع</label>
+                    <select name="kind" id="size_kind" class="form-select">
+                        {% for k in size_kinds %}
+                        <option value="{{ k }}">{{ kind_labels[k] }}</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">
+                        تغيير النوع بينقل القياس بين قائمة السعة وقائمة مقاس الرقبة.
+                    </div>
 
                 </div>
 
@@ -215,6 +248,7 @@ function openEditModal(btn) {
     const name = btn.getAttribute("data-name");
 
     document.getElementById("size_name").value = name;
+    document.getElementById("size_kind").value = btn.getAttribute("data-kind") || "CAPACITY";
 
     document.getElementById("editSizeForm").action =
         "/size/" + id + "/edit";
@@ -223,6 +257,11 @@ function openEditModal(btn) {
         document.getElementById('editSizeModal')
     ).show();
 }
+
+document.getElementById("newSizeKind").addEventListener("change", function () {
+    document.getElementById("newSizeName").placeholder =
+        this.value === "NECK" ? "مثال: 28/410" : "مثال: 500 مل";
+});
 
 function filterTable(inputId, tableId) {
     const filter = document.getElementById(inputId).value.trim().toLowerCase();
