@@ -89,9 +89,6 @@
               {% endfor %}
             </select>
           </div>
-          <div class="form-text text-success d-none" id="colorSuggestHint">
-            <i class="bi bi-magic"></i> تم اقتراح اللون تلقائياً من الصورة الجديدة، تأكدي منه أو عدّليه
-          </div>
         </div>
 
         <div class="col-md-6">
@@ -187,16 +184,6 @@ document.getElementById("productImageInput").addEventListener("change", function
   reader.onload = function (evt) {
     preview.src = evt.target.result;
     wrapper.style.display = "block";
-
-    preview.onload = function () {
-      suggestColorsFromImage(preview, {
-        primarySelectId: "colorSelect",
-        primaryPreviewId: "colorSwatchPreview",
-        secondarySelectId: "secondaryColorSelect",
-        secondaryPreviewId: "secondaryColorSwatchPreview",
-        hintId: "colorSuggestHint"
-      });
-    };
   };
   reader.readAsDataURL(file);
 });

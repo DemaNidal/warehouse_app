@@ -4,6 +4,7 @@
 
 {% block content %}
 
+
 <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
 
     <div class="d-flex align-items-center gap-3">
@@ -100,6 +101,7 @@
                         </a>
                     </div>
 
+
                 </form>
 
 
@@ -109,12 +111,13 @@
 
 </div>
 
-{% if products.items %}
+{% if units %}
 <div class="row g-4">
 
-    {% for product in products.items %}
+    {% for unit in units %}
 
-    {% set total = product.locations | sum(attribute='quantity') %}
+    {% set product = unit.product %}
+    {% set total = unit.quantity %}
 
     <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
 
@@ -257,7 +260,7 @@
         <li class="page-item">
 
             <a class="page-link"
-               href="{{ url_for('product_list', page=products.prev_num, stock=stock_filter, sort=sort) }}">
+               href="{{ url_for('product_list', page=products.prev_num, stock=stock_filter, category=category_filter, sort=sort) }}">
 
                 <i class="bi bi-chevron-right"></i>
 
@@ -274,7 +277,7 @@
                 <li class="page-item {% if page==products.page %}active{% endif %}">
 
                     <a class="page-link"
-                       href="{{ url_for('product_list', page=page, stock=stock_filter, sort=sort) }}">
+                       href="{{ url_for('product_list', page=page, stock=stock_filter, category=category_filter, sort=sort) }}">
 
                         {{ page }}
 
@@ -295,7 +298,7 @@
         <li class="page-item">
 
             <a class="page-link"
-               href="{{ url_for('product_list', page=products.next_num, stock=stock_filter, sort=sort) }}">
+               href="{{ url_for('product_list', page=products.next_num, stock=stock_filter, category=category_filter, sort=sort) }}">
 
                 <i class="bi bi-chevron-left"></i>
 

@@ -141,6 +141,7 @@ def make_user(db_session):
 @pytest.fixture()
 def make_product(db_session):
     from models import Product, Color, Size, Category, SIZE_KIND_CAPACITY
+    from utils.search_text import refresh_search_text
 
     def _make(name="منتج اختبار", minimum_stock=10, **kwargs):
         color = db_session.query(Color).first()
@@ -170,6 +171,13 @@ def make_product(db_session):
         )
         db_session.add(product)
         db_session.flush()
+
+        # every route that creates a product does this, so a fixture that
+        # skips it builds rows the application never produces — search and
+        # grouping both read the derived columns
+        refresh_search_text(product)
+        db_session.flush()
+
         return product
 
     return _make
@@ -212,3 +220,38 @@ def login(client):
         return client
 
     return _login
+
+
+# ------------------------------------------- product families
+
+@pytest.fixture()
+def colours(db_session):
+    from models import Color
+
+    made = {}
+    for name, hex_code in [("أسود", "#000000"), ("احمر", "#FF0000"),
+                           ("ازرق", "#0000FF")]:
+        colour = Color(name=name, hex_code=hex_code)
+        db_session.add(colour)
+        made[name] = colour
+    db_session.flush()
+    return made
+
+
+@pytest.fixture()
+def caps(db_session, make_product, colours):
+    """Three "غطاء قطرة" that differ only in colour, plus an unrelated product."""
+
+    from utils.search_text import refresh_search_text
+
+    products = []
+    for colour in ("أسود", "احمر", "ازرق"):
+        product = make_product(name="غطاء قطرة", color_id=colours[colour].id)
+        refresh_search_text(product)
+        products.append(product)
+
+    other = make_product(name="بمب PUMP", color_id=colours["أسود"].id)
+    refresh_search_text(other)
+
+    db_session.commit()
+    return {"caps": products, "other": other}

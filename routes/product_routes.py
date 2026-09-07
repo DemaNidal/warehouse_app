@@ -7,6 +7,7 @@ from models import (
     Color,
     InventoryLocation,
     InventoryTransaction,
+    ProductFamily,
     Size,
     SIZE_KIND_CAPACITY,
     SIZE_KIND_NECK,
@@ -23,6 +24,9 @@ from utils.system_guard import ensure_system_ready
 from utils.validation.product import validate_product_form
 from utils.images import optimize_upload, ImageError
 from utils.storage import save_image, delete_image
+from utils.search_text import refresh_search_text
+from utils.families import find_match
+from utils.catalogue import browse_flat
 from utils.transaction_undo import compute_undoable_transaction_ids
 ALLOWED_EXTENSIONS = {
     "png",
@@ -93,6 +97,12 @@ def register_product_routes(app):
             )
 
             db.session.add(product)
+
+            # flush first so the colour/size/category relationships resolve,
+            # then build the searchable text from them
+            db.session.flush()
+            refresh_search_text(product)
+
             db.session.commit()
             log_activity(
                 current_user.id,
@@ -135,6 +145,9 @@ def register_product_routes(app):
                 joinedload(Product.size_data),
                 joinedload(Product.neck_size),
                 joinedload(Product.category),
+                joinedload(Product.family)
+                .joinedload(ProductFamily.variants)
+                .joinedload(Product.color),
 
                 joinedload(Product.locations)
                 .joinedload(InventoryLocation.warehouse),
@@ -170,9 +183,21 @@ def register_product_routes(app):
 
         undoable_ids = compute_undoable_transaction_ids(transactions)
 
+        # offered as link targets when this product is not in a family yet
+        families = (
+            ProductFamily.query.order_by(ProductFamily.name).all()
+            if product.family_id is None else []
+        )
+
+        # another product with the same name, if there is one and the pairing
+        # has not already been turned down
+        match = find_match(product) if product.family_id is None else None
+
         return render_template(
             "product_details.html",
             product=product,
+            families=families,
+            match=match,
             locations=locations,
             total_quantity=product.total_quantity,
             transactions=transactions,
@@ -238,6 +263,18 @@ def register_product_routes(app):
                 if old_image:
                     delete_image(old_image)
 
+            db.session.flush()
+
+            # The colour, size and category are assigned by id above. An
+            # already-loaded relationship does not follow its foreign key, so
+            # expire them and let the next read come from the row that was just
+            # written — otherwise the search index can keep the old colour.
+            db.session.expire(product, [
+                "color", "secondary_color", "category",
+                "size_data", "neck_size", "family",
+            ])
+            refresh_search_text(product)
+
             db.session.commit()
             log_activity(
                 current_user.id,
@@ -288,65 +325,13 @@ def register_product_routes(app):
         category_filter = request.args.get("category", "")
         sort = request.args.get("sort", "recent")
 
-        # total quantity per product, computed in SQL so the stock filter
-        # doesn't need to load every Product + its locations into Python
-        location_totals = (
-            db.session.query(
-                InventoryLocation.product_id.label("product_id"),
-                func.sum(InventoryLocation.quantity).label("total_qty")
-            )
-            .group_by(InventoryLocation.product_id)
-            .subquery()
-        )
-
-        total_qty = func.coalesce(location_totals.c.total_qty, 0)
-
-        query = (
-            Product.query
-            .options(
-                joinedload(Product.color),
-                joinedload(Product.secondary_color),
-                joinedload(Product.size_data),
-                joinedload(Product.neck_size),
-                joinedload(Product.category),
-                joinedload(Product.locations)
-            )
-            .outerjoin(
-                location_totals,
-                location_totals.c.product_id == Product.id
-            )
-        )
-
-        # "none" is its own filter so the un-categorised backlog stays findable
-        if category_filter == "none":
-            query = query.filter(Product.category_id.is_(None))
-        elif category_filter:
-            try:
-                query = query.filter(Product.category_id == int(category_filter))
-            except ValueError:
-                category_filter = ""
-
-        if stock_filter == "critical":
-            query = query.filter(total_qty == 0)
-        elif stock_filter == "low":
-            query = query.filter(total_qty > 0, total_qty <= Product.minimum_stock)
-        elif stock_filter == "normal":
-            query = query.filter(total_qty > Product.minimum_stock)
-        else:
-            stock_filter = ""
-
-        if sort == "oldest":
-            query = query.order_by(Product.id.asc())
-        elif sort == "name":
-            query = query.order_by(Product.name.asc())
-        else:
-            sort = "recent"
-            query = query.order_by(Product.id.desc())
-
-        products = query.paginate(
+        # one card per product. Families are shown on their own pages, not by
+        # collapsing this list.
+        pagination, units, category_filter, stock_filter, sort = browse_flat(
+            category_filter=category_filter,
+            stock_filter=stock_filter,
+            sort=sort,
             page=page,
-            per_page=20,
-            error_out=False
         )
 
         categories = Category.query.order_by(
@@ -360,7 +345,8 @@ def register_product_routes(app):
 
         return render_template(
             "product_list.html",
-            products=products,
+            products=pagination,
+            units=units,
             stock_filter=stock_filter,
             category_filter=category_filter,
             categories=categories,

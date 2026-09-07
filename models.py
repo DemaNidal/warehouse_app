@@ -156,6 +156,96 @@ class Category(db.Model):
     )
 
 
+class ProductFamily(db.Model):
+    """One product sold in several colours or sizes.
+
+    A family is a decision, not a guess: rows land here only because someone
+    said "these are the same item". Products with no family keep behaving
+    exactly as they always have, so the catalogue works whether or not anyone
+    ever groups anything.
+
+    Stock stays on the Product — the physical count is per colour, and moving
+    it here would mean rewriting every location and transaction for no gain.
+    """
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    name = db.Column(db.String(255), nullable=False)
+
+    category_id = db.Column(
+        db.Integer,
+        db.ForeignKey("category.id"),
+        nullable=True
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        default=db.func.now(),
+        nullable=False
+    )
+
+    category = db.relationship("Category")
+
+    variants = db.relationship(
+        "Product",
+        back_populates="family",
+        lazy="selectin"
+    )
+
+    @property
+    def total_quantity(self):
+        return sum(variant.total_quantity for variant in self.variants)
+
+    @property
+    def colors(self):
+        """The distinct colours across the variants, in a stable order."""
+        seen = {}
+        for variant in self.variants:
+            if variant.color and variant.color.id not in seen:
+                seen[variant.color.id] = variant.color
+        return list(seen.values())
+
+    @property
+    def stock_status(self):
+        """The worst status among the variants.
+
+        A family showing "متوفر" while one of its colours has run out would
+        hide exactly the thing worth acting on.
+        """
+        statuses = [variant.stock_status for variant in self.variants]
+
+        if not statuses or STOCK_CRITICAL in statuses:
+            return STOCK_CRITICAL
+
+        if STOCK_LOW in statuses:
+            return STOCK_LOW
+
+        return STOCK_NORMAL
+
+
+class FamilySuggestionDismissal(db.Model):
+    """A grouping suggestion that was looked at and rejected.
+
+    Suggestions are recomputed from the catalogue every time the screen opens,
+    so without a record of the rejections the same answered question comes back
+    forever. Keyed by the normalised name the suggestion was built from.
+    """
+
+    id = db.Column(db.Integer, primary_key=True)
+
+    normalized_name = db.Column(
+        db.String(255),
+        unique=True,
+        nullable=False
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        default=db.func.now(),
+        nullable=False
+    )
+
+
 class Product(db.Model):
 
     id = db.Column(
@@ -174,6 +264,14 @@ class Product(db.Model):
         nullable=True
     )
 
+    # Nullable on purpose: an ungrouped product is the normal case, not an
+    # unfinished one.
+    family_id = db.Column(
+        db.Integer,
+        db.ForeignKey("product_family.id"),
+        nullable=True
+    )
+
     size_id = db.Column(
         db.Integer,
         db.ForeignKey("size.id")
@@ -187,6 +285,24 @@ class Product(db.Model):
 
     image = db.Column(
         db.String(255)
+    )
+
+    # The product name with spelling folded (أ/إ/آ→ا, ة→ه, ى→ي). Indexed, so
+    # "is there another product with this name" is one lookup rather than a
+    # scan of the catalogue — which is what grouping suggestions ask on every
+    # product page.
+    normalized_name = db.Column(
+        db.String(255),
+        nullable=True,
+        index=True
+    )
+
+    # Normalised text built from the name, colours, category and measurements.
+    # Maintained by utils.search_text; indexed with pg_trgm so partial matches
+    # stay fast as the catalogue grows past a few thousand rows.
+    search_text = db.Column(
+        db.Text,
+        nullable=True
     )
 
     color_id = db.Column(
@@ -225,6 +341,11 @@ class Product(db.Model):
     category = db.relationship(
         "Category",
         back_populates="products"
+    )
+
+    family = db.relationship(
+        "ProductFamily",
+        back_populates="variants"
     )
 
     neck_size = db.relationship(

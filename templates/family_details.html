@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% from "macros.html" import csrf %}
+
+{% block title %}{{ family.name }}{% endblock %}
+
+{% block content %}
+
+<style>
+  .fam-dot {
+    width: 19px; height: 19px; border-radius: 999px;
+    border: 1px solid rgba(15,23,42,0.14); flex-shrink: 0;
+    display: inline-block;
+  }
+  .fam-swatch {
+    width: 44px; height: 44px; border-radius: 999px;
+    border: 1px solid rgba(15,23,42,0.14); display: block;
+  }
+  .fam-swatch.is-selected { box-shadow: 0 0 0 2px #fff, 0 0 0 4px #1E3A5F; }
+  .fam-variant {
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    text-decoration: none; color: inherit;
+  }
+  .fam-variant .label { font-size: 11.5px; font-weight: 600; }
+</style>
+
+<div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+  <div class="d-flex align-items-center gap-3">
+    <div class="stat-icon-box"><i class="bi bi-collection fs-4"></i></div>
+    <div>
+      <h2 class="mb-0">{{ family.name }}</h2>
+      <small class="text-muted">
+        {{ variants|length }} منتج
+        {% if family.category %} &middot; {{ family.category.name }}{% endif %}
+      </small>
+    </div>
+  </div>
+
+  <div class="d-flex align-items-center gap-2">
+    <span class="badge fs-6 px-3 py-2 rounded-pill
+                 {% if family.stock_status == 'CRITICAL' %}bg-danger-subtle text-danger-emphasis
+                 {% elif family.stock_status == 'LOW' %}bg-warning-subtle text-warning-emphasis
+                 {% else %}bg-success-subtle text-success-emphasis{% endif %}">
+      الإجمالي: {{ family.total_quantity }}
+    </span>
+    {% if current_user.role in ["ADMIN", "STORE_MANAGER"] %}
+    <button class="btn btn-outline-secondary" type="button"
+            data-bs-toggle="collapse" data-bs-target="#renameFamily">
+      <i class="bi bi-pencil"></i> تغيير الاسم
+    </button>
+    {% endif %}
+    <a href="{{ url_for('family_list') }}" class="btn btn-outline-secondary">
+      <i class="bi bi-arrow-left"></i> المجموعات
+    </a>
+  </div>
+</div>
+
+{% if current_user.role in ["ADMIN", "STORE_MANAGER"] %}
+<div class="collapse mb-4" id="renameFamily">
+  <div class="card shadow-sm">
+    <div class="card-body">
+      <form method="POST"
+            action="{{ url_for('rename_family_route', family_id=family.id) }}"
+            class="row g-2 align-items-end">
+        {{ csrf() }}
+        <div class="col-12 col-md">
+          <label class="form-label small text-muted mb-1">اسم المجموعة</label>
+          <input type="text" name="name" value="{{ family.name }}"
+                 class="form-control" required maxlength="255">
+          <div class="form-text">
+            الاسم بينحسب بالبحث — تغييره بيحدّث كل المنتجات اللي جواها.
+          </div>
+        </div>
+        <div class="col-12 col-md-auto">
+          <button class="btn btn-primary w-100">حفظ</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
+
+{% if family.stock_status != 'NORMAL' %}
+<div class="alert {% if family.stock_status == 'CRITICAL' %}alert-danger{% else %}alert-warning{% endif %}
+            d-flex gap-2 align-items-start">
+  <i class="bi bi-exclamation-triangle"></i>
+  <div>
+    {% if family.stock_status == 'CRITICAL' %}
+    في لون على الأقل خالص من المخزون — الإجمالي فوق ما بوضّح هاد.
+    {% else %}
+    في لون على الأقل تحت الحد الأدنى.
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+
+<!-- ================= COLOUR PICKER ================= -->
+<div class="card shadow-sm mb-4">
+  <div class="card-body">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <span class="fw-bold">الألوان المتوفرة</span>
+      <span class="text-muted small">
+        {% if family.colors|length == 1 %}لون واحد
+        {% else %}{{ family.colors|length }} ألوان{% endif %}
+      </span>
+    </div>
+
+    <div class="d-flex flex-wrap gap-3">
+      {% for variant in variants %}
+      <a href="{{ url_for('product_details', product_id=variant.id) }}"
+         class="fam-variant"
+         title="{{ variant.name }}">
+        <span class="fam-swatch {% if loop.first %}is-selected{% endif %}"
+              style="background: {{ variant.color.hex_code if variant.color else '#e2e8f0' }};"></span>
+        <span class="label">
+          {{ variant.color.name if variant.color else '—' }}
+        </span>
+        <span class="badge status-{{ variant.stock_status|lower }} bg-light text-dark border">
+          {{ variant.total_quantity }}
+        </span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- ================= VARIANTS ================= -->
+<div class="card dashboard-card">
+  <div class="card-header border-0 bg-transparent d-flex align-items-center gap-2">
+    <i class="bi bi-box-seam"></i>
+    <h5 class="mb-0">المنتجات</h5>
+    <span class="badge bg-secondary">{{ variants|length }}</span>
+  </div>
+
+  <div class="card-body p-0">
+    <div class="table-responsive d-none d-md-block">
+      <table class="table align-middle mb-0">
+        <thead>
+          <tr>
+            <th>المنتج</th>
+            <th>اللون</th>
+            <th>المقاس</th>
+            <th>الكمية</th>
+            <th>المواقع</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for variant in variants %}
+          <tr>
+            <td class="fw-semibold">{{ variant.name }}</td>
+            <td>
+              {% if variant.color %}
+              <span class="d-inline-flex align-items-center gap-2">
+                <span class="fam-dot"
+                      style="background: {{ variant.color.hex_code or '#e2e8f0' }};"></span>
+                {{ variant.color.name }}
+              </span>
+              {% else %}<span class="text-muted">—</span>{% endif %}
+            </td>
+            <td class="text-muted">
+              {% if variant.size_data %}{{ variant.size_data.name }}{% endif %}
+              {% if variant.neck_size %}
+              <span class="badge bg-light text-dark border">رقبة {{ variant.neck_size.name }}</span>
+              {% endif %}
+            </td>
+            <td class="fw-bold status-{{ variant.stock_status|lower }}">
+              {{ variant.total_quantity }}
+            </td>
+            <td class="small text-muted">
+              {% for location in variant.locations %}
+              <div>{{ location.warehouse.name }}{% if location.location %} — {{ location.location }}{% endif %}
+                <span class="fw-semibold">({{ location.quantity }})</span></div>
+              {% else %}
+              <span>ما في موقع</span>
+              {% endfor %}
+            </td>
+            <td class="text-end">
+              <a href="{{ url_for('product_details', product_id=variant.id) }}"
+                 class="btn btn-sm btn-outline-primary">عرض</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- mobile -->
+    <div class="d-md-none p-3">
+      {% for variant in variants %}
+      <a href="{{ url_for('product_details', product_id=variant.id) }}"
+         class="d-flex align-items-center gap-3 p-3 mb-2 rounded-3 border text-decoration-none text-body">
+        {% if variant.color %}
+        <span class="fam-dot" style="background: {{ variant.color.hex_code or '#e2e8f0' }};"></span>
+        {% endif %}
+        <div class="flex-grow-1">
+          <div class="fw-semibold">{{ variant.color.name if variant.color else variant.name }}</div>
+          <div class="small text-muted">
+            {% if variant.size_data %}{{ variant.size_data.name }}{% endif %}
+            {% if variant.neck_size %} · رقبة {{ variant.neck_size.name }}{% endif %}
+          </div>
+        </div>
+        <div class="fw-bold status-{{ variant.stock_status|lower }}">
+          {{ variant.total_quantity }}
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}

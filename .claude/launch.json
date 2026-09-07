@@ -4,8 +4,11 @@
     {
       "name": "warehouse-flask",
       "runtimeExecutable": "venv/Scripts/python.exe",
-      "runtimeArgs": ["wsgi.py"],
-      "port": 5000
+      "runtimeArgs": [
+        "wsgi.py"
+      ],
+      "port": 5000,
+      "autoPort": true
     }
   ]
 }

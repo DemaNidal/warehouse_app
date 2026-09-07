@@ -140,3 +140,63 @@ class TestReferentialGuards:
         client.post(f"/category/{category_id}/delete", follow_redirects=True)
 
         assert db_session.get(Category, category_id) is None
+
+
+class TestLoginHardening:
+    """Two things the login route has to get right before anything is public."""
+
+    def test_the_session_is_rotated_on_login(self, client, make_user, db_session):
+        user = make_user(username="rotates", role="ADMIN", password="a-long-password")
+        db_session.commit()
+
+        with client.session_transaction() as session:
+            session["planted"] = "set before authenticating"
+
+        client.post("/login", data={
+            "username": "rotates",
+            "password": "a-long-password",
+        })
+
+        with client.session_transaction() as session:
+            assert "planted" not in session, "قيمة ما قبل الدخول عبرت للجلسة المصادَقة"
+            assert session.get("_user_id") == str(user.id)
+
+    def test_a_disabled_account_cannot_log_in(self, client, make_user, db_session):
+        user = make_user(username="disabled-one", role="ADMIN", password="a-long-password")
+        user.is_active_user = False
+        db_session.commit()
+
+        client.post("/login", data={
+            "username": "disabled-one",
+            "password": "a-long-password",
+        })
+
+        with client.session_transaction() as session:
+            assert "_user_id" not in session
+
+    def test_a_wrong_password_does_not_authenticate(self, client, make_user, db_session):
+        make_user(username="careful", role="ADMIN", password="the-right-password")
+        db_session.commit()
+
+        client.post("/login", data={
+            "username": "careful",
+            "password": "the-wrong-password",
+        })
+
+        with client.session_transaction() as session:
+            assert "_user_id" not in session
+
+
+class TestPasswordRules:
+
+    def test_short_passwords_are_refused(self):
+        from utils.validation.user import validate_password
+
+        assert not validate_password("short7").valid
+
+    def test_eight_characters_is_the_floor(self):
+        from utils.validation.user import validate_password, MIN_PASSWORD_LENGTH
+
+        assert MIN_PASSWORD_LENGTH == 8
+        assert validate_password("x" * 8).valid
+        assert not validate_password("x" * 7).valid

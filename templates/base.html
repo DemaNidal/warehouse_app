@@ -62,6 +62,12 @@
         </a>
 
         {% if current_user.role in ["ADMIN", "STORE_MANAGER"] %}
+        <a class="nav-btn {% if request.path.startswith('/families') %}active{% endif %}" href="{{ url_for('family_list') }}">
+          <i class="bi bi-collection"></i> المجموعات
+        </a>
+        {% endif %}
+
+        {% if current_user.role in ["ADMIN", "STORE_MANAGER"] %}
         <a class="nav-btn {% if request.path.startswith('/transactions') %}active{% endif %}" href="{{ url_for('transactions_log') }}">
           <i class="bi bi-arrow-left-right"></i> حركات المخزون
         </a>
@@ -595,129 +601,10 @@ function setupColorNameSuggestion(nameInputId, hexInputId) {
     });
 }
 
-// ==============================
-// SUGGEST PRODUCT COLOR(S) FROM ITS UPLOADED IMAGE
-// (client-side dominant-color extraction, no external service)
-// ==============================
-function extractDominantColors(imageEl, maxColors) {
-    const canvas = document.createElement("canvas");
-    const size = 60;
-    canvas.width = size;
-    canvas.height = size;
 
-    const ctx = canvas.getContext("2d");
-    ctx.drawImage(imageEl, 0, 0, size, size);
 
-    let data;
-    try {
-        data = ctx.getImageData(0, 0, size, size).data;
-    } catch (e) {
-        return [];
-    }
 
-    const bucketSize = 24;
-    const buckets = {};
 
-    for (let i = 0; i < data.length; i += 4) {
-        if (data[i + 3] < 128) continue; // skip transparent pixels
-
-        const r = Math.min(255, Math.round(data[i] / bucketSize) * bucketSize);
-        const g = Math.min(255, Math.round(data[i + 1] / bucketSize) * bucketSize);
-        const b = Math.min(255, Math.round(data[i + 2] / bucketSize) * bucketSize);
-        const key = r + "," + g + "," + b;
-
-        buckets[key] = (buckets[key] || 0) + 1;
-    }
-
-    const entries = Object.entries(buckets);
-    const total = entries.reduce((sum, [, count]) => sum + count, 0);
-    if (!total) return [];
-
-    return entries
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, maxColors)
-        .map(([key, count]) => {
-            const [r, g, b] = key.split(",").map(Number);
-            const hex = "#" + [r, g, b].map(v => v.toString(16).padStart(2, "0")).join("");
-            return { hex, ratio: count / total };
-        });
-}
-
-function hexToRgb(hex) {
-    const n = parseInt(hex.replace("#", ""), 16);
-    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
-}
-
-function colorDistance(hex1, hex2) {
-    const c1 = hexToRgb(hex1);
-    const c2 = hexToRgb(hex2);
-    return Math.sqrt((c1.r - c2.r) ** 2 + (c1.g - c2.g) ** 2 + (c1.b - c2.b) ** 2);
-}
-
-function findClosestColorOption(selectEl, targetHex, maxDistance) {
-    let best = null;
-    let bestDist = Infinity;
-
-    for (const opt of selectEl.options) {
-        if (!opt.dataset.hex) continue;
-
-        const dist = colorDistance(opt.dataset.hex, targetHex);
-        if (dist < bestDist) {
-            bestDist = dist;
-            best = opt;
-        }
-    }
-
-    return (best && bestDist <= maxDistance) ? best : null;
-}
-
-function suggestColorsFromImage(imageEl, options) {
-    const MATCH_THRESHOLD = 60;
-    const MIN_RATIO = 0.12;
-    const DISTINCT_THRESHOLD = 60;
-
-    const dominant = extractDominantColors(imageEl, 5)
-        .filter(c => c.ratio >= MIN_RATIO);
-
-    if (!dominant.length) return;
-
-    const primarySelect = document.getElementById(options.primarySelectId);
-    const secondarySelect = options.secondarySelectId
-        ? document.getElementById(options.secondarySelectId)
-        : null;
-    const hint = options.hintId ? document.getElementById(options.hintId) : null;
-
-    let matchedAny = false;
-
-    const primaryMatch = primarySelect
-        ? findClosestColorOption(primarySelect, dominant[0].hex, MATCH_THRESHOLD)
-        : null;
-
-    if (primaryMatch) {
-        primarySelect.value = primaryMatch.value;
-        updateColorSwatch(options.primarySelectId, options.primaryPreviewId);
-        matchedAny = true;
-    }
-
-    if (secondarySelect) {
-        const second = dominant.slice(1).find(
-            c => colorDistance(c.hex, dominant[0].hex) >= DISTINCT_THRESHOLD
-        );
-
-        if (second) {
-            const secondaryMatch = findClosestColorOption(secondarySelect, second.hex, MATCH_THRESHOLD);
-            if (secondaryMatch) {
-                secondarySelect.value = secondaryMatch.value;
-                updateColorSwatch(options.secondarySelectId, options.secondaryPreviewId);
-                matchedAny = true;
-            }
-        }
-    }
-
-    if (hint && matchedAny) {
-        hint.classList.remove("d-none");
-    }
-}
 
 document.addEventListener("DOMContentLoaded", function () {
 

@@ -49,6 +49,10 @@ def register_auth_routes(app):
                     flash("الحساب معطل", "danger")
                     return redirect(url_for("login"))
 
+                # Drop whatever the visitor's session held before they
+                # authenticated, so a value planted beforehand cannot ride
+                # along into the logged-in session (session fixation).
+                session.clear()
                 login_user(user)
 
                 log_activity(

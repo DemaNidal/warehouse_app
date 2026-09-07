@@ -1,5 +1,8 @@
 from .base import success, fail
 
+# matches the rule the first admin account is already held to
+MIN_PASSWORD_LENGTH = 8
+
 
 def validate_username(username):
 
@@ -19,8 +22,8 @@ def validate_username(username):
 
 def validate_password(password):
 
-    if len(password) < 6:
-        return fail("كلمة المرور قصيرة")
+    if len(password) < MIN_PASSWORD_LENGTH:
+        return fail(f"كلمة المرور يجب أن تكون {MIN_PASSWORD_LENGTH} أحرف على الأقل")
 
     return success(password)
 

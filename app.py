@@ -61,6 +61,7 @@ from routes.notifications_routes import register_notifications_routes
 from routes.settings_routes import register_settings_routes
 from routes.create_admin_route import register_create_admin_route
 from routes.customer_routes import register_customer_routes
+from routes.family_routes import register_family_routes
 from flask_wtf.csrf import CSRFProtect
 import click
 import config
@@ -226,6 +227,7 @@ register_requests_routes(app)
 register_settings_routes(app)
 register_create_admin_route(app)
 register_customer_routes(app)
+register_family_routes(app)
 
 
 @app.cli.command("create-admin")
