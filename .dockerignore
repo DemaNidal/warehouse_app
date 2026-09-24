@@ -1,0 +1,35 @@
+# Keep secrets and local state out of the image. .env matters most: it holds
+# the database password and the R2 keys, and anything copied into an image can
+# be read back out of it by anyone who can pull the image.
+.env
+.env.*
+!.env.example
+
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+.git/
+.gitignore
+
+# local machine state, not application code
+backups/
+backup_temp/
+restore_temp/
+uploads/
+logs/
+*.log
+
+# tests and tooling do not belong in a production image
+tests/
+.pytest_cache/
+.coverage
+htmlcov/
+
+.claude/
+.vscode/
+.idea/
+scripts/task_*.xml
+scripts/install_autostart.ps1

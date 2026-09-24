@@ -75,9 +75,13 @@ def app():
     with flask_app.app_context():
         from models import db
 
-        # rebuild from scratch so a half-migrated leftover can't skew results
-        db.drop_all()
-        db.session.execute(text("DROP TABLE IF EXISTS alembic_version"))
+        # Rebuild from scratch so a half-migrated leftover can't skew results.
+        # The whole schema goes, not just the tables the models know about:
+        # db.drop_all() leaves behind any table whose model was removed, and a
+        # foreign key from that orphan then blocks dropping the tables it
+        # points at. Safe only because of the _test guard above.
+        db.session.execute(text("DROP SCHEMA public CASCADE"))
+        db.session.execute(text("CREATE SCHEMA public"))
         db.session.commit()
 
         upgrade()
@@ -220,38 +224,3 @@ def login(client):
         return client
 
     return _login
-
-
-# ------------------------------------------- product families
-
-@pytest.fixture()
-def colours(db_session):
-    from models import Color
-
-    made = {}
-    for name, hex_code in [("أسود", "#000000"), ("احمر", "#FF0000"),
-                           ("ازرق", "#0000FF")]:
-        colour = Color(name=name, hex_code=hex_code)
-        db_session.add(colour)
-        made[name] = colour
-    db_session.flush()
-    return made
-
-
-@pytest.fixture()
-def caps(db_session, make_product, colours):
-    """Three "غطاء قطرة" that differ only in colour, plus an unrelated product."""
-
-    from utils.search_text import refresh_search_text
-
-    products = []
-    for colour in ("أسود", "احمر", "ازرق"):
-        product = make_product(name="غطاء قطرة", color_id=colours[colour].id)
-        refresh_search_text(product)
-        products.append(product)
-
-    other = make_product(name="بمب PUMP", color_id=colours["أسود"].id)
-    refresh_search_text(other)
-
-    db_session.commit()
-    return {"caps": products, "other": other}

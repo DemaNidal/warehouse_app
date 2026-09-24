@@ -43,6 +43,8 @@ DEFAULT_CATEGORIES = [
     ("تيوبات وايرلس", "tubes", "bi-eyedropper", 5),
     ("بريفورم وسدادات", "preforms", "bi-capsule", 6),
     ("عبوات غذائية", "food", "bi-basket", 7),
+    ("جلنات", "gallons", "bi-bucket", 8),
+    ("كبسولات", "capsules", "bi-capsule-pill", 9),
 ]
 
 # (category, keywords, exclusions) — first rule whose keyword matches and whose
@@ -72,11 +74,25 @@ CATEGORY_RULES = [
         [],
     ),
     (
+        # before أغطية on purpose: that rule matches "كبس" (for "كبسة"), and
+        # "كبس" is the start of "كبسولة" — a capsule would be filed as a cap
+        "كبسولات",
+        ["كبسول", "capsule"],
+        [],
+    ),
+    (
         "أغطية",
         ["غطاء", "غطا", "كبس"],
         # "جار زجاج مطبوع مع غطاء فضي" is a jar that ships with a cap,
         # not a cap. The container it names comes first.
         ["مع غطاء"],
+    ),
+    (
+        # after أغطية on purpose: "غطاء جلن" is a cap for a gallon, and the
+        # cap rule has to claim it first
+        "جلنات",
+        ["جلن", "جالون", "غالون"],
+        [],
     ),
     (
         "زجاج",

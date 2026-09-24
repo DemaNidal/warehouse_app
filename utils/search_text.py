@@ -6,9 +6,10 @@ tables cannot use an index at all. Folding every searchable word for a product
 into a single normalised column solves both: the spelling is settled before
 storage, and one trigram index covers the lot.
 
-What goes in: the product name, its family name, both colours, the category,
-the capacity and the neck size — everything a person might type when they are
-looking for it.
+What goes in: the product name, both colours, the capacity and the neck size.
+The category is deliberately NOT here: matched as a substring, "جار" would
+pull in every product filed under "جارات وعلب". The search route matches a
+category by its whole name instead.
 """
 
 from utils.categorization import normalize
@@ -19,19 +20,11 @@ def build_search_text(product):
 
     parts = [product.name]
 
-    if product.family:
-        # a family can be renamed to the term buyers actually use; without it
-        # here, that name would find nothing
-        parts.append(product.family.name)
-
     if product.color:
         parts.append(product.color.name)
 
     if product.secondary_color:
         parts.append(product.secondary_color.name)
-
-    if product.category:
-        parts.append(product.category.name)
 
     if product.size_data:
         parts.append(product.size_data.name)
@@ -57,14 +50,8 @@ def build_search_text(product):
 
 
 def refresh_search_text(product):
-    """Recompute and assign. Call after any change to a product's fields.
-
-    Also refreshes normalized_name, which is the same folding applied to the
-    name alone — grouping looks products up by it, and letting the two drift
-    apart would mean a renamed product quietly stops matching its siblings.
-    """
+    """Recompute and assign. Call after any change to a product's fields."""
     product.search_text = build_search_text(product)
-    product.normalized_name = normalize(product.name)
     return product.search_text
 
 

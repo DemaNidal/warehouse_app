@@ -1,23 +1,20 @@
 # -*- coding: utf-8 -*-
 """The catalogue listing.
 
-One card per product, families or not. What is worth pinning down is that the
-filters partition the catalogue cleanly, that paging neither loses nor repeats
-a product, and that a product belonging to a family is still listed on its own
-— grouping changes the data, not this page.
+One card per product. What is worth pinning down is that the filters partition
+the catalogue cleanly and that paging neither loses nor repeats a product.
 """
 
 import pytest
 
 from utils.catalogue import browse_flat
-from utils.families import create_family
 
 
 @pytest.fixture()
 def catalogue(db_session, make_product, make_location):
-    """Seven products with known quantities, two of them in a family.
+    """Seven products with known quantities, two names repeated.
 
-    quantities: 100، 0 (family) ثم 200، 300 (family) ثم 50، 0، 5
+    quantities: 100، 0 ثم 200، 300 ثم 50، 0، 5
     """
 
     from models import Color
@@ -45,14 +42,9 @@ def catalogue(db_session, make_product, make_location):
         product("مرطبان", "ازرق", 5),
     ]
 
-    cap_family = create_family("غطاء قطرة", caps)
-    spray_family = create_family("بخاخ", sprays)
     db_session.commit()
 
-    return {
-        "caps": caps, "sprays": sprays, "loose": loose,
-        "cap_family": cap_family, "spray_family": spray_family,
-    }
+    return {"caps": caps, "sprays": sprays, "loose": loose}
 
 
 class TestListing:
@@ -63,7 +55,7 @@ class TestListing:
         assert pagination.total == 7
         assert len(units) == 7
 
-    def test_products_in_a_family_are_still_listed_separately(self, catalogue):
+    def test_a_repeated_name_is_listed_once_per_product(self, catalogue):
         _, units, *_ = browse_flat()
 
         names = [u["product"].name for u in units]
@@ -106,7 +98,7 @@ class TestStockFilter:
         assert counted == total
 
     def test_unknown_status_is_ignored(self, catalogue):
-        pagination, _, _, stock_filter, _ = browse_flat(stock_filter="nonsense")
+        pagination, _, _, stock_filter, *_ = browse_flat(stock_filter="nonsense")
         assert pagination.total == 7
         assert stock_filter == ""
 
@@ -164,7 +156,7 @@ class TestSorting:
         assert quantities[0] == 300
 
     def test_a_junk_sort_falls_back(self, catalogue):
-        _, _, _, _, sort = browse_flat(sort="; drop table product")
+        sort = browse_flat(sort="; drop table product")[-1]
         assert sort == "recent"
 
 
@@ -213,12 +205,6 @@ class TestRoute:
         assert response.status_code == 200
         assert len(set(re.findall(r'/product/(\d+)"', body))) == 7
 
-    def test_does_not_collapse_families(self, catalogue, make_user, login):
-        body = login(make_user()).get("/products").get_data(as_text=True)
-
-        # the catalogue links products, never family pages
-        assert "/family/" not in body
-
     def test_stock_filter_narrows_the_page(self, catalogue, make_user, login):
         import re
 
@@ -243,3 +229,148 @@ class TestRoute:
         for link in links:
             assert "stock=normal" in link
             assert "sort=name" in link
+
+
+class TestWarehouseFilter:
+    """Narrowing the catalogue to one warehouse.
+
+    A product counts as belonging to a warehouse when it has a place there,
+    even an empty one — asking "what is in this warehouse" should still show
+    the shelf that ran out, since that is usually the row worth acting on.
+    """
+
+    def test_shows_only_products_stocked_there(
+        self, catalogue, db_session, make_product, make_location
+    ):
+        from models import Warehouse
+
+        other = make_product(name="منتج بمستودع تاني")
+        make_location(other, quantity=12, warehouse_name="مستودع ثاني")
+        db_session.commit()
+
+        second = db_session.query(Warehouse).filter_by(name="مستودع ثاني").one()
+        pagination, units, *_ = browse_flat(warehouse_filter=second.id)
+
+        assert pagination.total == 1
+        assert units[0]["product"].name == "منتج بمستودع تاني"
+
+    def test_the_original_warehouse_keeps_its_products(
+        self, catalogue, db_session, make_product, make_location
+    ):
+        from models import Warehouse
+
+        first = db_session.query(Warehouse).filter_by(
+            name="مستودع اختبار"
+        ).one()
+
+        pagination, *_ = browse_flat(warehouse_filter=first.id)
+        assert pagination.total == 7
+
+    def test_includes_a_shelf_that_ran_out(
+        self, catalogue, db_session, make_product, make_location
+    ):
+        from models import Warehouse
+
+        empty = make_product(name="منتج خالص")
+        make_location(empty, quantity=0, warehouse_name="مستودع ثالث")
+        db_session.commit()
+
+        third = db_session.query(Warehouse).filter_by(name="مستودع ثالث").one()
+        pagination, units, *_ = browse_flat(warehouse_filter=third.id)
+
+        assert pagination.total == 1
+        assert units[0]["quantity"] == 0
+
+    def test_no_filter_shows_everything(self, catalogue):
+        assert browse_flat(warehouse_filter="")[0].total == 7
+
+    def test_a_junk_warehouse_is_ignored(self, catalogue):
+        pagination, _, _, _, warehouse_filter, _ = browse_flat(
+            warehouse_filter="abc"
+        )
+        assert pagination.total == 7
+        assert warehouse_filter == ""
+
+    def test_an_unknown_warehouse_matches_nothing(self, catalogue):
+        assert browse_flat(warehouse_filter=999999)[0].total == 0
+
+    def test_combines_with_the_stock_filter(
+        self, catalogue, db_session, make_product, make_location
+    ):
+        from models import Warehouse
+
+        first = db_session.query(Warehouse).filter_by(
+            name="مستودع اختبار"
+        ).one()
+
+        pagination, *_ = browse_flat(
+            warehouse_filter=first.id, stock_filter="critical"
+        )
+        assert pagination.total == 2
+
+
+class TestWarehouseFilterRoute:
+
+    def test_the_dropdown_is_offered(self, catalogue, make_user, login):
+        body = login(make_user()).get("/products").get_data(as_text=True)
+
+        assert 'name="warehouse"' in body
+        assert "كل المستودعات" in body
+        assert "مستودع اختبار" in body
+
+    def test_filtering_narrows_the_page(
+        self, catalogue, db_session, make_user, login, make_product, make_location
+    ):
+        import re
+        from models import Warehouse
+
+        other = make_product(name="منتج بمستودع تاني")
+        make_location(other, quantity=12, warehouse_name="مستودع ثاني")
+        db_session.commit()
+
+        second = db_session.query(Warehouse).filter_by(name="مستودع ثاني").one()
+
+        body = login(make_user()).get(
+            "/products?warehouse=%d" % second.id
+        ).get_data(as_text=True)
+
+        assert set(re.findall(r'/product/(\d+)"', body)) == {str(other.id)}
+
+    def test_the_choice_stays_selected(
+        self, catalogue, db_session, make_user, login
+    ):
+        from models import Warehouse
+
+        first = db_session.query(Warehouse).filter_by(
+            name="مستودع اختبار"
+        ).one()
+
+        body = login(make_user()).get(
+            "/products?warehouse=%d" % first.id
+        ).get_data(as_text=True)
+
+        assert 'value="%d" selected' % first.id in body
+
+    def test_paging_keeps_the_warehouse(
+        self, catalogue, db_session, make_user, login
+    ):
+        import re
+        from models import Warehouse
+
+        first = db_session.query(Warehouse).filter_by(
+            name="مستودع اختبار"
+        ).one()
+
+        body = login(make_user()).get(
+            "/products?warehouse=%d&sort=name" % first.id
+        ).get_data(as_text=True)
+
+        links = re.findall(r'href="(/products\?[^"]*page=\d+[^"]*)"', body)
+        for link in links:
+            assert "warehouse=%d" % first.id in link
+
+    def test_a_junk_value_does_not_break_the_page(
+        self, catalogue, make_user, login
+    ):
+        response = login(make_user()).get("/products?warehouse=abc")
+        assert response.status_code == 200

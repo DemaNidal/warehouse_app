@@ -54,3 +54,36 @@ if os.getenv("STORAGE_BACKEND", "local").strip().lower() != "local":
     except Exception:
         logging.exception("Image backup sync failed (database backup is unaffected)")
         print("Warning: image sync failed — see backup_task.log")
+
+
+# Put the archive somewhere the server cannot take with it. Kept in its own
+# try block for the same reason as the image sync above: an upload failure must
+# not discard a backup that was written successfully.
+if os.getenv("STORAGE_BACKEND", "local").strip().lower() != "local":
+    try:
+        from scripts.upload_backup_to_r2 import (
+            _client,
+            newest_archive,
+            prune,
+            PREFIX,
+        )
+
+        archive = newest_archive()
+        if archive is None:
+            raise RuntimeError("no archive to upload")
+
+        client, bucket = _client()
+        client.upload_file(archive, bucket, PREFIX + os.path.basename(archive))
+        removed = prune(client, bucket, 30)
+
+        logging.info(
+            "Backup archive uploaded to object storage: %s (%s old removed)",
+            os.path.basename(archive), removed,
+        )
+        print(f"Archive uploaded off-server: {os.path.basename(archive)}")
+
+    except Exception:
+        logging.exception(
+            "Off-server backup upload failed (the local archive is unaffected)"
+        )
+        print("Warning: off-server upload failed — see backup_task.log")

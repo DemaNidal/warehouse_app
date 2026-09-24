@@ -61,7 +61,7 @@
             <div class="card-body">
                 <form method="GET" class="row g-3 align-items-end">
 
-                    <div class="col-12 col-sm-4">
+                    <div class="col-12 col-sm-3">
                         <label class="form-label fw-semibold">التصنيف</label>
                         <select name="category" class="form-select" onchange="this.form.submit()">
                             <option value="" {% if not category_filter %}selected{% endif %}>الكل</option>
@@ -77,6 +77,16 @@
                     </div>
 
                     <div class="col-12 col-sm-3">
+                        <label class="form-label fw-semibold">المستودع</label>
+                        <select name="warehouse" class="form-select" onchange="this.form.submit()">
+                            <option value="" {% if not warehouse_filter %}selected{% endif %}>كل المستودعات</option>
+                            {% for warehouse in warehouses %}
+                            <option value="{{ warehouse.id }}" {% if warehouse_filter == warehouse.id|string %}selected{% endif %}>{{ warehouse.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-12 col-sm-2">
                         <label class="form-label fw-semibold">حالة المخزون</label>
                         <select name="stock" class="form-select" onchange="this.form.submit()">
                             <option value="" {% if not stock_filter %}selected{% endif %}>الكل</option>
@@ -86,7 +96,7 @@
                         </select>
                     </div>
 
-                    <div class="col-12 col-sm-3">
+                    <div class="col-12 col-sm-2">
                         <label class="form-label fw-semibold">الترتيب</label>
                         <select name="sort" class="form-select" onchange="this.form.submit()">
                             <option value="recent" {% if sort == 'recent' %}selected{% endif %}>الأحدث إضافة</option>
@@ -260,7 +270,7 @@
         <li class="page-item">
 
             <a class="page-link"
-               href="{{ url_for('product_list', page=products.prev_num, stock=stock_filter, category=category_filter, sort=sort) }}">
+               href="{{ url_for('product_list', page=products.prev_num, stock=stock_filter, category=category_filter, warehouse=warehouse_filter, sort=sort) }}">
 
                 <i class="bi bi-chevron-right"></i>
 
@@ -277,7 +287,7 @@
                 <li class="page-item {% if page==products.page %}active{% endif %}">
 
                     <a class="page-link"
-                       href="{{ url_for('product_list', page=page, stock=stock_filter, category=category_filter, sort=sort) }}">
+                       href="{{ url_for('product_list', page=page, stock=stock_filter, category=category_filter, warehouse=warehouse_filter, sort=sort) }}">
 
                         {{ page }}
 
@@ -298,7 +308,7 @@
         <li class="page-item">
 
             <a class="page-link"
-               href="{{ url_for('product_list', page=products.next_num, stock=stock_filter, category=category_filter, sort=sort) }}">
+               href="{{ url_for('product_list', page=products.next_num, stock=stock_filter, category=category_filter, warehouse=warehouse_filter, sort=sort) }}">
 
                 <i class="bi bi-chevron-left"></i>
 

@@ -1,0 +1,88 @@
+# Production stack: database, application, and a reverse proxy that obtains and
+# renews the HTTPS certificate on its own.
+#
+# Nothing but Caddy is published to the internet. Postgres and the application
+# talk over the internal network only — the database has no port mapping at all,
+# which is the difference between "protected by a password" and "not reachable".
+
+services:
+
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-warehouse_db}
+      POSTGRES_USER: ${POSTGRES_USER:-warehouse}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      TZ: ${TZ:-Asia/Hebron}
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-warehouse} -d ${POSTGRES_DB:-warehouse_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-warehouse}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-warehouse_db}
+      SECRET_KEY: ${SECRET_KEY:?SECRET_KEY must be set}
+      RESTORE_SECRET: ${RESTORE_SECRET}
+      BOOTSTRAP_ADMIN_SECRET: ${BOOTSTRAP_ADMIN_SECRET}
+
+      # Caddy terminates TLS, so the cookie can finally be marked Secure
+      SESSION_COOKIE_SECURE: "true"
+
+      # only correct because Caddy sits in front and sets the headers
+      TRUST_PROXY_HEADERS: "true"
+
+      STORAGE_BACKEND: ${STORAGE_BACKEND:-r2}
+      R2_BUCKET: ${R2_BUCKET}
+      # either one works: the endpoint is derived from the account id when it
+      # is not given outright
+      R2_ACCOUNT_ID: ${R2_ACCOUNT_ID}
+      R2_ENDPOINT: ${R2_ENDPOINT}
+      R2_ACCESS_KEY_ID: ${R2_ACCESS_KEY_ID}
+      R2_SECRET_ACCESS_KEY: ${R2_SECRET_ACCESS_KEY}
+      R2_PUBLIC_BASE: ${R2_PUBLIC_BASE}
+
+      FLASK_APP: app.py
+      TZ: ${TZ:-Asia/Hebron}
+      WAITRESS_THREADS: ${WAITRESS_THREADS:-8}
+    volumes:
+      - app_logs:/app/logs
+      - app_backups:/app/backups
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:5000/login > /dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN:?DOMAIN must be set}
+      TZ: ${TZ:-Asia/Hebron}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data        # the certificates live here — keep this volume
+      - caddy_config:/config
+
+volumes:
+  db_data:
+  app_logs:
+  app_backups:
+  caddy_data:
+  caddy_config:

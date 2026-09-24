@@ -1,12 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Listing the catalogue.
-
-One card per product. Grouping products into families is a real thing in the
-data — see utils/families — but the catalogue page deliberately does not
-collapse them: a warehouse list is read looking for one specific colour, and a
-collapsed card hides exactly what is being looked for. Families have their own
-pages instead.
-"""
+"""Listing the catalogue — one card per product."""
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import joinedload
@@ -29,14 +22,9 @@ def _location_totals():
     )
 
 
-def browse_flat(category_filter="", stock_filter="", sort="recent", page=1,
-                per_page=PER_PAGE):
-    """The same page with every product on its own card.
-
-    Grouping is a view, not a change to the data, so it has to be possible to
-    turn off — when someone is looking for one specific colour, a collapsed
-    card is in the way.
-    """
+def browse_flat(category_filter="", stock_filter="", warehouse_filter="",
+                sort="recent", page=1, per_page=PER_PAGE):
+    """One page of products, filtered and sorted."""
 
     totals = _location_totals()
     qty = func.coalesce(totals.c.total_qty, 0)
@@ -49,7 +37,6 @@ def browse_flat(category_filter="", stock_filter="", sort="recent", page=1,
             joinedload(Product.size_data),
             joinedload(Product.neck_size),
             joinedload(Product.category),
-            joinedload(Product.family),
             joinedload(Product.locations),
         )
         .outerjoin(totals, totals.c.product_id == Product.id)
@@ -62,6 +49,20 @@ def browse_flat(category_filter="", stock_filter="", sort="recent", page=1,
             query = query.filter(Product.category_id == int(category_filter))
         except (TypeError, ValueError):
             category_filter = ""
+
+    # A product belongs to a warehouse when it has a place in it, even an
+    # empty one — "شو عندي بهاد المستودع" includes the shelf that ran out,
+    # which is usually the row worth acting on.
+    if warehouse_filter:
+        try:
+            stocked_here = (
+                select(InventoryLocation.product_id)
+                .where(InventoryLocation.warehouse_id == int(warehouse_filter))
+                .subquery()
+            )
+            query = query.filter(Product.id.in_(select(stocked_here)))
+        except (TypeError, ValueError):
+            warehouse_filter = ""
 
     if stock_filter == "critical":
         query = query.filter(qty == 0)
@@ -87,7 +88,6 @@ def browse_flat(category_filter="", stock_filter="", sort="recent", page=1,
     units = [
         {
             "kind": "product",
-            "family": None,
             "product": product,
             "quantity": product.total_quantity,
             "status": product.stock_status,
@@ -95,4 +95,5 @@ def browse_flat(category_filter="", stock_filter="", sort="recent", page=1,
         for product in pagination.items
     ]
 
-    return pagination, units, category_filter, stock_filter, sort
+    return (pagination, units, category_filter, stock_filter,
+            warehouse_filter, sort)

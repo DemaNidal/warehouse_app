@@ -19,7 +19,7 @@ from utils.search_text import build_search_text, tokenize_query
 
 class TestBuildSearchText:
 
-    def test_includes_name_colour_category_and_sizes(self, db_session, make_product):
+    def test_includes_name_colour_and_sizes_but_not_category(self, db_session, make_product):
         from models import Color, Category, Size, SIZE_KIND_NECK
 
         colour = Color(name="أسود", hex_code="#000000")
@@ -40,8 +40,10 @@ class TestBuildSearchText:
 
         assert "بخاخ" in text
         assert "اسود" in text        # normalised on the way in
-        assert "اغطيه" in text
         assert "28/410" in text
+        # the category is matched by the route, by its whole name — as a
+        # substring here, "جار" would pull in all of "جارات وعلب"
+        assert "اغطيه" not in text
 
     def test_normalises_hamza_and_taa_marbuta(self, db_session, make_product):
         from models import Color
@@ -356,7 +358,7 @@ class TestSearchTextStaysCurrent:
 
         product = Product.query.filter_by(name="قنينة").one()
         assert "اخضر" in product.search_text
-        assert "زجاج" in product.search_text
+        assert "زجاج" not in product.search_text   # category is matched by the route
 
         # and it is findable by the normalised spelling of its colour
         assert product.id in result_ids(
@@ -387,3 +389,114 @@ class TestSearchTextStaysCurrent:
         assert "احمر" in refreshed.search_text
         assert "بخاخ" not in refreshed.search_text    # the old name is gone
         assert "اسود" not in refreshed.search_text    # and the old colour
+
+
+class TestShelfSearch:
+    """Typing a shelf finds what sits on it.
+
+    This was in the original search and was lost in the rewrite: shelves are
+    not part of search_text because they change with every stock movement, so
+    they are matched live against the locations instead.
+    """
+
+    def test_finds_products_by_their_shelf(
+        self, catalogue, make_user, login, db_session
+    ):
+        from models import InventoryLocation
+
+        product = catalogue["products"][0]
+        row = InventoryLocation.query.filter_by(product_id=product.id).first()
+        row.location = "رف 77"
+        db_session.commit()
+
+        found = result_ids(
+            login(make_user()).get("/search", query_string={"q": "رف 77"})
+        )
+        assert found == [product.id]
+
+    def test_a_shelf_word_combines_with_a_product_word(
+        self, catalogue, make_user, login, db_session
+    ):
+        from models import InventoryLocation
+        from utils.search_text import refresh_search_text
+
+        # two products on the same shelf, only one of them a بخاخ
+        for product in catalogue["products"][:2]:
+            row = InventoryLocation.query.filter_by(product_id=product.id).first()
+            row.location = "رف 77"
+        catalogue["products"][1].name = "علبة"
+        refresh_search_text(catalogue["products"][1])
+        db_session.commit()
+
+        found = result_ids(
+            login(make_user()).get("/search", query_string={"q": "بخاخ 77"})
+        )
+        assert found == [catalogue["products"][0].id]
+
+    def test_an_unknown_shelf_finds_nothing(self, catalogue, make_user, login):
+        response = login(make_user()).get("/search", query_string={"q": "رف 999"})
+        assert result_ids(response) == []
+
+    def test_shelf_spelling_is_folded_like_everything_else(
+        self, catalogue, make_user, login, db_session
+    ):
+        """The query is normalised before matching; the shelf text must be
+        folded the same way or "خانة" on a shelf never matches "خانه"."""
+        from models import InventoryLocation
+
+        product = catalogue["products"][0]
+        row = InventoryLocation.query.filter_by(product_id=product.id).first()
+        row.location = "رف 199 خانة 1"
+        db_session.commit()
+
+        client = login(make_user())
+        for written in ("رف 199 خانة 1", "رف 199 خانه 1", "خانه", "خانة"):
+            found = result_ids(client.get("/search", query_string={"q": written}))
+            assert found == [product.id], written
+
+
+class TestCategoryWords:
+    """A word that is part of a category's name must not summon the category.
+
+    "جار" used to return every product filed under "جارات وعلب" — sixty-odd
+    results for a word eleven products actually carried. A category is matched
+    only by its whole name, and even then alongside the word matches rather
+    than instead of them.
+    """
+
+    def test_a_fragment_of_a_category_name_matches_only_names(
+        self, catalogue, make_user, login
+    ):
+        # "بمب" is a fragment of the category "بمبات"; only the two products
+        # literally named بخاخ… no — the fixture has no بمب names at all
+        found = result_ids(login(make_user()).get("/search", query_string={"q": "بمب"}))
+        assert found == []
+
+    def test_the_whole_category_name_finds_its_products(
+        self, catalogue, make_user, login
+    ):
+        found = result_ids(login(make_user()).get("/search", query_string={"q": "بمبات"}))
+        assert len(found) == 2
+
+    def test_a_word_that_is_both_a_category_and_a_product_word_finds_both(
+        self, catalogue, make_user, login, db_session
+    ):
+        """Typing "زجاج" must find "ملمع زجاج" even though that is filed
+        under jars, as well as everything in the زجاج category."""
+        from models import Category
+        from utils.search_text import refresh_search_text
+
+        glass = Category(name="زجاج", sort_order=5)
+        db_session.add(glass)
+        db_session.flush()
+
+        # one product IN the category, named something else
+        catalogue["products"][0].category_id = glass.id
+        # one product named with the word, filed elsewhere
+        polish = catalogue["products"][3]
+        polish.name = "ملمع زجاج"
+        refresh_search_text(polish)
+        db_session.commit()
+
+        found = result_ids(login(make_user()).get("/search", query_string={"q": "زجاج"}))
+        assert found == sorted([catalogue["products"][0].id, polish.id])

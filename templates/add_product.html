@@ -24,8 +24,9 @@
 <div class="card shadow-sm">
   <div class="card-body p-4">
 
-    <form method="POST" enctype="multipart/form-data" novalidate>
+    <form method="POST" enctype="multipart/form-data" novalidate id="addProductForm">
       {{ csrf() }}
+      <input type="hidden" name="confirm_duplicate" id="confirmDuplicate" value="">
 
       <div class="row g-3">
 
@@ -216,7 +217,7 @@
       <hr class="my-4">
 
       <div class="d-flex gap-2">
-        <button class="btn btn-success px-4">
+        <button class="btn btn-success px-4" id="saveProductBtn">
           <i class="bi bi-check-lg"></i> حفظ المنتج
         </button>
         <a href="{{ url_for('product_list') }}" class="btn btn-light border">
@@ -509,6 +510,70 @@ function quickAddCategory() {
       }
     }, 350);
   });
+})();
+
+// ---- one submission, and a question before an exact twin ----------------
+//
+// Two things cause a product to be entered twice: a double-click on save,
+// and saving something that already exists. The first is stopped by locking
+// the button the moment it is pressed. The second gets a question — only
+// when name, colour, capacity AND neck all match, because the same name in
+// another colour is a different product and must not be nagged about.
+(function () {
+  const form = document.getElementById("addProductForm");
+  const button = document.getElementById("saveProductBtn");
+  const confirmField = document.getElementById("confirmDuplicate");
+  let submitting = false;
+
+  form.addEventListener("submit", async function (event) {
+    if (submitting) { event.preventDefault(); return; }
+
+    // already confirmed on a previous pass — let it through
+    if (confirmField.value === "1") { lock(); return; }
+
+    event.preventDefault();
+    lock();
+
+    const params = new URLSearchParams({
+      name: document.getElementById("productNameInput").value,
+      color_id: document.getElementById("colorSelect").value,
+      size_id: document.getElementById("capacitySelect").value,
+      neck_size_id: document.getElementById("neckSizeSelect").value,
+    });
+
+    let twin = null;
+    try {
+      const response = await fetch("/products/duplicate-check?" + params, {
+        headers: { "Accept": "application/json" },
+      });
+      if (response.ok) twin = await response.json();
+    } catch (_) {
+      // the server still checks on its side; carry on
+    }
+
+    if (twin && twin.duplicate) {
+      const proceed = window.confirm(
+        "في منتج بنفس الاسم واللون والمقاس بالظبط:\n\n" +
+        "«" + twin.name + "» — الكمية الحالية " + twin.quantity + "\n\n" +
+        "بدك تضيفيه مرة تانية فعلاً؟"
+      );
+      if (!proceed) { unlock(); return; }
+      confirmField.value = "1";
+    }
+
+    submitting = true;
+    form.submit();
+  });
+
+  function lock() {
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> جاري الحفظ…';
+  }
+  function unlock() {
+    submitting = false;
+    button.disabled = false;
+    button.innerHTML = '<i class="bi bi-check-lg"></i> حفظ المنتج';
+  }
 })();
 </script>
 

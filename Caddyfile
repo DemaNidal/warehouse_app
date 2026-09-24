@@ -1,0 +1,42 @@
+# Caddy fetches and renews the Let's Encrypt certificate by itself; there is
+# nothing to run on a schedule and nothing to remember once a year.
+#
+# For that to work the domain's DNS must already point at this server and
+# ports 80 and 443 must be reachable from the internet — the certificate
+# authority checks both.
+
+{$DOMAIN} {
+	encode zstd gzip
+
+	# The application trusts these to know the visitor's real address and that
+	# the original request was HTTPS. Without them Flask builds http:// links
+	# behind the proxy and the rate limiter sees every request as coming from
+	# Caddy.
+	reverse_proxy web:5000 {
+		header_up X-Forwarded-Proto {scheme}
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Real-IP {remote_host}
+	}
+
+	header {
+		# a year of HSTS, so a browser that has been here once refuses plain
+		# HTTP even if someone tampers with DNS
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "SAMEORIGIN"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	log {
+		output file /data/access.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+	}
+}
+
+# plain www → the bare domain, so both spellings work
+www.{$DOMAIN} {
+	redir https://{$DOMAIN}{uri} permanent
+}

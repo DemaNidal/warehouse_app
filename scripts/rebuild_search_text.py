@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """Rebuild the searchable text for every product.
 
-Run it once after the migration, and again any time a colour, size, category
-or family gets renamed — those names are copied into each product's search_text, so a
+Run it once after the migration, and again any time a colour, size or category
+gets renamed — those names are copied into each product's search_text, so a
 rename elsewhere leaves the copies stale until this runs.
 
     python scripts/rebuild_search_text.py             # dry run
@@ -18,7 +18,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from app import app
 from models import db, Product
 from sqlalchemy.orm import joinedload
-from utils.categorization import normalize
 from utils.search_text import build_search_text, refresh_search_text
 
 
@@ -45,17 +44,10 @@ def main():
         changed = []
         for product in products:
             fresh = build_search_text(product)
-            folded = normalize(product.name)
 
-            stale = (
-                fresh != (product.search_text or "")
-                or folded != (product.normalized_name or "")
-            )
-
-            if stale:
+            if fresh != (product.search_text or ""):
                 changed.append((product, fresh))
                 if args.commit:
-                    # one call keeps search_text and normalized_name in step
                     refresh_search_text(product)
 
         print("=" * 66)

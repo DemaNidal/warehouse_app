@@ -62,12 +62,6 @@
         </a>
 
         {% if current_user.role in ["ADMIN", "STORE_MANAGER"] %}
-        <a class="nav-btn {% if request.path.startswith('/families') %}active{% endif %}" href="{{ url_for('family_list') }}">
-          <i class="bi bi-collection"></i> المجموعات
-        </a>
-        {% endif %}
-
-        {% if current_user.role in ["ADMIN", "STORE_MANAGER"] %}
         <a class="nav-btn {% if request.path.startswith('/transactions') %}active{% endif %}" href="{{ url_for('transactions_log') }}">
           <i class="bi bi-arrow-left-right"></i> حركات المخزون
         </a>

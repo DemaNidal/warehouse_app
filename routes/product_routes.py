@@ -7,8 +7,8 @@ from models import (
     Color,
     InventoryLocation,
     InventoryTransaction,
-    ProductFamily,
     Size,
+    Warehouse,
     SIZE_KIND_CAPACITY,
     SIZE_KIND_NECK,
     STOCK_NORMAL,
@@ -25,7 +25,6 @@ from utils.validation.product import validate_product_form
 from utils.images import optimize_upload, ImageError
 from utils.storage import save_image, delete_image
 from utils.search_text import refresh_search_text
-from utils.families import find_match
 from utils.catalogue import browse_flat
 from utils.transaction_undo import compute_undoable_transaction_ids
 ALLOWED_EXTENSIONS = {
@@ -44,6 +43,31 @@ def allowed_file(filename):
         )[1].lower() in ALLOWED_EXTENSIONS
     )
 
+def find_exact_twin(name, color_id, size_id, neck_size_id, exclude_id=None):
+    """A product identical in every field that identifies one.
+
+    Same name alone is not a duplicate — the same cap comes in six colours
+    and each is its own product. Only when the name, colour, capacity and
+    neck all match is a second row the same item entered twice.
+    """
+    from utils.categorization import normalize
+
+    query = Product.query.filter(
+        Product.color_id == color_id,
+        Product.size_id.is_(None) if size_id is None else Product.size_id == size_id,
+        Product.neck_size_id.is_(None) if neck_size_id is None
+        else Product.neck_size_id == neck_size_id,
+    )
+    if exclude_id:
+        query = query.filter(Product.id != exclude_id)
+
+    wanted = normalize(name)
+    for candidate in query.all():
+        if normalize(candidate.name) == wanted:
+            return candidate
+    return None
+
+
 def register_product_routes(app):
 
     # only the local backend writes here; on object storage this would just
@@ -59,6 +83,34 @@ def register_product_routes(app):
             return redirect(url_for("dashboard"))
         if request.method == "POST":
 
+            # Validate before touching object storage. The upload used to come
+            # first, so a form that failed validation still left its photo in
+            # the bucket with no product pointing at it.
+            result = validate_product_form(request.form)
+
+            if not result.valid:
+                flash(result.message, "danger")
+                return redirect(url_for("add_product"))
+
+            data = result.data
+
+            # The form asks for confirmation before sending an exact twin;
+            # this is the backstop for a double-click that fires two
+            # identical requests before the first has landed, and for a
+            # browser with scripts off.
+            if request.form.get("confirm_duplicate") != "1":
+                twin = find_exact_twin(
+                    data["name"], data["color_id"],
+                    data["size_id"], data["neck_size_id"],
+                )
+                if twin is not None:
+                    flash(
+                        f"في منتج بنفس الاسم واللون والمقاس بالظبط: "
+                        f"«{twin.name}» (#{twin.id}). ما انحفظ.",
+                        "warning",
+                    )
+                    return redirect(url_for("product_details", product_id=twin.id))
+
             image = request.files.get("image")
 
             filename = ""
@@ -70,20 +122,12 @@ def register_product_routes(app):
                     return redirect(url_for("add_product"))
 
                 try:
-                    data, filename = optimize_upload(image)
+                    optimized, filename = optimize_upload(image)
                 except ImageError as exc:
                     flash(str(exc), "danger")
                     return redirect(url_for("add_product"))
 
-                save_image(data, filename)
-
-            result = validate_product_form(request.form)
-
-            if not result.valid:
-                flash(result.message, "danger")
-                return redirect(url_for("add_product"))
-
-            data = result.data    
+                save_image(optimized, filename)
 
             product = Product(
                 name=data["name"],
@@ -98,12 +142,21 @@ def register_product_routes(app):
 
             db.session.add(product)
 
-            # flush first so the colour/size/category relationships resolve,
-            # then build the searchable text from them
-            db.session.flush()
-            refresh_search_text(product)
+            try:
+                # flush first so the colour/size/category relationships resolve,
+                # then build the searchable text from them
+                db.session.flush()
+                refresh_search_text(product)
 
-            db.session.commit()
+                db.session.commit()
+            except Exception:
+                # The row is gone but the photo is already in the bucket, so
+                # take it back out rather than leave it orphaned.
+                db.session.rollback()
+                if filename:
+                    delete_image(filename)
+                raise
+
             log_activity(
                 current_user.id,
                 "ADD_PRODUCT",
@@ -133,6 +186,32 @@ def register_product_routes(app):
         )
 
 
+    @app.route("/products/duplicate-check")
+    @login_required
+    def duplicate_check():
+        """Does an identical product already exist? Asked by the add form
+        before it submits, so the person can decide with the form intact."""
+
+        name = request.args.get("name", "").strip()
+        color_id = request.args.get("color_id", type=int)
+        size_id = request.args.get("size_id", type=int)
+        neck_size_id = request.args.get("neck_size_id", type=int)
+
+        if not name or not color_id:
+            return {"duplicate": False}
+
+        twin = find_exact_twin(name, color_id, size_id, neck_size_id)
+        if twin is None:
+            return {"duplicate": False}
+
+        return {
+            "duplicate": True,
+            "id": twin.id,
+            "name": twin.name,
+            "quantity": twin.total_quantity,
+            "url": url_for("product_details", product_id=twin.id),
+        }
+
     @app.route("/product/<int:product_id>")
     @login_required
     def product_details(product_id):
@@ -145,9 +224,6 @@ def register_product_routes(app):
                 joinedload(Product.size_data),
                 joinedload(Product.neck_size),
                 joinedload(Product.category),
-                joinedload(Product.family)
-                .joinedload(ProductFamily.variants)
-                .joinedload(Product.color),
 
                 joinedload(Product.locations)
                 .joinedload(InventoryLocation.warehouse),
@@ -183,21 +259,9 @@ def register_product_routes(app):
 
         undoable_ids = compute_undoable_transaction_ids(transactions)
 
-        # offered as link targets when this product is not in a family yet
-        families = (
-            ProductFamily.query.order_by(ProductFamily.name).all()
-            if product.family_id is None else []
-        )
-
-        # another product with the same name, if there is one and the pairing
-        # has not already been turned down
-        match = find_match(product) if product.family_id is None else None
-
         return render_template(
             "product_details.html",
             product=product,
-            families=families,
-            match=match,
             locations=locations,
             total_quantity=product.total_quantity,
             transactions=transactions,
@@ -238,6 +302,9 @@ def register_product_routes(app):
 
             image = request.files.get("image")
 
+            filename = ""
+            old_image = ""
+
             if image and image.filename:
 
                 if not allowed_file(image.filename):
@@ -247,35 +314,51 @@ def register_product_routes(app):
                     )
 
                 try:
-                    data, filename = optimize_upload(image)
+                    optimized, filename = optimize_upload(image)
                 except ImageError as exc:
                     flash(str(exc), "danger")
                     return redirect(
                         url_for("edit_product", product_id=product.id)
                     )
 
-                old_image = product.image
+                old_image = product.image or ""
 
-                save_image(data, filename)
+                save_image(optimized, filename)
                 product.image = filename
 
-                # only drop the previous file once the new one is stored
-                if old_image:
-                    delete_image(old_image)
+            # The flush is inside the guard too: a bad foreign key raises there
+            # rather than at commit, and that path also has an upload to undo.
+            try:
+                db.session.flush()
 
-            db.session.flush()
+                # The colour, size and category are assigned by id above. An
+                # already-loaded relationship does not follow its foreign key,
+                # so expire them and let the next read come from the row that
+                # was just written — otherwise the search index keeps the old
+                # colour.
+                db.session.expire(product, [
+                    "color", "secondary_color", "category",
+                    "size_data", "neck_size",
+                ])
+                refresh_search_text(product)
 
-            # The colour, size and category are assigned by id above. An
-            # already-loaded relationship does not follow its foreign key, so
-            # expire them and let the next read come from the row that was just
-            # written — otherwise the search index can keep the old colour.
-            db.session.expire(product, [
-                "color", "secondary_color", "category",
-                "size_data", "neck_size", "family",
-            ])
-            refresh_search_text(product)
+                db.session.commit()
+            except Exception:
+                # The save failed, so the row still points at the old file.
+                # Drop the replacement that was just uploaded — deleting the
+                # old one here instead would leave the product with a filename
+                # whose file no longer exists.
+                db.session.rollback()
+                if filename:
+                    delete_image(filename)
+                raise
 
-            db.session.commit()
+            # Only now is the new filename actually stored. Removing the old
+            # file before the commit would destroy the image a rolled-back
+            # product still refers to.
+            if old_image and old_image != product.image:
+                delete_image(old_image)
+
             log_activity(
                 current_user.id,
                 "EDIT_PRODUCT",
@@ -323,13 +406,15 @@ def register_product_routes(app):
         page = request.args.get("page", 1, type=int)
         stock_filter = request.args.get("stock", "")
         category_filter = request.args.get("category", "")
+        warehouse_filter = request.args.get("warehouse", "")
         sort = request.args.get("sort", "recent")
 
-        # one card per product. Families are shown on their own pages, not by
-        # collapsing this list.
-        pagination, units, category_filter, stock_filter, sort = browse_flat(
+        # one card per product
+        (pagination, units, category_filter, stock_filter,
+         warehouse_filter, sort) = browse_flat(
             category_filter=category_filter,
             stock_filter=stock_filter,
+            warehouse_filter=warehouse_filter,
             sort=sort,
             page=page,
         )
@@ -349,6 +434,8 @@ def register_product_routes(app):
             units=units,
             stock_filter=stock_filter,
             category_filter=category_filter,
+            warehouse_filter=warehouse_filter,
+            warehouses=Warehouse.query.order_by(Warehouse.name).all(),
             categories=categories,
             uncategorized_count=uncategorized_count,
             sort=sort
