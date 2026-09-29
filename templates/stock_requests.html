@@ -477,7 +477,7 @@
 
                     <td class="d-none d-md-table-cell">
 
-                        {{ r.created_at.strftime('%Y-%m-%d %H:%M') }}
+                        {{ (r.created_at | local).strftime('%Y-%m-%d %H:%M') }}
 
                     </td>
 

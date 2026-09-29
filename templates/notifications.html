@@ -110,7 +110,7 @@
                 </div>
 
                 <small class="text-muted text-nowrap">
-                    {{ n.created_at.strftime('%Y-%m-%d %H:%M') }}
+                    {{ (n.created_at | local).strftime('%Y-%m-%d %H:%M') }}
                 </small>
 
             </div>

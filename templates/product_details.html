@@ -13,8 +13,8 @@
     <div>
       <h2 class="mb-0">{{ product.name }}</h2>
       <small class="text-muted">
-        أُنشئ {{ product.created_at.strftime('%Y-%m-%d %H:%M') }}
-        · آخر تحديث {{ product.updated_at.strftime('%Y-%m-%d %H:%M') }}
+        أُنشئ {{ (product.created_at | local).strftime('%Y-%m-%d %H:%M') }}
+        · آخر تحديث {{ (product.updated_at | local).strftime('%Y-%m-%d %H:%M') }}
       </small>
     </div>
   </div>
@@ -310,7 +310,7 @@
         <tbody>
           {% for transaction in transactions %}
           <tr>
-            <td class="text-nowrap">{{ transaction.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td class="text-nowrap">{{ (transaction.created_at | local).strftime('%Y-%m-%d %H:%M') }}</td>
 
             <td>
               {% if transaction.transaction_type == "IN" %}
@@ -418,7 +418,7 @@
           <span class="badge bg-info text-dark"><i class="bi bi-arrow-left-right"></i> تحويل</span>
           {% endif %}
 
-          <span class="text-muted small">{{ transaction.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+          <span class="text-muted small">{{ (transaction.created_at | local).strftime('%Y-%m-%d %H:%M') }}</span>
         </div>
 
         {% if transaction.customer %}

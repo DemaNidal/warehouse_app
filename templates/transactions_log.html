@@ -127,7 +127,7 @@
           {% for transaction in transactions.items %}
 
           <tr>
-            <td class="text-nowrap">{{ transaction.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+            <td class="text-nowrap">{{ (transaction.created_at | local).strftime('%Y-%m-%d %H:%M') }}</td>
 
             <td>
               {% if transaction.product %}
@@ -258,7 +258,7 @@
           <span class="badge bg-info text-dark"><i class="bi bi-arrow-left-right"></i> تحويل</span>
           {% endif %}
 
-          <span class="text-muted small">{{ transaction.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+          <span class="text-muted small">{{ (transaction.created_at | local).strftime('%Y-%m-%d %H:%M') }}</span>
         </div>
 
         <div class="mb-2">

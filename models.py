@@ -1,6 +1,8 @@
 from datetime import datetime
 
 from flask_sqlalchemy import SQLAlchemy
+
+from utils.clock import utcnow
 from flask_login import UserMixin
 from werkzeug.security import (
     generate_password_hash,
@@ -66,7 +68,7 @@ class Customer(db.Model):
 
     created_at = db.Column(
         db.DateTime,
-        default=datetime.now,
+        default=utcnow,
         nullable=False
     )
 
@@ -145,7 +147,7 @@ class Category(db.Model):
 
     created_at = db.Column(
         db.DateTime,
-        default=datetime.now,
+        default=utcnow,
         nullable=False
     )
 
@@ -216,14 +218,14 @@ class Product(db.Model):
 
     created_at = db.Column(
         db.DateTime,
-        default=db.func.now(),
+        default=utcnow,
         nullable=False
     )
 
     updated_at = db.Column(
         db.DateTime,
-        default=datetime.now,
-        onupdate=datetime.now,
+        default=utcnow,
+        onupdate=utcnow,
         nullable=False
     )
 
@@ -395,7 +397,7 @@ class InventoryTransaction(db.Model):
 
     created_at = db.Column(
         db.DateTime,
-        default=db.func.now(),
+        default=utcnow,
         nullable=False
     )
 
@@ -443,7 +445,7 @@ class User( UserMixin, db.Model):
 
     created_at = db.Column(
         db.DateTime,
-        default=datetime.now
+        default=utcnow
     )
     is_active_user = db.Column(
         db.Boolean,
@@ -497,7 +499,7 @@ class ActivityLog(db.Model):
 
     created_at = db.Column(
         db.DateTime,
-        default=datetime.now,
+        default=utcnow,
         nullable=False
     )
 
@@ -516,7 +518,7 @@ class Notification(db.Model):
 
     is_read = db.Column(db.Boolean, default=False)
 
-    created_at = db.Column(db.DateTime, default=datetime.now, nullable=False)
+    created_at = db.Column(db.DateTime, default=utcnow, nullable=False)
 
     user = db.relationship("User", back_populates="notifications")
     product = db.relationship("Product")
@@ -558,7 +560,7 @@ class StockRequest(db.Model):
 
     rejected_at = db.Column(db.DateTime)
 
-    created_at = db.Column(db.DateTime, default=datetime.now)
+    created_at = db.Column(db.DateTime, default=utcnow)
 
     # ✅ IMPORTANT RELATIONSHIPS
     product = db.relationship("Product")

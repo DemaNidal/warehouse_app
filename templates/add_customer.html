@@ -100,7 +100,7 @@
 
                     <td>{{ customer.id }}</td>
                     <td>{{ customer.name }}</td>
-                    <td>{{ customer.created_at.strftime('%Y-%m-%d') }}</td>
+                    <td>{{ (customer.created_at | local).strftime('%Y-%m-%d') }}</td>
 
                     {% if current_user.role == "ADMIN" %}
                     <td>
