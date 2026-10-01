@@ -45,6 +45,7 @@ DEFAULT_CATEGORIES = [
     ("عبوات غذائية", "food", "bi-basket", 7),
     ("جلنات", "gallons", "bi-bucket", 8),
     ("كبسولات", "capsules", "bi-capsule-pill", 9),
+    ("مستلزمات طبية", "medical", "bi-bandaid", 10),
 ]
 
 # (category, keywords, exclusions) — first rule whose keyword matches and whose
@@ -53,6 +54,13 @@ DEFAULT_CATEGORIES = [
 #   * pumps before caps, so "بمب سبريه مع غطاء" stays a pump
 #   * glass before jars, so "علب زجاج مطبوع" lands in زجاج
 CATEGORY_RULES = [
+    (
+        # first on purpose: these are not packaging, and the generic container
+        # rules below would happily claim a word like "علب قفازات"
+        "مستلزمات طبية",
+        ["افرهول", "فرهول", "overall", "قفاز", "كمام", "كمامه", "طبي", "طبيه"],
+        [],
+    ),
     (
         "عبوات غذائية",
         ["خل", "ليمون", "لبنه", "فرش اب", "هاي فرش", "عسل", "مائده"],

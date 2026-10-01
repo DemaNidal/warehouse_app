@@ -4,8 +4,13 @@
 A backup that lives on the same disk as the database is not a backup. It
 survives a mistaken delete and nothing else — not a failed disk, not a
 cancelled server, not a provider account problem. This puts the archive
-somewhere with no shared failure mode, under the `backups/` prefix of the
-bucket the product images already use.
+somewhere with no shared failure mode.
+
+Prefers its own bucket and its own credentials (`R2_BACKUP_*`). The application
+runs on an internet-facing server and carries the keys for the image bucket; if
+those leak, the backups should not be reachable with them. Falls back to the
+image bucket under a `backups/` prefix when the separate ones are not
+configured, so nothing breaks before they exist.
 
     python scripts/upload_backup_to_r2.py             # newest archive
     python scripts/upload_backup_to_r2.py --keep 30   # and prune older ones
@@ -17,11 +22,42 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-PREFIX = "backups/"
+# run standalone as well as imported: nothing else loads the environment when
+# this is invoked directly from a shell or cron
+from dotenv import load_dotenv
+load_dotenv()
+
+
+def _settings():
+    """Where the archives go, and with which keys.
+
+    A dedicated bucket needs no prefix — the whole bucket is backups. The
+    fallback shares the image bucket, so it keeps the prefix to stay out of
+    the way of 168 product photos.
+    """
+
+    dedicated = os.getenv("R2_BACKUP_BUCKET", "").strip()
+
+    if dedicated:
+        return {
+            "bucket": dedicated,
+            "prefix": "",
+            "key": (os.getenv("R2_BACKUP_ACCESS_KEY_ID", "").strip()
+                    or os.getenv("R2_ACCESS_KEY_ID", "").strip()),
+            "secret": (os.getenv("R2_BACKUP_SECRET_ACCESS_KEY", "").strip()
+                       or os.getenv("R2_SECRET_ACCESS_KEY", "").strip()),
+        }
+
+    return {
+        "bucket": os.getenv("R2_BUCKET", "").strip(),
+        "prefix": "backups/",
+        "key": os.getenv("R2_ACCESS_KEY_ID", "").strip(),
+        "secret": os.getenv("R2_SECRET_ACCESS_KEY", "").strip(),
+    }
 
 
 def _client():
-    """The same R2 credentials the image storage uses."""
+    """A client, the bucket to write to, and the prefix inside it."""
 
     import boto3
     from botocore.config import Config
@@ -32,11 +68,13 @@ def _client():
         f"https://{account}.r2.cloudflarestorage.com" if account else ""
     )
 
-    missing = [
-        name for name in
-        ("R2_BUCKET", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY")
-        if not os.getenv(name)
-    ]
+    cfg = _settings()
+
+    missing = [name for name, value in [
+        ("R2_BUCKET أو R2_BACKUP_BUCKET", cfg["bucket"]),
+        ("مفتاح الوصول", cfg["key"]),
+        ("المفتاح السري", cfg["secret"]),
+    ] if not value]
     if not endpoint:
         missing.append("R2_ACCOUNT_ID (أو R2_ENDPOINT)")
 
@@ -47,11 +85,11 @@ def _client():
     client = session.client(
         "s3",
         endpoint_url=endpoint,
-        aws_access_key_id=os.environ["R2_ACCESS_KEY_ID"],
-        aws_secret_access_key=os.environ["R2_SECRET_ACCESS_KEY"],
+        aws_access_key_id=cfg["key"],
+        aws_secret_access_key=cfg["secret"],
         config=Config(signature_version="s3v4", retries={"max_attempts": 3}),
     )
-    return client, os.environ["R2_BUCKET"]
+    return client, cfg["bucket"], cfg["prefix"]
 
 
 def newest_archive(folder="backups"):
@@ -69,10 +107,10 @@ def newest_archive(folder="backups"):
     return max(archives, key=os.path.getmtime)
 
 
-def prune(client, bucket, keep):
+def prune(client, bucket, keep, prefix=""):
     """Drop the oldest archives once there are more than `keep` of them."""
 
-    response = client.list_objects_v2(Bucket=bucket, Prefix=PREFIX)
+    response = client.list_objects_v2(Bucket=bucket, Prefix=prefix)
     objects = response.get("Contents", [])
 
     if len(objects) <= keep:
@@ -98,14 +136,14 @@ def main():
     if archive is None:
         raise SystemExit("ما في نسخة احتياطية للرفع")
 
-    client, bucket = _client()
-    key = PREFIX + os.path.basename(archive)
+    client, bucket, prefix = _client()
+    key = prefix + os.path.basename(archive)
     size_mb = os.path.getsize(archive) / (1024 * 1024)
 
     client.upload_file(archive, bucket, key)
-    print(f"✓ رُفعت: {key}  ({size_mb:.1f} ميجا)")
+    print(f"✓ رُفعت: {bucket}/{key}  ({size_mb:.1f} ميجا)")
 
-    removed = prune(client, bucket, args.keep)
+    removed = prune(client, bucket, args.keep, prefix)
     if removed:
         print(f"  حُذفت {removed} نسخة قديمة (الاحتفاظ بآخر {args.keep})")
 

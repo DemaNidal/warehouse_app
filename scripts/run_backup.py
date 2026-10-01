@@ -65,22 +65,21 @@ if os.getenv("STORAGE_BACKEND", "local").strip().lower() != "local":
             _client,
             newest_archive,
             prune,
-            PREFIX,
         )
 
         archive = newest_archive()
         if archive is None:
             raise RuntimeError("no archive to upload")
 
-        client, bucket = _client()
-        client.upload_file(archive, bucket, PREFIX + os.path.basename(archive))
-        removed = prune(client, bucket, 30)
+        client, bucket, prefix = _client()
+        client.upload_file(archive, bucket, prefix + os.path.basename(archive))
+        removed = prune(client, bucket, 30, prefix)
 
         logging.info(
-            "Backup archive uploaded to object storage: %s (%s old removed)",
-            os.path.basename(archive), removed,
+            "Backup archive uploaded to %s (%s old removed)",
+            bucket, removed,
         )
-        print(f"Archive uploaded off-server: {os.path.basename(archive)}")
+        print(f"Archive uploaded off-server: {bucket}/{os.path.basename(archive)}")
 
     except Exception:
         logging.exception(
