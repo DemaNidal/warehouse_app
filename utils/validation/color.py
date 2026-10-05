@@ -27,8 +27,29 @@ def validate_color_name(name, hex_code=None, exclude_id=None):
 
     hex_code = (hex_code or "").strip() or None
 
-    if hex_code and not HEX_PATTERN.match(hex_code):
-        return fail("صيغة اللون غير صحيحة")
+    if hex_code:
+        # a pasted code often arrives without the hash
+        if not hex_code.startswith("#"):
+            hex_code = "#" + hex_code
+
+        if not HEX_PATTERN.match(hex_code):
+            return fail("صيغة اللون غير صحيحة — لازم تكون مثل #1E3A5F")
+
+        # One case, always. "#16A34A" and "#16a34a" are the same colour, and
+        # storing both is how "أخضر" and "اخضر فاتح" ended up visually
+        # identical while looking different in the list.
+        hex_code = hex_code.upper()
+
+        clash = Color.query.filter(Color.hex_code.ilike(hex_code))
+        if exclude_id is not None:
+            clash = clash.filter(Color.id != exclude_id)
+
+        other = clash.first()
+        if other is not None:
+            return fail(
+                f"نفس كود اللون مستخدم للون \"{other.name}\" — "
+                "غيّري الكود أو استخدمي اللون الموجود"
+            )
 
     normalized = normalize_color_name(name)
 

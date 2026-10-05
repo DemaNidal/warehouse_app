@@ -572,15 +572,18 @@ function normalizeColorNameJS(text) {
         .toLowerCase();
 }
 
-function setupColorNameSuggestion(nameInputId, hexInputId) {
+function setupColorNameSuggestion(nameInputId, hexInputId, hexTextId) {
     const nameInput = document.getElementById(nameInputId);
     const hexInput = document.getElementById(hexInputId);
+    // the text box is the field that actually submits; suggesting into the
+    // picker alone would save whatever the box still held
+    const hexText = hexTextId ? document.getElementById(hexTextId) : null;
     if (!nameInput || !hexInput) return;
 
     let hexTouched = false;
-    hexInput.addEventListener("input", function () {
-        hexTouched = true;
-    });
+    const markTouched = function () { hexTouched = true; };
+    hexInput.addEventListener("input", markTouched);
+    if (hexText) hexText.addEventListener("input", markTouched);
 
     nameInput.addEventListener("input", function () {
         if (hexTouched) return;
@@ -589,6 +592,7 @@ function setupColorNameSuggestion(nameInputId, hexInputId) {
         for (const key in COLOR_NAME_HEX_MAP) {
             if (normalized.includes(key)) {
                 hexInput.value = COLOR_NAME_HEX_MAP[key];
+                if (hexText) hexText.value = COLOR_NAME_HEX_MAP[key].toUpperCase();
                 break;
             }
         }
