@@ -182,6 +182,27 @@ class TestTheButton:
 
         assert f"/product/{empty_product.id}/delete" not in body
 
+    def test_its_confirmation_is_valid_javascript(
+        self, empty_product, make_user, login
+    ):
+        r"""A real newline typed into the confirm() string instead of \n is a
+        syntax error that kills every script on the page — and it is invisible
+        until someone opens a product the button actually shows for. It has
+        happened twice."""
+        import re
+
+        body = login(make_user()).get(
+            f"/product/{empty_product.id}"
+        ).get_data(as_text=True)
+
+        handler = re.search(r'onsubmit="([^"]*)"', body)
+        assert handler, "the delete form lost its confirmation"
+
+        js = handler.group(1)
+        assert "\n" not in js, "raw newline inside a JavaScript string literal"
+        assert "\r" not in js
+        assert js.count("'") % 2 == 0, "unbalanced quotes"
+
     def test_hidden_from_staff(self, empty_product, make_user, login):
         staff = login(make_user(username="staff", role="STAFF"))
         body = staff.get(f"/product/{empty_product.id}").get_data(as_text=True)
