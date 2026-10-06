@@ -1,0 +1,33 @@
+{% extends "auth_base.html" %}
+
+{% block title %}انتهت صلاحية الصفحة{% endblock %}
+
+{% block content %}
+
+{# Reached from the login form as often as from inside the app, so it extends
+   auth_base — base.html needs a signed-in user and would fail here. #}
+
+<div class="auth-card text-center">
+
+  <div class="mb-3">
+    <i class="bi bi-arrow-clockwise" style="font-size:3rem; color:#1E3A5F;"></i>
+  </div>
+
+  <h4 class="mb-2">انتهت صلاحية الصفحة</h4>
+
+  <p class="text-muted mb-4">
+    الصفحة كانت مفتوحة من فترة طويلة، أو انسكّر المتصفح وانفتح من جديد.
+    ما ضاع إشي — افتحيها من جديد وكمّلي.
+  </p>
+
+  <a href="{{ retry_url }}" class="btn btn-primary w-100 mb-2">
+    افتحي الصفحة من جديد
+  </a>
+
+  <a href="{{ url_for('login') }}" class="btn btn-light border w-100">
+    صفحة الدخول
+  </a>
+
+</div>
+
+{% endblock %}

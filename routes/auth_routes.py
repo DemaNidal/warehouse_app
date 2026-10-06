@@ -23,7 +23,12 @@ from extensions import limiter
 def register_auth_routes(app):
 
     @app.route("/login", methods=["GET", "POST"])
-    @limiter.limit("5 per minute")
+    # Only the attempts are limited. The limit used to cover the route, so
+    # merely opening the page five times — a refresh, a mistyped password, the
+    # back button — locked the door for a minute with an English error page.
+    # The hourly cap is what actually stops guessing; the per-minute one just
+    # keeps a wrong password from being hammered.
+    @limiter.limit("10 per minute; 60 per hour", methods=["POST"])
     def login():
 
         if request.method == "POST":
@@ -53,6 +58,12 @@ def register_auth_routes(app):
                 # authenticated, so a value planted beforehand cannot ride
                 # along into the logged-in session (session fixation).
                 session.clear()
+
+                # PERMANENT_SESSION_LIFETIME (8 hours) does nothing unless the
+                # session is marked permanent — without this the cookie dies
+                # with the browser and everyone signs in again each morning.
+                session.permanent = True
+
                 login_user(user)
 
                 log_activity(

@@ -61,7 +61,7 @@ from routes.notifications_routes import register_notifications_routes
 from routes.settings_routes import register_settings_routes
 from routes.create_admin_route import register_create_admin_route
 from routes.customer_routes import register_customer_routes
-from flask_wtf.csrf import CSRFProtect
+from flask_wtf.csrf import CSRFProtect, CSRFError
 import click
 import config
 from flask_migrate import Migrate
@@ -144,6 +144,39 @@ def payload_too_large(error):
     flash(f"الملف كبير جداً — الحد الأقصى {limit_mb} ميجابايت", "danger")
 
     return redirect(request.referrer or url_for("home")), 302
+
+
+@app.errorhandler(429)
+def too_many_requests(error):
+
+    # Flask-Limiter's own page is bare English with no way back. Tell the
+    # person what happened, in the language the rest of the system speaks,
+    # and how long they have to wait.
+    wait = None
+    retry_after = getattr(error, "retry_after", None) or (
+        error.description if isinstance(getattr(error, "description", None), int)
+        else None
+    )
+    if isinstance(retry_after, (int, float)):
+        wait = int(retry_after)
+
+    response = render_template("429.html", wait_seconds=wait)
+
+    return response, 429
+
+
+@app.errorhandler(CSRFError)
+def csrf_expired(error):
+
+    # A CSRF failure is almost never an attack — it is a page left open past
+    # its session, or a browser restarted under a restored tab. The raw
+    # "Bad Request: The CSRF session token is missing" is both frightening
+    # and a dead end.
+    app.logger.info("CSRF rejected on %s %s", request.method, request.path)
+
+    retry_url = request.referrer or request.path or url_for("login")
+
+    return render_template("csrf_expired.html", retry_url=retry_url), 400
 
 
 @app.errorhandler(500)

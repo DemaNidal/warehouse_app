@@ -7,6 +7,8 @@ from models import (
     Color,
     InventoryLocation,
     InventoryTransaction,
+    Notification,
+    StockRequest,
     Size,
     Warehouse,
     SIZE_KIND_CAPACITY,
@@ -398,6 +400,68 @@ def register_product_routes(app):
             categories=categories
         )
     
+
+    @app.route("/product/<int:product_id>/delete", methods=["POST"])
+    @login_required
+    @manager_required
+    def delete_product(product_id):
+        """Remove a product that was never really used.
+
+        Deliberately narrow. A product that carries stock or has movements
+        behind it is part of the warehouse's history, and deleting it would
+        take that history with it — those get archived, not erased, and this
+        refuses them. What it is for is the case that kept coming up: the same
+        item entered twice, one copy empty.
+        """
+
+        if not ensure_system_ready():
+            return redirect(url_for("dashboard"))
+
+        product = Product.query.get_or_404(product_id)
+
+        blockers = []
+
+        quantity = product.total_quantity
+        if quantity:
+            blockers.append(f"عليه كمية {quantity:,}")
+
+        movements = InventoryTransaction.query.filter_by(
+            product_id=product.id
+        ).count()
+        if movements:
+            blockers.append(f"{movements} حركة مخزون")
+
+        requests = StockRequest.query.filter_by(product_id=product.id).count()
+        if requests:
+            blockers.append(f"{requests} طلب مخزون")
+
+        if blockers:
+            flash(
+                f"ما بينحذف «{product.name}» لأنه " + "، و".join(blockers)
+                + ". فضّيه من المخزون أول، أو خليه بدون حذف.",
+                "danger",
+            )
+            return redirect(url_for("product_details", product_id=product.id))
+
+        name = product.name
+        image = (product.image or "").strip()
+
+        # empty shelf rows are the product's own, and go with it
+        InventoryLocation.query.filter_by(product_id=product.id).delete()
+        Notification.query.filter_by(product_id=product.id).delete()
+
+        db.session.delete(product)
+        db.session.commit()
+
+        # Only once the row is gone, and only if nothing else points at the
+        # file — the same reasoning as replacing an image.
+        if image and not Product.query.filter(Product.image == image).count():
+            delete_image(image)
+
+        log_activity(current_user.id, "DELETE_PRODUCT", f"حذف المنتج: {name}")
+        flash(f"تم حذف «{name}»", "success")
+
+        return redirect(url_for("product_list"))
 
     @app.route("/products")
     @login_required

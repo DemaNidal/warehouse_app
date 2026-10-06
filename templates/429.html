@@ -1,0 +1,57 @@
+{% extends "auth_base.html" %}
+
+{% block title %}محاولات كثيرة{% endblock %}
+
+{% block content %}
+
+{# auth_base, not base: this is reached while signed out, and base needs a user #}
+
+<div class="auth-card text-center">
+
+  <div class="mb-3">
+    <i class="bi bi-hourglass-split" style="font-size:3rem; color:#C89B3C;"></i>
+  </div>
+
+  <h4 class="mb-2">محاولات كثيرة بوقت قصير</h4>
+
+  <p class="text-muted mb-4">
+    وقفنا المحاولات مؤقتاً للحماية.
+    {% if wait_seconds %}
+    جرّبي بعد <strong id="countdown">{{ wait_seconds }}</strong> ثانية.
+    {% else %}
+    جرّبي بعد دقيقة.
+    {% endif %}
+  </p>
+
+  <a href="{{ url_for('login') }}" class="btn btn-primary w-100" id="backBtn">
+    رجوع لصفحة الدخول
+  </a>
+
+</div>
+
+{% if wait_seconds %}
+<script>
+// Counting down beats a flat "try later": the page says when, and enables
+// itself at that moment so nobody has to guess and retry into the same wall.
+(function () {
+  const el = document.getElementById("countdown");
+  const btn = document.getElementById("backBtn");
+  let left = {{ wait_seconds }};
+
+  btn.classList.add("disabled");
+
+  const tick = setInterval(function () {
+    left -= 1;
+    if (left > 0) {
+      el.textContent = left;
+      return;
+    }
+    clearInterval(tick);
+    btn.classList.remove("disabled");
+    el.parentElement.innerHTML = "تقدري تحاولي الآن.";
+  }, 1000);
+})();
+</script>
+{% endif %}
+
+{% endblock %}
