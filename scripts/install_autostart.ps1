@@ -70,19 +70,50 @@ $trigger.Delay = "PT30S"
 # registering afterwards leaves nothing registered at all if the second half
 # fails — which is how a task can vanish while the process it already started
 # keeps running, looking fine until the next reboot.
-Register-ScheduledTask `
-    -TaskName $TaskName `
-    -Action $action `
-    -Trigger $trigger `
-    -Principal $principal `
-    -Settings $settings `
-    -Force `
-    -Description "يشغّل نظام المخازن عند إقلاع ويندوز ويعيد تشغيله لو وقف." | Out-Null
+# Registration is the step that has failed twice, silently, leaving the task
+# gone while the process it had started kept running. Catch the error, say
+# exactly what Windows reported, and write it down.
+$LogPath = Join-Path $AppDir "logs\install_autostart.log"
+New-Item -ItemType Directory -Force -Path (Split-Path $LogPath) | Out-Null
 
-if (-not (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue)) {
-    Write-Host "فشل التسجيل — المهمة مش موجودة." -ForegroundColor Red
+try {
+    Register-ScheduledTask `
+        -TaskName $TaskName `
+        -Action $action `
+        -Trigger $trigger `
+        -Principal $principal `
+        -Settings $settings `
+        -Force `
+        -Description "يشغّل نظام المخازن عند إقلاع ويندوز ويعيد تشغيله لو وقف." `
+        -ErrorAction Stop | Out-Null
+}
+catch {
+    $detail = $_.Exception.Message
+    "[$(Get-Date -Format s)] Register-ScheduledTask failed: $detail" |
+        Add-Content -Path $LogPath -Encoding utf8
+
+    Write-Host ""
+    Write-Host "فشل تسجيل المهمة. ويندوز قال:" -ForegroundColor Red
+    Write-Host "  $detail" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "انحفظت بـ: $LogPath" -ForegroundColor Yellow
+    Write-Host "ابعتي هالرسالة كما هي." -ForegroundColor Yellow
     exit 1
 }
+
+$registered = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+if (-not $registered) {
+    "[$(Get-Date -Format s)] Register reported success but the task is absent" |
+        Add-Content -Path $LogPath -Encoding utf8
+    Write-Host ""
+    Write-Host "التسجيل ما رمى خطأ، بس المهمة مش موجودة بعده." -ForegroundColor Red
+    Write-Host "غالباً سياسة مجموعة (Group Policy) بتمنع مهام SYSTEM." -ForegroundColor Yellow
+    Write-Host "انحفظت بـ: $LogPath" -ForegroundColor Yellow
+    exit 1
+}
+
+"[$(Get-Date -Format s)] registered OK as $($registered.Principal.UserId)" |
+    Add-Content -Path $LogPath -Encoding utf8
 
 Write-Host ""
 Write-Host "تم تسجيل المهمة «$TaskName»." -ForegroundColor Green

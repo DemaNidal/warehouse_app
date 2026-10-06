@@ -1,12 +1,18 @@
 ﻿# Start, stop, restart and inspect the warehouse server.
 #
 # The server runs as a scheduled task (SYSTEM, at boot), not from a terminal —
-# see install_autostart.ps1 for why. That means closing VS Code no longer stops
-# it, and neither does Ctrl+C anywhere. These are the controls instead.
+# see install_autostart.ps1 for why. Closing VS Code no longer stops it and
+# Ctrl+C has nothing to interrupt; these are the controls instead.
 #
 #   powershell -ExecutionPolicy Bypass -File scripts\server.ps1 -Action status
 #
 # Or use the .bat shortcuts in the project folder.
+#
+# A task that runs as SYSTEM is INVISIBLE to a session that is not elevated —
+# Get-ScheduledTask, schtasks and the COM API all answer "access denied", which
+# is indistinguishable from "no such task" unless you check for it. Reporting
+# "not registered" on that evidence is wrong, and was: this script called a
+# correctly registered task missing three times running.
 
 param(
     [ValidateSet("start", "stop", "restart", "status")]
@@ -16,30 +22,71 @@ param(
 $TaskName = "WarehouseApp"
 $Port = 5000
 
+function Test-Elevated {
+    $id = [Security.Principal.WindowsIdentity]::GetCurrent()
+    (New-Object Security.Principal.WindowsPrincipal $id).IsInRole(
+        [Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
 function Get-Listener {
     Get-NetTCPConnection -LocalPort $Port -State Listen -ErrorAction SilentlyContinue |
         Select-Object -First 1
 }
 
+function Get-TaskState {
+    # registered - seen.  hidden - unreadable and we are not elevated, so
+    # unknown.  absent - elevated and genuinely not there.
+    $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+    if ($task) { return @{ State = "registered"; Task = $task } }
+    if (-not (Test-Elevated)) { return @{ State = "hidden"; Task = $null } }
+    return @{ State = "absent"; Task = $null }
+}
+
+function Get-Origin([int]$ProcessId) {
+    # Walk the parents: Code.exe means it dies with the editor, the Schedule
+    # service means it does not.
+    $proc = Get-CimInstance Win32_Process -Filter "ProcessId=$ProcessId" -ErrorAction SilentlyContinue
+    if (-not $proc) { return "unreadable" }
+
+    $id = $proc.ParentProcessId
+    for ($i = 0; $i -lt 6 -and $id; $i++) {
+        $p = Get-CimInstance Win32_Process -Filter "ProcessId=$id" -ErrorAction SilentlyContinue
+        if (-not $p) { break }
+        if ($p.Name -eq "Code.exe") { return "editor" }
+        $svc = Get-CimInstance Win32_Service -Filter "ProcessId=$id" -ErrorAction SilentlyContinue
+        if ($svc -and $svc.Name -eq "Schedule") { return "scheduler" }
+        $id = $p.ParentProcessId
+    }
+    return "unknown"
+}
+
 function Wait-ForPort([bool]$WantListening, [int]$Seconds = 12) {
     for ($i = 0; $i -lt $Seconds; $i++) {
-        $listening = $null -ne (Get-Listener)
-        if ($listening -eq $WantListening) { return $true }
+        if (($null -ne (Get-Listener)) -eq $WantListening) { return $true }
         Start-Sleep -Seconds 1
     }
     return $false
 }
 
 function Show-Status {
-    $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+    $info = Get-TaskState
     $conn = Get-Listener
 
     Write-Host ""
-    if ($task) {
-        Write-Host "المهمة المجدولة : مسجّلة ($($task.State))" -ForegroundColor Green
-    } else {
-        Write-Host "المهمة المجدولة : غير مسجّلة" -ForegroundColor Yellow
-        Write-Host "  شغّلي كمسؤول:  powershell -ExecutionPolicy Bypass -File scripts\install_autostart.ps1"
+
+    switch ($info.State) {
+        "registered" {
+            Write-Host "المهمة المجدولة : مسجّلة ($($info.Task.State))" -ForegroundColor Green
+        }
+        "hidden" {
+            Write-Host "المهمة المجدولة : ما بقدر أشوفها من هون" -ForegroundColor DarkGray
+            Write-Host "                  مهام SYSTEM مخفية عن الجلسات العادية — مش دليل إنها ناقصة." -ForegroundColor DarkGray
+            Write-Host "                  للتأكيد: شغّلي status.bat كمسؤول." -ForegroundColor DarkGray
+        }
+        "absent" {
+            Write-Host "المهمة المجدولة : غير مسجّلة" -ForegroundColor Red
+            Write-Host "                  شغّلي كمسؤول: scripts\install_autostart.ps1" -ForegroundColor Yellow
+        }
     }
 
     if (-not $conn) {
@@ -48,44 +95,25 @@ function Show-Status {
         return
     }
 
-    $proc = Get-CimInstance Win32_Process -Filter "ProcessId=$($conn.OwningProcess)" -ErrorAction SilentlyContinue
     Write-Host "السيرفر         : شغّال  (PID $($conn.OwningProcess))" -ForegroundColor Green
 
-    # Which parent started it says whether this survives closing the editor.
-    # "not the editor" is not the same as "the scheduler": the process info can
-    # also be unreadable, and a task can be removed while the process it
-    # started keeps running — which looks healthy until the next reboot.
-    $id = if ($proc) { $proc.ParentProcessId } else { $null }
-    $origin = if ($proc) { "unknown" } else { "unreadable" }
-
-    for ($i = 0; $i -lt 6 -and $id; $i++) {
-        $p = Get-CimInstance Win32_Process -Filter "ProcessId=$id" -ErrorAction SilentlyContinue
-        if (-not $p) { break }
-        if ($p.Name -eq "Code.exe") { $origin = "editor"; break }
-        $svc = Get-CimInstance Win32_Service -Filter "ProcessId=$id" -ErrorAction SilentlyContinue
-        if ($svc -and $svc.Name -eq "Schedule") { $origin = "scheduler"; break }
-        $id = $p.ParentProcessId
-    }
-
-    switch ($origin) {
+    switch (Get-Origin $conn.OwningProcess) {
         "editor" {
             Write-Host "المصدر          : طرفية VS Code — بيوقف لما تسكّري المحرر" -ForegroundColor Yellow
         }
         "scheduler" {
-            if ($task) {
-                Write-Host "المصدر          : المهمة المجدولة — بينجو من إغلاق المحرر وإعادة التشغيل" -ForegroundColor Green
-            } else {
+            if ($info.State -eq "absent") {
                 Write-Host "المصدر          : مهمة مجدولة انشالت بعدين" -ForegroundColor Yellow
                 Write-Host "                  شغّال الآن، بس ما بيرجع بعد إعادة تشغيل الجهاز." -ForegroundColor Yellow
-                Write-Host "                  سجّلي المهمة من جديد (كمسؤول):" -ForegroundColor Yellow
-                Write-Host "                  powershell -ExecutionPolicy Bypass -File scripts\install_autostart.ps1"
+            } else {
+                Write-Host "المصدر          : المهمة المجدولة — بينجو من إغلاق المحرر وإعادة التشغيل" -ForegroundColor Green
             }
         }
         "unreadable" {
-            Write-Host "المصدر          : ما قدرت أقراه (عملية SYSTEM) — جرّبي كمسؤول" -ForegroundColor Yellow
+            Write-Host "المصدر          : ما قدرت أقراه (عملية SYSTEM)" -ForegroundColor DarkGray
         }
         default {
-            Write-Host "المصدر          : غير معروف" -ForegroundColor Yellow
+            Write-Host "المصدر          : غير معروف" -ForegroundColor DarkGray
         }
     }
 
@@ -94,8 +122,7 @@ function Show-Status {
 }
 
 function Stop-Server {
-    $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
-    if ($task) { Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue }
+    Stop-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
 
     if (Wait-ForPort -WantListening $false -Seconds 8) {
         Write-Host "توقّف ✓" -ForegroundColor Green
@@ -106,11 +133,10 @@ function Stop-Server {
     # from a terminal has no task to stop at all.
     $conn = Get-Listener
     if ($conn) {
-        try {
-            Stop-Process -Id $conn.OwningProcess -Force -ErrorAction Stop
-        } catch {
+        try { Stop-Process -Id $conn.OwningProcess -Force -ErrorAction Stop }
+        catch {
             Write-Host "ما قدرت أوقفه — العملية بتشتغل كـSYSTEM." -ForegroundColor Red
-            Write-Host "افتحي PowerShell كمسؤول وشغّلي نفس الأمر." -ForegroundColor Yellow
+            Write-Host "شغّلي stop.bat كمسؤول." -ForegroundColor Yellow
             return $false
         }
     }
@@ -130,23 +156,27 @@ function Start-Server {
         return $true
     }
 
-    $task = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
-    if (-not $task) {
-        Write-Host "المهمة غير مسجّلة." -ForegroundColor Red
-        Write-Host "شغّلي كمسؤول:" -ForegroundColor Yellow
-        Write-Host "  powershell -ExecutionPolicy Bypass -File scripts\install_autostart.ps1"
-        return $false
-    }
-
-    Start-ScheduledTask -TaskName $TaskName
+    # Try regardless of whether the task is visible from here: it may well be
+    # registered and merely unreadable, and the port is the honest answer.
+    Start-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
 
     if (Wait-ForPort -WantListening $true -Seconds 20) {
         Write-Host "اشتغل ✓" -ForegroundColor Green
         return $true
     }
 
-    Write-Host "المهمة انطلقت بس السيرفر ما ردّ. افحصي:" -ForegroundColor Yellow
-    Write-Host "  Get-Content E:\warehouse_app\logs\app.log -Tail 30"
+    $info = Get-TaskState
+    Write-Host "ما اشتغل." -ForegroundColor Red
+
+    if ($info.State -eq "absent") {
+        Write-Host "المهمة غير مسجّلة — شغّلي كمسؤول:" -ForegroundColor Yellow
+        Write-Host "  powershell -ExecutionPolicy Bypass -File scripts\install_autostart.ps1"
+    } elseif ($info.State -eq "hidden") {
+        Write-Host "المهمة مخفية عن جلستك — شغّلي start.bat كمسؤول." -ForegroundColor Yellow
+    } else {
+        Write-Host "افحصي السجل:" -ForegroundColor Yellow
+        Write-Host "  Get-Content E:\warehouse_app\logs\app.log -Tail 30"
+    }
     return $false
 }
 
