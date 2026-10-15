@@ -48,7 +48,8 @@
           <option value="recent" {% if sort == 'recent' %}selected{% endif %}>الأحدث</option>
           <option value="oldest" {% if sort == 'oldest' %}selected{% endif %}>الأقدم</option>
           <option value="name" {% if sort == 'name' %}selected{% endif %}>الاسم (أ-ي)</option>
-          <option value="quantity" {% if sort == 'quantity' %}selected{% endif %}>الكمية (الأكثر)</option>
+          <option value="quantity_asc" {% if sort == 'quantity_asc' %}selected{% endif %}>الأقل كمية</option>
+          <option value="quantity" {% if sort == 'quantity' %}selected{% endif %}>الأكثر كمية</option>
         </select>
       </div>
 

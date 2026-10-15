@@ -157,6 +157,18 @@ def result_ids(response):
     return sorted({int(m) for m in re.findall(r'/product/(\d+)"', body)})
 
 
+def result_order(response):
+    """The same ids, in the order the page put them."""
+    body = response.get_data(as_text=True)
+    seen, order = set(), []
+    for match in re.findall(r'/product/(\d+)"', body):
+        number = int(match)
+        if number not in seen:
+            seen.add(number)
+            order.append(number)
+    return order
+
+
 # -------------------------------------------------------------- the route
 
 class TestSearchRoute:
@@ -324,11 +336,86 @@ class TestBadInput:
 
 class TestSorting:
 
-    @pytest.mark.parametrize("sort", ["recent", "oldest", "name", "quantity"])
+    @pytest.mark.parametrize(
+        "sort", ["recent", "oldest", "name", "quantity", "quantity_asc"]
+    )
     def test_every_order_returns_the_same_set(self, catalogue, make_user, login, sort):
         response = login(make_user()).get("/search", query_string={"sort": sort})
         assert response.status_code == 200
         assert len(result_ids(response)) == 4
+
+    def test_the_two_quantity_orders_are_mirrors(
+        self, catalogue, make_user, login
+    ):
+        client = login(make_user())
+
+        most = result_order(client.get("/search", query_string={"sort": "quantity"}))
+        least = result_order(
+            client.get("/search", query_string={"sort": "quantity_asc"})
+        )
+
+        assert least == list(reversed(most))
+
+    def test_both_pages_offer_the_same_orders(self, catalogue, make_user, login):
+        """/search and /products used to disagree about what "quantity"
+        was called, which made one of them wrong whichever you read."""
+        client = login(make_user())
+
+        def offered(path):
+            body = client.get(path).get_data(as_text=True)
+            return set(re.findall(r'<option value="(\w+)"[^>]*>([^<]+)</option>', body))
+
+        shared = {
+            (value, label) for value, label in offered("/search")
+            if value in ("recent", "oldest", "name", "quantity", "quantity_asc")
+        }
+        theirs = {
+            (value, label) for value, label in offered("/products")
+            if value in ("quantity", "quantity_asc")
+        }
+
+        assert {label for value, label in shared if value.startswith("quantity")}             == {label for value, label in theirs}
+
+    @pytest.mark.parametrize(
+        "sort", ["recent", "oldest", "name", "quantity", "quantity_asc"]
+    )
+    def test_every_order_settles_its_ties(self, app, sort):
+        """Rows tied on the sort key must not be left to the database's mood.
+
+        Asserted on the ORDER BY rather than by paging through tied rows:
+        PostgreSQL happened to return a stable order for a small table either
+        way, so the paging version passed with the tiebreaker taken out — it
+        looked like a guard and was not one.
+        """
+        from sqlalchemy import func
+
+        from models import InventoryLocation, Product
+        from utils.catalogue import apply_sort
+
+        with app.app_context():
+            qty = func.coalesce(func.sum(InventoryLocation.quantity), 0)
+            ordered, used = apply_sort(Product.query, sort, qty)
+
+            clause = str(
+                ordered.statement.compile(
+                    compile_kwargs={"literal_binds": True}
+                )
+            ).rsplit("ORDER BY", 1)[-1]
+
+        assert used == sort
+        assert "product.id" in clause, clause
+
+    def test_an_unknown_order_falls_back_instead_of_failing(self, app):
+        from sqlalchemy import func
+
+        from models import InventoryLocation, Product
+        from utils.catalogue import apply_sort
+
+        with app.app_context():
+            qty = func.coalesce(func.sum(InventoryLocation.quantity), 0)
+            _, used = apply_sort(Product.query, "; drop table product", qty)
+
+        assert used == "recent"
 
 
 class TestSearchTextStaysCurrent:

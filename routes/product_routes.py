@@ -468,6 +468,7 @@ def register_product_routes(app):
     def product_list():
 
         page = request.args.get("page", 1, type=int)
+        q = request.args.get("q", "").strip()
         stock_filter = request.args.get("stock", "")
         category_filter = request.args.get("category", "")
         warehouse_filter = request.args.get("warehouse", "")
@@ -476,6 +477,7 @@ def register_product_routes(app):
         # one card per product
         (pagination, units, category_filter, stock_filter,
          warehouse_filter, sort) = browse_flat(
+            q=q,
             category_filter=category_filter,
             stock_filter=stock_filter,
             warehouse_filter=warehouse_filter,
@@ -488,20 +490,55 @@ def register_product_routes(app):
             Category.id
         ).all()
 
-        uncategorized_count = Product.query.filter(
-            Product.category_id.is_(None)
-        ).count()
+        # How many products each category holds, for the chips. One grouped
+        # query rather than a count per category, which was eleven.
+        counted = dict(
+            db.session.query(Product.category_id, func.count(Product.id))
+            .group_by(Product.category_id)
+            .all()
+        )
+        category_counts = {c.id: counted.get(c.id, 0) for c in categories}
+        uncategorized_count = counted.get(None, 0)
+
+        # The card grid used to label the filtered count "إجمالي المنتجات",
+        # so filtering to زجاج announced a total of 24. Both numbers are
+        # shown now, and neither pretends to be the other.
+        catalogue_total = sum(counted.values())
+
+        def url_with(**over):
+            """This page's URL with a few parameters changed.
+
+            Every control has to preserve the others, or removing one filter
+            silently throws away the rest. Passing None drops a parameter,
+            which is what the × on an active filter does.
+            """
+            params = {
+                "q": q,
+                "sort": sort,
+                "category": category_filter,
+                "warehouse": warehouse_filter,
+                "stock": stock_filter,
+            }
+            params.update(over)
+            return url_for(
+                "product_list",
+                **{k: v for k, v in params.items() if v}
+            )
 
         return render_template(
             "product_list.html",
             products=pagination,
             units=units,
+            q=q,
             stock_filter=stock_filter,
             category_filter=category_filter,
             warehouse_filter=warehouse_filter,
             warehouses=Warehouse.query.order_by(Warehouse.name).all(),
             categories=categories,
+            category_counts=category_counts,
             uncategorized_count=uncategorized_count,
+            catalogue_total=catalogue_total,
+            url_with=url_with,
             sort=sort
         )
 
