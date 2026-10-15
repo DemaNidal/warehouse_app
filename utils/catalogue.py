@@ -5,6 +5,7 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import joinedload
 
 from models import InventoryLocation, Product
+from utils.shelves import location_matches, parse_shelf
 from utils.text_search import apply_text_search
 
 PER_PAGE = 20
@@ -50,12 +51,18 @@ def apply_sort(query, sort, qty):
     return query.order_by(Product.id.desc()), "recent"
 
 
-def _where(product):
+def _where(product, wanted=None):
     """The one shelf worth printing on a card, and how many others there are.
 
     A card used to show how MANY places a product sat in, which answers a
     question nobody asks. The shelf with the most stock on it is the one you
     would walk to, so that is the one named; the rest become "+2".
+
+    Except when a shelf was asked for. Searching "رف 58" and being shown a
+    card that says "رف 196" is a card answering a question that was not put
+    to it: the product does sit on 58, which is why it came back at all. So a
+    shelf in the query wins, and the fullest rule decides between the
+    locations that match it.
     """
     places = [
         location for location in product.locations
@@ -63,6 +70,14 @@ def _where(product):
     ]
     if not places:
         return {"shelf": "", "others": max(len(product.locations) - 1, 0)}
+
+    if wanted is not None:
+        asked_for = [
+            location for location in places
+            if location_matches(location.location, wanted)
+        ]
+        if asked_for:
+            places = asked_for
 
     places.sort(key=lambda location: (-(location.quantity or 0), location.id))
     return {
@@ -136,7 +151,7 @@ def browse_flat(category_filter="", stock_filter="", warehouse_filter="",
             "product": product,
             "quantity": product.total_quantity,
             "status": product.stock_status,
-            **_where(product),
+            **_where(product, parse_shelf(q)),
         }
         for product in pagination.items
     ]

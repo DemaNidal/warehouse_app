@@ -151,6 +151,60 @@ class TestTheCard:
         assert unit["shelf"] == "رف 40"
         assert unit["others"] == 1
 
+    def test_the_shelf_asked_for_wins_over_the_fullest(
+        self, db_session, shelved, make_location
+    ):
+        """Searching "رف 7" and being shown "رف 40" answers a question that
+        was not put to the card."""
+        cap = shelved["blue_cap"]                      # already on رف 7
+        make_location(cap, quantity=5000, location="رف 40")
+        db_session.commit()
+
+        assert browse_flat(q="جرة")[1][0]["shelf"] != "رف 7"   # control
+        unit = browse_flat(q="رف 7")[1][0]
+        assert unit["shelf"] == "رف 7"
+        assert unit["others"] == 1
+
+    def test_the_fullest_still_wins_when_no_shelf_was_asked_for(
+        self, db_session, shelved, make_location
+    ):
+        cap = shelved["blue_cap"]
+        make_location(cap, quantity=5000, location="رف 40")
+        db_session.commit()
+
+        unit = browse_flat(q="غطاء ازرق")[1][0]
+        assert unit["shelf"] == "رف 40"
+
+    def test_among_the_slots_asked_for_the_fullest_wins(
+        self, db_session, make_product, make_location
+    ):
+        """"رف 5" matches both slots; the fuller one is the one to walk to."""
+        from utils.search_text import refresh_search_text
+
+        made = make_product(name="منتج بخانتين")
+        refresh_search_text(made)
+        make_location(made, quantity=10, location="رف 5 خانة 1")
+        make_location(made, quantity=900, location="رف 5 خانة 3")
+        make_location(made, quantity=9999, location="رف 80")
+        db_session.commit()
+
+        unit = browse_flat(q="رف 5")[1][0]
+        assert unit["shelf"] == "رف 5 خانة 3"
+        assert unit["others"] == 2
+
+    def test_asking_for_one_slot_names_that_slot(
+        self, db_session, make_product, make_location
+    ):
+        from utils.search_text import refresh_search_text
+
+        made = make_product(name="منتج بخانة مطلوبة")
+        refresh_search_text(made)
+        make_location(made, quantity=10, location="رف 5 خانة 1")
+        make_location(made, quantity=900, location="رف 5 خانة 3")
+        db_session.commit()
+
+        assert browse_flat(q="رف 5 خانة 1")[1][0]["shelf"] == "رف 5 خانة 1"
+
     def test_a_product_with_no_shelf_text_says_so(
         self, db_session, make_product, make_location
     ):
