@@ -17,7 +17,8 @@ from models import (
 
 from flask_login import login_required
 
-from utils.catalogue import apply_sort
+from utils.catalogue import apply_sort, shelf_of
+from utils.shelves import parse_shelf
 from utils.text_search import apply_text_search
 
 PER_PAGE = 24
@@ -149,9 +150,19 @@ def register_search_routes(app):
 
         pagination = query.paginate(page=page, per_page=PER_PAGE, error_out=False)
 
+        # The card names a shelf, not a count of places — and when the query
+        # named one, that is the shelf it names. Same rule as the products
+        # page, from the same helper.
+        asked_for = parse_shelf(q)
+        places = {
+            product.id: shelf_of(product, asked_for)
+            for product in pagination.items
+        }
+
         return render_template(
             "search.html",
             products=pagination.items,
+            places=places,
             pagination=pagination,
             q=q,
             sort=sort,

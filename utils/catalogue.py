@@ -51,7 +51,7 @@ def apply_sort(query, sort, qty):
     return query.order_by(Product.id.desc()), "recent"
 
 
-def _where(product, wanted=None):
+def shelf_of(product, wanted=None):
     """The one shelf worth printing on a card, and how many others there are.
 
     A card used to show how MANY places a product sat in, which answers a
@@ -151,7 +151,7 @@ def browse_flat(category_filter="", stock_filter="", warehouse_filter="",
             "product": product,
             "quantity": product.total_quantity,
             "status": product.stock_status,
-            **_where(product, parse_shelf(q)),
+            **shelf_of(product, parse_shelf(q)),
         }
         for product in pagination.items
     ]

@@ -357,24 +357,35 @@ class TestSorting:
         assert least == list(reversed(most))
 
     def test_both_pages_offer_the_same_orders(self, catalogue, make_user, login):
-        """/search and /products used to disagree about what "quantity"
-        was called, which made one of them wrong whichever you read."""
+        """/search and /products used to disagree about what "quantity" was
+        called, which made one of them wrong whichever you read."""
         client = login(make_user())
 
         def offered(path):
+            """Every sort the page offers, as {key: label}.
+
+            The two pages spell an option differently — /products submits a
+            form, so the value is the key, while /search navigates, so the
+            value is a URL carrying it — and the labels are what has to
+            agree, not the plumbing.
+            """
             body = client.get(path).get_data(as_text=True)
-            return set(re.findall(r'<option value="(\w+)"[^>]*>([^<]+)</option>', body))
+            found = {}
+            for value, label in re.findall(
+                r'<option value="([^"]*)"[^>]*>([^<]+)</option>', body
+            ):
+                key = re.search(r"sort=(\w+)", value)
+                key = key.group(1) if key else value
+                if key in ("recent", "oldest", "name", "quantity",
+                           "quantity_asc"):
+                    found[key] = label.strip()
+            return found
 
-        shared = {
-            (value, label) for value, label in offered("/search")
-            if value in ("recent", "oldest", "name", "quantity", "quantity_asc")
-        }
-        theirs = {
-            (value, label) for value, label in offered("/products")
-            if value in ("quantity", "quantity_asc")
-        }
+        theirs, ours = offered("/search"), offered("/products")
 
-        assert {label for value, label in shared if value.startswith("quantity")}             == {label for value, label in theirs}
+        assert theirs, "the search page stopped offering any order"
+        assert set(theirs) == set(ours)
+        assert theirs == ours
 
     @pytest.mark.parametrize(
         "sort", ["recent", "oldest", "name", "quantity", "quantity_asc"]
@@ -587,3 +598,147 @@ class TestCategoryWords:
 
         found = result_ids(login(make_user()).get("/search", query_string={"q": "زجاج"}))
         assert found == sorted([catalogue["products"][0].id, polish.id])
+
+
+class TestTheHeader:
+    """Getting to the search at all.
+
+    The magnifier in the header pointed at "/", a page whose only job was to
+    hold a search box and forward it here — and nothing in the application
+    linked to the results page itself. Both facts were invisible until
+    someone followed the link.
+    """
+
+    def test_the_header_carries_a_search_field(self, make_user, login):
+        body = login(make_user()).get("/products").get_data(as_text=True)
+
+        assert 'class="header-search' in body
+        assert 'action="/search"' in body
+
+    def test_it_is_on_every_page_not_just_one(self, catalogue, make_user, login):
+        client = login(make_user())
+        for path in ("/products", "/search", "/", "/notifications"):
+            body = client.get(path).get_data(as_text=True)
+            assert 'class="header-search' in body, path
+
+    def test_it_keeps_what_is_being_searched(self, catalogue, make_user, login):
+        body = login(make_user()).get(
+            "/search", query_string={"q": "غطاء"}
+        ).get_data(as_text=True)
+
+        field = re.search(
+            r'<form class="header-search.*?</form>', body, re.S
+        )
+        assert field, "the header lost its search field"
+        assert 'value="غطاء"' in field.group(0)
+
+    def test_the_sidebar_search_goes_to_the_results(self, make_user, login):
+        body = login(make_user()).get("/products").get_data(as_text=True)
+
+        link = re.search(
+            r'<a class="sidebar-link[^"]*"[^>]*href="([^"]+)">\s*'
+            r'<i class="bi bi-search"></i>\s*البحث',
+            body,
+        )
+        assert link, "the sidebar lost its search entry"
+        assert link.group(1) == "/search"
+
+    def test_the_home_page_is_still_reachable(self, make_user, login):
+        """Repointing "البحث" would otherwise have orphaned it."""
+        body = login(make_user()).get("/products").get_data(as_text=True)
+
+        assert "الرئيسية" in body
+        assert re.search(r'href="/"[^>]*>\s*<i class="bi bi-house', body)
+
+
+class TestTheSearchCard:
+    """The results page had kept the old card after the products page moved
+    on, so the same product looked like two different things."""
+
+    @pytest.fixture()
+    def shelved(self, db_session, make_product, make_location):
+        from models import Color
+        from utils.search_text import refresh_search_text
+
+        colour = Color(name="أزرق سماوي", hex_code="#7EC8E3")
+        db_session.add(colour)
+        db_session.flush()
+
+        product = make_product(name="جرة اختبار", color_id=colour.id)
+        refresh_search_text(product)
+        make_location(product, quantity=40, location="رف 3")
+        make_location(product, quantity=900, location="رف 90")
+        db_session.commit()
+        return product
+
+    def test_it_is_the_same_card_as_the_products_page(
+        self, shelved, make_user, login
+    ):
+        body = login(make_user()).get("/search").get_data(as_text=True)
+
+        assert 'class="catalogue-card' in body
+        assert "product-meta-grid" not in body
+        assert '<div class="card-footer">' not in body
+
+    def test_it_names_the_shelf(self, shelved, make_user, login):
+        body = login(make_user()).get("/search").get_data(as_text=True)
+        assert "رف 90" in body
+
+    def test_the_shelf_asked_for_wins_here_too(self, shelved, make_user, login):
+        """Same rule as the products page, from the same helper."""
+        body = login(make_user()).get(
+            "/search", query_string={"q": "رف 3"}
+        ).get_data(as_text=True)
+
+        card = re.search(r'<span class="catalogue-shelf">(.*?)</span>', body, re.S)
+        assert card
+        assert "رف 3" in card.group(1)
+        assert "رف 90" not in card.group(1)
+
+    def test_the_colour_is_named_not_just_dotted(
+        self, shelved, make_user, login
+    ):
+        """A bare swatch is only readable by hovering it, which is no use on
+        a phone and little use when colour is what you are scanning for."""
+        client = login(make_user())
+
+        for path in ("/search", "/products"):
+            body = client.get(path).get_data(as_text=True)
+            assert 'class="catalogue-colour"' in body, path
+            assert "أزرق سماوي" in body, path
+
+    def test_a_narrow_screen_keeps_a_search_box_on_the_page(
+        self, shelved, make_user, login
+    ):
+        """The header's field is hidden below lg; without this one a phone
+        would have no way to search from the results page."""
+        body = login(make_user()).get("/search").get_data(as_text=True)
+
+        form = re.search(r'<form[^>]*class="search-onpage[^"]*".*?</form>',
+                         body, re.S)
+        assert form, "the page lost its narrow-screen search box"
+        assert "d-lg-none" in form.group(0)
+
+    def test_that_box_does_not_throw_away_the_filters(
+        self, shelved, make_user, login
+    ):
+        from models import Category
+
+        category = Category.query.first()
+        body = login(make_user()).get(
+            "/search", query_string={"category": category.id}
+        ).get_data(as_text=True)
+
+        form = re.search(r'<form[^>]*class="search-onpage[^"]*".*?</form>',
+                         body, re.S).group(0)
+        assert f'name="category" value="{category.id}"' in form
+
+    def test_an_empty_result_still_offers_the_box(
+        self, shelved, make_user, login
+    ):
+        body = login(make_user()).get(
+            "/search", query_string={"q": "خربطة"}
+        ).get_data(as_text=True)
+
+        assert "لا توجد نتائج" in body
+        assert 'class="search-onpage' in body

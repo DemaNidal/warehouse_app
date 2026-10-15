@@ -187,9 +187,21 @@
       <div class="d-flex align-items-center gap-2 gap-lg-3">
 
         <!-- SEARCH (desktop) -->
-        <a href="/" class="icon-btn d-none d-lg-inline-flex">
+        <!-- This was a magnifier pointing at "/", a page whose only job was
+             to hold a search box and send it here. A field in the header
+             removes the detour: search is one box away from wherever you
+             already are. Filters are not carried over — a search started
+             from the header is a new one. -->
+        <form class="header-search d-none d-lg-flex"
+              action="{{ url_for('search') }}" method="GET" role="search">
           <i class="bi bi-search"></i>
-        </a>
+          <input type="search"
+                 name="q"
+                 value="{{ request.args.get('q', '') }}"
+                 placeholder="ابحثي باسم المنتج أو برف…"
+                 aria-label="بحث"
+                 autocomplete="off">
+        </form>
 
         <!-- NOTIFICATIONS -->
         {% if current_user.role in ["ADMIN", "STORE_MANAGER"] %}
@@ -322,6 +334,12 @@
         {% endif %}
 
         <a class="sidebar-link {% if request.path=='/' %}active{% endif %}" href="/">
+          <i class="bi bi-house-door"></i> الرئيسية
+        </a>
+
+        <!-- used to point at "/", which was the doorway rather than the
+             results; nothing linked to the results page at all -->
+        <a class="sidebar-link {% if request.path=='/search' %}active{% endif %}" href="{{ url_for('search') }}">
           <i class="bi bi-search"></i> البحث
         </a>
 

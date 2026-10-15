@@ -20,50 +20,6 @@
   </span>
 </div>
 
-<!-- ================= SEARCH BAR ================= -->
-<div class="card shadow-sm mb-4">
-  <div class="card-body">
-    <form method="GET" class="row g-2 align-items-center">
-      <div class="col-12 col-md">
-        <div class="input-group input-group-lg">
-          <span class="input-group-text bg-white"><i class="bi bi-search text-muted"></i></span>
-          <input
-            type="text"
-            name="q"
-            value="{{ q }}"
-            class="form-control"
-            placeholder="اسم المنتج، لون، مقاس رقبة، سعة…"
-            autocomplete="off"
-            autofocus
-          >
-        </div>
-        <div class="form-text">
-          بتقدر تكتب أكتر من كلمة — «غطاء ازرق» بترجّع الأغطية الزرقاء بس.
-          والهمزة ما بتفرق: «اسود» و«أسود» نفس النتيجة.
-        </div>
-      </div>
-
-      <div class="col-6 col-md-auto">
-        <select name="sort" class="form-select" onchange="this.form.submit()">
-          <option value="recent" {% if sort == 'recent' %}selected{% endif %}>الأحدث</option>
-          <option value="oldest" {% if sort == 'oldest' %}selected{% endif %}>الأقدم</option>
-          <option value="name" {% if sort == 'name' %}selected{% endif %}>الاسم (أ-ي)</option>
-          <option value="quantity_asc" {% if sort == 'quantity_asc' %}selected{% endif %}>الأقل كمية</option>
-          <option value="quantity" {% if sort == 'quantity' %}selected{% endif %}>الأكثر كمية</option>
-        </select>
-      </div>
-
-      <div class="col-6 col-md-auto">
-        <button class="btn btn-primary w-100 px-4">بحث</button>
-      </div>
-
-      {% for key, value in filters.items() %}{% if value %}
-      <input type="hidden" name="{{ key }}" value="{{ value }}">
-      {% endif %}{% endfor %}
-    </form>
-  </div>
-</div>
-
 <div class="row g-4">
 
   <!-- ================= FILTER SIDEBAR ================= -->
@@ -189,96 +145,118 @@
   <!-- ================= RESULTS ================= -->
   <div class="col-12 col-lg-9">
 
+<div class="search-resultline">
+
+  <span class="search-count"><strong>{{ pagination.total }}</strong> منتج</span>
+
+  {# The header carries the search box, but it is hidden below lg — so the
+     page keeps one for narrow screens. This one holds the filters as hidden
+     fields, because searching again from inside the page should not throw
+     away the facets already chosen. #}
+  <form method="GET" class="search-onpage d-lg-none">
+    <i class="bi bi-search"></i>
+    <input type="search" name="q" value="{{ q }}" autocomplete="off"
+           placeholder="ابحثي باسم المنتج أو برف…">
+    {% for key, value in filters.items() %}{% if value %}
+    <input type="hidden" name="{{ key }}" value="{{ value }}">
+    {% endif %}{% endfor %}
+    <input type="hidden" name="sort" value="{{ sort }}">
+  </form>
+
+  <span class="search-hint d-none d-md-inline">
+    بتقدري تكتبي أكتر من كلمة — «غطاء ازرق» بترجّع الأغطية الزرقاء بس.
+    والهمزة ما بتفرق: «اسود» و«أسود» نفس النتيجة.
+  </span>
+
+  <select class="form-select search-sort"
+          onchange="location.href = this.value">
+    <option value="{{ url_with(sort='recent', page=None) }}" {% if sort == 'recent' %}selected{% endif %}>الأحدث إضافة</option>
+    <option value="{{ url_with(sort='oldest', page=None) }}" {% if sort == 'oldest' %}selected{% endif %}>الأقدم إضافة</option>
+    <option value="{{ url_with(sort='name', page=None) }}" {% if sort == 'name' %}selected{% endif %}>الاسم (أ-ي)</option>
+    <option value="{{ url_with(sort='quantity_asc', page=None) }}" {% if sort == 'quantity_asc' %}selected{% endif %}>الأقل كمية</option>
+    <option value="{{ url_with(sort='quantity', page=None) }}" {% if sort == 'quantity' %}selected{% endif %}>الأكثر كمية</option>
+  </select>
+
+</div>
+
+
 {% if products %}
 
-<div class="row g-4">
+
+<div class="catalogue-grid" style="--catalogue-cols:4">
 
     {% for product in products %}
+    {% set place = places[product.id] %}
 
-    <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+    <a href="/product/{{ product.id }}"
+       class="catalogue-card status-{{ product.stock_status|lower }}">
 
-        <div class="card product-card h-100 status-{{ product.stock_status|lower }}">
+        <div class="catalogue-strip"></div>
 
-            <div class="product-status-strip"></div>
+        <div class="catalogue-image">
+            {% if product.image %}
+            <img src="{{ image_url(product.image) }}"
+                 alt="{{ product.name }}"
+                 loading="lazy">
+            {% else %}
+            <i class="bi bi-image catalogue-noimage"></i>
+            {% endif %}
 
-            <div class="product-image-wrapper">
-
-                {% if product.image %}
-                <div class="product-image-inner">
-                  <img
-                      src="{{ image_url(product.image) }}"
-                      class="product-image"
-                      alt="{{ product.name }}"
-                  >
-                </div>
-                {% else %}
-                <div class="product-image-inner product-image-placeholder">
-                    <i class="bi bi-image"></i>
-                </div>
+            {% if product.color %}
+            <span class="catalogue-colour">
+                <span class="catalogue-swatch"
+                      style="background: {{ product.color.hex_code or '#cccccc' }}"></span>
+                {{ product.color.name }}
+                {% if product.secondary_color %}
+                <span class="catalogue-colour-sep">/</span>
+                <span class="catalogue-swatch"
+                      style="background: {{ product.secondary_color.hex_code or '#cccccc' }}"></span>
+                {{ product.secondary_color.name }}
                 {% endif %}
+            </span>
+            {% endif %}
+        </div>
 
-                <span class="badge-color d-inline-flex align-items-center gap-1">
-                    <span class="d-inline-block rounded-circle border" style="width:10px; height:10px; background:{{ product.color.hex_code or '#ccc' }};"></span>
-                    {{ product.color.name }}
-                    {% if product.secondary_color %}
-                    <span class="mx-1">/</span>
-                    <span class="d-inline-block rounded-circle border" style="width:10px; height:10px; background:{{ product.secondary_color.hex_code or '#ccc' }};"></span>
-                    {{ product.secondary_color.name }}
+        <div class="catalogue-body">
+
+            <div class="catalogue-eyebrow">
+                {{ product.category.name if product.category else 'بدون تصنيف' }}
+            </div>
+
+            <div class="catalogue-name" title="{{ product.name }}">
+                {{ product.name }}
+            </div>
+
+            <div class="catalogue-spec">
+                {%- set spec = [] -%}
+                {%- if product.size_data %}{% set _ = spec.append(product.size_data.name) %}{% endif -%}
+                {%- if product.neck_size %}{% set _ = spec.append('رقبة ' ~ product.neck_size.name) %}{% endif -%}
+                {{ spec | join(' · ') if spec else '' }}&nbsp;
+            </div>
+
+            <div class="catalogue-foot">
+
+                <span class="catalogue-qty {% if product.total_quantity >= 100000 %}is-long{% endif %}">
+                    {{ "{:,}".format(product.total_quantity) }}<small>حبة</small>
+                </span>
+
+                <span class="catalogue-shelf">
+                    <i class="bi bi-geo-alt"></i>
+                    {% if place.shelf %}
+                    {{ place.shelf }}
+                    {% if place.others %}<span class="catalogue-more">+{{ place.others }}</span>{% endif %}
+                    {% elif product.locations %}
+                    <span class="catalogue-dim">{{ product.locations|length }} مواقع بدون رف</span>
+                    {% else %}
+                    <span class="catalogue-dim">ما في موقع</span>
                     {% endif %}
                 </span>
 
             </div>
 
-            <div class="card-body">
-
-                <h5 class="fw-bold mb-1 product-title" title="{{ product.name }}">{{ product.name }}</h5>
-
-                <div class="product-meta-grid">
-
-                    <div class="meta-item">
-                        <span class="label">الحجم</span>
-                        <div class="value">
-                            {{ product.size_data.name if product.size_data else "-" }}
-                        </div>
-                    </div>
-
-                    <div class="meta-item meta-qty">
-                        <span class="label">الكمية</span>
-                        <div class="value status-{{ product.stock_status|lower }}">{{ product.total_quantity }}</div>
-                    </div>
-
-                    <div class="meta-item">
-                        <span class="label">الحالة</span>
-                        <div class="value">
-                            {% if product.stock_status == "CRITICAL" %}
-                            <span class="badge bg-danger">نفد</span>
-                            {% elif product.stock_status == "LOW" %}
-                            <span class="badge bg-warning text-dark">منخفض</span>
-                            {% else %}
-                            <span class="badge bg-success">متوفر</span>
-                            {% endif %}
-                        </div>
-                    </div>
-
-                    <div class="meta-item">
-                        <span class="label">المواقع</span>
-                        <div class="value">{{ product.locations|length }}</div>
-                    </div>
-
-                </div>
-
-            </div>
-
-            <div class="card-footer">
-                <a href="/product/{{ product.id }}" class="btn btn-outline-primary w-100">
-                    <i class="bi bi-eye"></i>
-                    عرض التفاصيل
-                </a>
-            </div>
-
         </div>
 
-    </div>
+    </a>
 
     {% endfor %}
 
