@@ -16,7 +16,11 @@
 
 param(
     [ValidateSet("start", "stop", "restart", "status")]
-    [string]$Action = "status"
+    [string]$Action = "status",
+
+    # set only when this script relaunched itself through UAC, so the new
+    # window waits before closing instead of flashing past
+    [switch]$Relaunched
 )
 
 $TaskName = "WarehouseApp"
@@ -26,6 +30,41 @@ function Test-Elevated {
     $id = [Security.Principal.WindowsIdentity]::GetCurrent()
     (New-Object Security.Principal.WindowsPrincipal $id).IsInRole(
         [Security.Principal.WindowsBuiltInRole]::Administrator)
+}
+
+# ---------------------------------------------------------------- elevation
+#
+# The server runs as SYSTEM, and a SYSTEM process cannot be stopped — or even
+# read — from an ordinary session. Without this, restart.bat reported that it
+# could not stop the server and left it running, which looked exactly like
+# the button doing nothing at all. Ask for the rights instead of explaining
+# afterwards that they were missing.
+
+if (-not (Test-Elevated)) {
+    Write-Host ""
+    Write-Host "بدها صلاحيات مسؤول — رح يطلع طلب من ويندوز، اضغطي «نعم»." -ForegroundColor Yellow
+
+    try {
+        $arguments = @(
+            "-NoProfile", "-ExecutionPolicy", "Bypass",
+            "-File", "`"$PSCommandPath`"",
+            "-Action", $Action,
+            "-Relaunched"
+        )
+        Start-Process -FilePath "powershell.exe" `
+                      -ArgumentList $arguments `
+                      -Verb RunAs `
+                      -ErrorAction Stop
+    }
+    catch {
+        Write-Host ""
+        Write-Host "ما انفتحت بصلاحيات مسؤول." -ForegroundColor Red
+        Write-Host "إذا رفضتِ الطلب: شغّليها مرة تانية واضغطي «نعم»." -ForegroundColor Yellow
+        Write-Host "وإلا: كبسة يمين على الملف ← Run as administrator." -ForegroundColor Yellow
+        Write-Host ""
+    }
+
+    exit
 }
 
 function Get-Listener {
@@ -188,4 +227,9 @@ switch ($Action) {
         if (Stop-Server) { Start-Sleep -Seconds 2; Start-Server | Out-Null }
         Show-Status
     }
+}
+
+if ($Relaunched) {
+    Write-Host "اضغطي أي زر للإغلاق..." -ForegroundColor DarkGray
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
 }
