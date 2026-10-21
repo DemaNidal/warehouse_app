@@ -18,3 +18,9 @@ logs/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Image-search trial: a 352 MB model and a rebuildable index, neither of
+# which belongs in the repository. Delete the folder to undo the experiment.
+tools/image_search_trial/*.onnx
+tools/image_search_trial/*.npz
+tools/image_search_trial/uploads/

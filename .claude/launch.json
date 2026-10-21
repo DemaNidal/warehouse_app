@@ -4,8 +4,18 @@
     {
       "name": "warehouse-flask",
       "runtimeExecutable": "venv/Scripts/python.exe",
-      "runtimeArgs": ["wsgi.py"],
+      "runtimeArgs": [
+        "wsgi.py"
+      ],
       "port": 5000
+    },
+    {
+      "name": "image-search-trial",
+      "runtimeExecutable": "venv/Scripts/python.exe",
+      "runtimeArgs": [
+        "tools/image_search_trial/server.py"
+      ],
+      "port": 5001
     }
   ]
 }
