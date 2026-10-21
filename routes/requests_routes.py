@@ -16,7 +16,6 @@ from models import (
     db,
     User,
     StockRequest,
-    Notification,
     InventoryLocation,
     InventoryTransaction,
     Product
@@ -26,7 +25,10 @@ from sqlalchemy.orm import joinedload
 from datetime import datetime, timedelta
 
 from utils.activity_logger import log_activity
-from utils.notifications import generate_stock_notifications
+from utils.notifications import (
+    generate_stock_notifications,
+    notify_requester,
+)
 from utils.permissions import admin_required
 
 
@@ -311,6 +313,11 @@ def register_requests_routes(app):
             req.approved_by = current_user.id
             req.approved_at = db.func.now()
 
+            # the notifications page has had an "OUT_APPROVED" branch all
+            # along — icon, wording and all — waiting for a notification
+            # that nothing created
+            notify_requester(req, approved=True)
+
             db.session.add(req)
             db.session.commit()
 
@@ -356,13 +363,7 @@ def register_requests_routes(app):
 
             db.session.add(req)
 
-            db.session.add(Notification(
-                user_id=req.requested_by,
-                product_id=req.product_id,
-                type="OUT_REJECTED",
-                is_read=False,
-                target_url=url_for("product_details", product_id=req.product_id)
-            ))
+            notify_requester(req, approved=False)
 
             db.session.commit()
 

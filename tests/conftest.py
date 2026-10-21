@@ -215,12 +215,25 @@ def make_location(db_session):
 
 @pytest.fixture()
 def login(client):
-    """Put a user in the session without going through the password form."""
+    """Put a user in the session without going through the password form.
+
+    The cached user has to go with it. db_session holds one app context
+    open for the whole test, and Flask-Login caches the loaded user on `g`,
+    which belongs to that context — so without clearing it a second login
+    writes the new id into the session and every request afterwards still
+    answers as the first user. Nothing to do with the application, where
+    each request pushes and pops a context of its own.
+    """
+    from flask import g
 
     def _login(user):
         with client.session_transaction() as session:
             session["_user_id"] = str(user.id)
             session["_fresh"] = True
+
+        for cached in ("_login_user", "_cached_user"):
+            g.pop(cached, None)
+
         return client
 
     return _login

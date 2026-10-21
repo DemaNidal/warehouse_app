@@ -26,7 +26,10 @@ from models import (
 from utils.permissions import admin_required, manager_required
 from utils.system_guard import ensure_system_ready
 from utils.validation.transaction import validate_transaction
-from utils.notifications import generate_stock_notifications
+from utils.notifications import (
+    generate_stock_notifications,
+    notify_managers_of_request,
+)
 from utils.activity_logger import log_activity
 from utils.transaction_undo import (
     compute_undoable_transaction_ids,
@@ -136,7 +139,7 @@ def register_transaction_routes(app):
                             flash("يوجد طلب معلق مسبقاً لهذا المنتج", "warning")
                             return redirect(url_for("product_details", product_id=product.id))
 
-                        db.session.add(StockRequest(
+                        stock_request = StockRequest(
                             product_id=product.id,
                             location_id=location.id,
                             quantity=quantity,
@@ -145,7 +148,15 @@ def register_transaction_routes(app):
                             requested_by=current_user.id,
                             status="PENDING",
                             customer_id=data["customer_id"]
-                        ))
+                        )
+                        db.session.add(stock_request)
+
+                        # the request used to be saved and nobody told: a
+                        # manager learned of it by opening the page on the
+                        # off chance. Flushed first so the row has an id and
+                        # the notifications point at a request that exists.
+                        db.session.flush()
+                        notify_managers_of_request(stock_request)
 
                         db.session.commit()   # ✅ IMPORTANT HERE
 
