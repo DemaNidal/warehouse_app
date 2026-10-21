@@ -1670,3 +1670,321 @@ body {
 }
 
 .catalogue-colour-sep { color: #b9c3d4; font-weight: 400; }
+
+
+/* ===================================================================
+   لوحة التحكم
+   ===================================================================
+   What this replaced: a banner telling the only person who opens this
+   page what the page is, four stat cards of which two restated the
+   table beneath them and a third restated the navbar bell, and an
+   unbounded list that pushed everything else off the screen. Three
+   months of recorded movement never appeared at all.
+   =================================================================== */
+
+.dash-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.dash-head h1 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    margin: 0;
+    color: #1f2937;
+}
+
+.dash-head p {
+    margin: 2px 0 0;
+    color: #8b94a3;
+    font-size: .86rem;
+}
+
+
+/* ---- الأرقام ---- */
+
+.dash-stats {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 18px;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+}
+
+.dash-stat {
+    display: block;
+    background: #fff;
+    border: 1px solid #e6e9ef;
+    border-radius: 14px;
+    padding: 14px 16px;
+    text-decoration: none;
+    color: inherit;
+    border-inline-start-width: 4px;
+    transition: .15s;
+}
+
+.dash-stat:hover {
+    box-shadow: 0 6px 18px rgba(18, 38, 63, .08);
+    color: inherit;
+    transform: translateY(-1px);
+}
+
+.dash-stat .n {
+    display: block;
+    font-size: 1.9rem;
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+.dash-stat .t {
+    display: block;
+    font-weight: 700;
+    font-size: .9rem;
+    color: #1f2937;
+    margin-top: 2px;
+}
+
+.dash-stat small { color: #8b94a3; font-size: .76rem; }
+
+.dash-stat.is-danger { border-inline-start-color: #dc3545; }
+.dash-stat.is-danger .n { color: #dc3545; }
+.dash-stat.is-warn { border-inline-start-color: #f0a500; }
+.dash-stat.is-warn .n { color: #c98400; }
+.dash-stat.is-calm { border-inline-start-color: #2f6fd0; }
+.dash-stat.is-calm .n { color: #2f6fd0; }
+
+
+/* ---- اللوحات ---- */
+
+.dash-panel {
+    background: #fff;
+    border: 1px solid #e6e9ef;
+    border-radius: 16px;
+    padding: 16px 18px;
+    margin-bottom: 18px;
+}
+
+.dash-panel-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.dash-panel-head h2 {
+    font-size: .98rem;
+    font-weight: 800;
+    margin: 0;
+    color: #1f2937;
+}
+
+.dash-panel-head a {
+    font-size: .82rem;
+    text-decoration: none;
+    color: #2f6fd0;
+}
+
+.dash-grid {
+    display: grid;
+    gap: 18px;
+    grid-template-columns: 1.35fr 1fr;
+}
+
+@media (max-width: 991.98px) {
+    .dash-grid { grid-template-columns: 1fr; }
+}
+
+
+/* ---- رسم الحركة ---- */
+
+.dash-legend {
+    font-size: .76rem;
+    color: #8b94a3;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.dash-legend .sw {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    display: inline-block;
+    margin-inline-end: 4px;
+}
+
+.dash-legend .sw.in { background: #2f6fd0; }
+.dash-legend .sw.out { background: #f0a500; }
+
+/* The row runs right to left on its own in RTL, so the oldest day lands
+   on the right and time reads the same way as the words. */
+.dash-trend {
+    display: flex;
+    align-items: flex-end;
+    gap: 3px;
+    height: 150px;
+    padding-top: 8px;
+}
+
+.dash-trend-day {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    position: relative;
+}
+
+.dash-trend-day:hover .bar.in { background: #1d5bb8; }
+.dash-trend-day:hover .bar.out { background: #d79200; }
+
+.dash-trend-bars {
+    display: flex;
+    flex-direction: column-reverse;
+    justify-content: flex-start;
+    height: calc(100% - 18px);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.dash-trend .bar {
+    display: block;
+    width: 100%;
+    transition: background .12s;
+}
+
+.dash-trend .bar.in { background: #2f6fd0; }
+.dash-trend .bar.out { background: #f0a500; }
+
+/* a day with nothing recorded is a flat line, not a gap: an empty column
+   reads as missing data rather than a quiet day */
+.dash-trend .bar.none {
+    height: 2px;
+    background: #e9edf3;
+    margin-top: auto;
+}
+
+.dash-trend .tick {
+    position: absolute;
+    bottom: 0;
+    inset-inline-start: 50%;
+    transform: translateX(50%);
+    font-size: .68rem;
+    color: #8b94a3;
+    white-space: nowrap;
+}
+
+
+/* ---- جدول الأقرب للنفاد ---- */
+
+.dash-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .86rem;
+}
+
+.dash-table th {
+    text-align: start;
+    font-size: .72rem;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: #8b94a3;
+    font-weight: 700;
+    padding: 0 8px 8px;
+}
+
+.dash-table td {
+    padding: 9px 8px;
+    border-top: 1px solid #f1f3f7;
+    vertical-align: middle;
+}
+
+.dash-table tbody tr { cursor: pointer; }
+.dash-table tbody tr:hover { background: #f8fafc; }
+
+.dash-table .name { font-weight: 600; color: #1f2937; }
+.dash-table .qty b { font-size: 1rem; }
+.dash-table .qty b.is-zero { color: #dc3545; }
+.dash-table .qty b.is-low { color: #c98400; }
+.dash-table .qty small { color: #8b94a3; margin-inline-start: 3px; }
+
+.dash-tag {
+    font-size: .72rem;
+    font-weight: 700;
+    border-radius: 999px;
+    padding: 2px 9px;
+    white-space: nowrap;
+}
+
+.dash-tag.is-zero { background: #fde8e8; color: #9b1c1c; }
+.dash-tag.is-low { background: #fff4d6; color: #8a5a00; }
+
+.dash-more {
+    margin-top: 10px;
+    font-size: .8rem;
+    color: #8b94a3;
+    text-align: center;
+}
+
+
+/* ---- آخر الحركات ---- */
+
+.dash-moves {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.dash-moves li {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 9px 0;
+    border-top: 1px solid #f1f3f7;
+}
+
+.dash-moves li:first-child { border-top: 0; }
+
+.dash-moves .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex: none;
+}
+
+.dash-moves .is-in .dot { background: #2f6fd0; }
+.dash-moves .is-out .dot { background: #f0a500; }
+
+.dash-moves div { flex: 1; min-width: 0; }
+
+.dash-moves b {
+    display: block;
+    font-size: .85rem;
+    font-weight: 600;
+    color: #1f2937;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dash-moves small { color: #8b94a3; font-size: .76rem; }
+.dash-moves time { font-size: .76rem; color: #8b94a3; white-space: nowrap; }
+
+
+/* ---- الفاضي ---- */
+
+.dash-empty {
+    text-align: center;
+    padding: 26px 12px;
+    color: #8b94a3;
+    font-size: .88rem;
+}
+
+.dash-empty.ok { color: #198754; }
+.dash-empty i { display: block; font-size: 1.6rem; margin-bottom: 6px; }

@@ -8,12 +8,17 @@ from models import (
     Product,
     InventoryLocation,
     InventoryTransaction,
-    Notification,
     STOCK_LOW,
     STOCK_CRITICAL,
     TRANSACTION_LABELS
 )
+from utils.dashboard import TREND_DAYS, movement_trend, movements_since
 from utils.permissions import manager_required
+
+# The table used to render every product under its minimum — twenty rows
+# today, and nothing stopping it being sixty, which pushes the rest of the
+# page off the screen. The rest are one click away now.
+LOW_STOCK_SHOWN = 8
 
 
 def register_dashboard_routes(app):
@@ -54,17 +59,14 @@ def register_dashboard_routes(app):
             .all()
         )
 
-        attention_count = len(low_stock_products)
-
+        # "نفد" and "منخفض" used to overlap: the first number counted the
+        # second one's products too, so the two cards on the page added up
+        # to more than the list beneath them.
         critical_count = sum(
             1 for p in low_stock_products
             if p.stock_status == STOCK_CRITICAL
         )
-
-        unread_notifications = Notification.query.filter_by(
-            user_id=current_user.id,
-            is_read=False
-        ).count()
+        low_count = len(low_stock_products) - critical_count
 
         recent_transactions = (
             InventoryTransaction.query
@@ -80,12 +82,17 @@ def register_dashboard_routes(app):
         return render_template(
             "dashboard.html",
             product_count=product_count,
-            attention_count=attention_count,
             critical_count=critical_count,
-            unread_notifications=unread_notifications,
-            low_stock_products=low_stock_products,
+            low_count=low_count,
+            needing_attention=len(low_stock_products),
+            low_stock_products=low_stock_products[:LOW_STOCK_SHOWN],
+            hidden_count=max(len(low_stock_products) - LOW_STOCK_SHOWN, 0),
             recent_transactions=recent_transactions,
             transaction_labels=TRANSACTION_LABELS,
+            trend=movement_trend(),
+            trend_days=TREND_DAYS,
+            week_movements=movements_since(7),
+            total_movements=InventoryTransaction.query.count(),
             STOCK_LOW=STOCK_LOW,
             STOCK_CRITICAL=STOCK_CRITICAL
         )
