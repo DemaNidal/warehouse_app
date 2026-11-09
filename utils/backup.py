@@ -90,14 +90,64 @@ def export_uploads(temp_dir):
         shutil.copytree(UPLOAD_FOLDER, uploads_dst, dirs_exist_ok=True)
 
 
+# What an upload is allowed to be. Everything the image pipeline writes is
+# WebP, but an archive old enough predates that and carries the originals.
+RESTORABLE_UPLOAD_EXTENSIONS = {".webp", ".png", ".jpg", ".jpeg", ".gif"}
+
+
 def restore_uploads(temp_dir):
 
     # Restoring stays unconditional: an older archive may still carry images,
     # and putting them back is harmless even when the app now reads from R2.
     uploads_src = os.path.join(temp_dir, "uploads")
 
-    if os.path.exists(uploads_src):
-        shutil.copytree(uploads_src, UPLOAD_FOLDER, dirs_exist_ok=True)
+    if not os.path.exists(uploads_src):
+        return
+
+    # Images only. Whatever lands in this folder is served by /uploads/ from
+    # the application's own origin, so an archive carrying a .html or an .svg
+    # would be a page running as the site itself. A backup file is something
+    # a person hands you — it is not necessarily one this application wrote.
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+    target_root = os.path.realpath(UPLOAD_FOLDER)
+    restored = 0
+    refused = []
+
+    for root, _, files in os.walk(uploads_src):
+        for name in files:
+
+            if os.path.splitext(name)[1].lower() not in RESTORABLE_UPLOAD_EXTENSIONS:
+                refused.append(name)
+                continue
+
+            source = os.path.join(root, name)
+            destination = os.path.join(
+                UPLOAD_FOLDER, os.path.relpath(source, uploads_src)
+            )
+
+            # The extraction already refuses an archive whose paths climb out
+            # of the folder; this is the same check at the second place that
+            # writes, so neither one is the only thing standing in the way.
+            resolved = os.path.realpath(destination)
+            if not resolved.startswith(target_root + os.sep):
+                refused.append(name)
+                continue
+
+            os.makedirs(os.path.dirname(destination), exist_ok=True)
+            shutil.copy2(source, destination)
+            restored += 1
+
+    logger.info("Restored %s image(s) from the archive", restored)
+
+    if refused:
+        logger.warning(
+            "Refused %s file(s) in the archive's uploads folder that are not "
+            "images: %s",
+            len(refused), ", ".join(sorted(refused)[:10]),
+        )
+
+    return restored, refused
 
 
 # =========================
@@ -240,6 +290,15 @@ def clear_database():
         db.session.commit()
 
 
+def _schema_columns(table_name):
+    """The columns this table actually has, spelled as the database spells
+    them. The only names allowed into a generated INSERT."""
+
+    inspector = inspect(db.engine)
+
+    return {column["name"] for column in inspector.get_columns(table_name)}
+
+
 def restore_table(table_name, data_dir):
 
     json_file = os.path.join(data_dir, f"{table_name}.json")
@@ -253,21 +312,49 @@ def restore_table(table_name, data_dir):
     if not rows:
         return
 
-    for row in rows:
+    # Column names used to go from the archive's JSON straight into the SQL
+    # with nothing around them but a pair of quotes, so a key containing a
+    # quote wrote its own statement. They are now matched against the columns
+    # the table really has, and anything unrecognised is dropped — which also
+    # fixes the other half of the problem: an archive taken before a column
+    # was removed used to abort the whole restore, at the one moment a
+    # restore cannot be allowed to fail.
+    known = _schema_columns(table_name)
 
-        columns = list(row.keys())
+    archived = list(rows[0].keys())
+    columns = [column for column in archived if column in known]
 
-        column_names = ", ".join(f'"{c}"' for c in columns)
+    unknown = [column for column in archived if column not in known]
+    if unknown:
+        logger.warning(
+            "Table %s: ignoring %s archived column(s) the schema does not "
+            "have: %s",
+            table_name, len(unknown), ", ".join(repr(c) for c in unknown),
+        )
 
-        placeholders = ", ".join(f":{c}" for c in columns)
+    if not columns:
+        logger.warning(
+            "Table %s: skipped, none of its archived columns still exist",
+            table_name,
+        )
+        return
 
-        sql = text(f"""
-            INSERT INTO "{table_name}"
-            ({column_names})
-            VALUES ({placeholders})
-        """)
+    column_names = ", ".join(f'"{c}"' for c in columns)
+    placeholders = ", ".join(f":{c}" for c in columns)
 
-        db.session.execute(sql, row) 
+    sql = text(f"""
+        INSERT INTO "{table_name}"
+        ({column_names})
+        VALUES ({placeholders})
+    """)
+
+    # One statement for the whole table rather than a round trip per row.
+    # The movements table is the one that grows without limit, and it is the
+    # one a restore spends all its time on.
+    db.session.execute(
+        sql,
+        [{column: row.get(column) for column in columns} for row in rows],
+    )
 
 def restore_database(data_dir):
 
