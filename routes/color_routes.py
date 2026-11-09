@@ -13,6 +13,7 @@ from utils.activity_logger import log_activity
 from utils.permissions import admin_required, manager_required
 from utils.system_guard import ensure_system_ready
 from utils.validation.color import validate_color_name
+from utils.search_text import refresh_search_text_for
 from sqlalchemy.exc import IntegrityError
 
 def register_color_routes(app):
@@ -117,6 +118,20 @@ def register_color_routes(app):
 
         color.name = data["name"]
         color.hex_code = data["hex_code"]
+
+        # The name is copied into the search_text of every product using
+        # this colour, so a rename that stops at this row leaves the
+        # catalogue findable only under the spelling nobody will type
+        # again.
+        refresh_search_text_for(
+            Product.query.filter(
+                db.or_(
+                    Product.color_id == color.id,
+                    Product.secondary_color_id == color.id
+                )
+            ).all()
+        )
+
         db.session.commit()
         log_activity(
             current_user.id,

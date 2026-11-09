@@ -1,5 +1,3 @@
-import datetime
-
 from flask import (
     render_template,
     redirect,
@@ -22,9 +20,9 @@ from models import (
 )
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
-from datetime import datetime, timedelta
 
 from utils.activity_logger import log_activity
+from utils.clock import local_day_bounds
 from utils.notifications import (
     generate_stock_notifications,
     notify_requester,
@@ -139,16 +137,17 @@ def register_requests_routes(app):
             )
 
         if date:
-            try:
-                selected_date = datetime.strptime(date, "%Y-%m-%d")
-                next_day = selected_date + timedelta(days=1)
+            bounds = local_day_bounds(date)
 
-                query = query.filter(
-                    StockRequest.created_at >= selected_date,
-                    StockRequest.created_at < next_day
-                )
-            except ValueError:
+            if bounds is None:
                 date = ""
+            else:
+                # created_at holds UTC; the box holds a local day.
+                day_start, day_end = bounds
+                query = query.filter(
+                    StockRequest.created_at >= day_start,
+                    StockRequest.created_at < day_end
+                )
 
         # ----------------------------------
         # Sorting

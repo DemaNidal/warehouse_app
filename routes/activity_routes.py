@@ -3,9 +3,9 @@ from flask_login import login_required
 
 from models import db, ActivityLog, User
 from utils.permissions import admin_required
+from utils.clock import local_day_bounds
 
 from sqlalchemy.orm import joinedload
-from datetime import datetime, timedelta
 
 def register_activity_routes(app):
 
@@ -32,15 +32,17 @@ def register_activity_routes(app):
             query = query.filter(ActivityLog.action == action)
 
         if date:
-            try:
-                selected_date = datetime.strptime(date, "%Y-%m-%d")
-                next_day = selected_date + timedelta(days=1)
-                query = query.filter(
-                    ActivityLog.created_at >= selected_date,
-                    ActivityLog.created_at < next_day
-                )
-            except ValueError:
+            bounds = local_day_bounds(date)
+
+            if bounds is None:
                 date = ""
+            else:
+                # created_at holds UTC; the box holds a local day.
+                day_start, day_end = bounds
+                query = query.filter(
+                    ActivityLog.created_at >= day_start,
+                    ActivityLog.created_at < day_end
+                )
 
         logs = query.order_by(ActivityLog.created_at.desc()).paginate(
             page=page, per_page=20, error_out=False, max_per_page=100

@@ -55,6 +55,21 @@ def refresh_search_text(product):
     return product.search_text
 
 
+def refresh_search_text_for(products):
+    """Recompute for a whole set at once.
+
+    A colour or a measurement has its name copied into the search_text of
+    every product carrying it, so renaming one row has to rewrite all of
+    them. There is a script that rebuilds the column, and depending on
+    somebody remembering to run it is exactly how the column went stale.
+    """
+
+    for product in products:
+        refresh_search_text(product)
+
+    return len(products)
+
+
 def tokenize_query(raw):
     """Split what the user typed into normalised words.
 

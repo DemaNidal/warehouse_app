@@ -15,7 +15,7 @@ The columns are `timestamp without time zone`, so what is stored is naive — th
 convention is that a naive datetime anywhere in this system is UTC.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 # Where the warehouse is. Only display uses it; nothing is stored in it.
@@ -41,6 +41,26 @@ def to_local(value):
         value = value.replace(tzinfo=UTC)
 
     return value.astimezone(LOCAL_TZ)
+
+
+def local_day_bounds(date_text):
+    """The UTC half-open interval covering one local calendar day.
+
+    Every filter that takes a date off a form means a day in Nablus,
+    while the column it compares against holds UTC. Reading the typed
+    date as a naive midnight -- which is what each of these filters used
+    to do -- files a movement made at 01:00 local under the day before,
+    and drops the last hours of the day entirely.
+
+    Returns (start, end), or None if the text is not a date.
+    """
+
+    try:
+        day = datetime.strptime(date_text, "%Y-%m-%d")
+    except (TypeError, ValueError):
+        return None
+
+    return local_to_utc(day), local_to_utc(day + timedelta(days=1))
 
 
 def local_to_utc(value):

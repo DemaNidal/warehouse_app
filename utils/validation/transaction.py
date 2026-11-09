@@ -15,7 +15,14 @@ def validate_transaction(form):
     except Exception:
         return fail("بيانات غير صحيحة")
 
-    if quantity <= 0:
+    # For an adjustment the number is the count found on the shelf, not an
+    # amount moved, and a shelf counted empty is an ordinary result. Every
+    # other type moves stock, where zero would mean nothing happened.
+    if transaction_type == "ADJUSTMENT":
+        if quantity < 0:
+            return fail("الكمية لا يمكن أن تكون سالبة")
+
+    elif quantity <= 0:
         return fail("الكمية يجب أن تكون أكبر من صفر")
 
     notes = form.get("notes", "").strip()

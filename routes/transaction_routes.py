@@ -31,6 +31,7 @@ from utils.notifications import (
     notify_managers_of_request,
 )
 from utils.activity_logger import log_activity
+from utils.clock import local_day_bounds
 from utils.transaction_undo import (
     compute_undoable_transaction_ids,
     is_transaction_undoable,
@@ -38,7 +39,6 @@ from utils.transaction_undo import (
 )
 from sqlalchemy.orm import joinedload
 from sqlalchemy import or_
-from datetime import datetime, timedelta
 
 
 def register_transaction_routes(app):
@@ -253,15 +253,17 @@ def register_transaction_routes(app):
             )
 
         if date:
-            try:
-                selected_date = datetime.strptime(date, "%Y-%m-%d")
-                next_day = selected_date + timedelta(days=1)
-                query = query.filter(
-                    InventoryTransaction.created_at >= selected_date,
-                    InventoryTransaction.created_at < next_day
-                )
-            except ValueError:
+            bounds = local_day_bounds(date)
+
+            if bounds is None:
                 date = ""
+            else:
+                # created_at holds UTC; the box holds a local day.
+                day_start, day_end = bounds
+                query = query.filter(
+                    InventoryTransaction.created_at >= day_start,
+                    InventoryTransaction.created_at < day_end
+                )
 
         transactions = query.order_by(
             InventoryTransaction.created_at.desc()

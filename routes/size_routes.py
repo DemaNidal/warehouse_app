@@ -13,6 +13,7 @@ from utils.activity_logger import log_activity
 from utils.permissions import admin_required, manager_required
 from utils.system_guard import ensure_system_ready
 from utils.validation.size import validate_size_name
+from utils.search_text import refresh_search_text_for
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import joinedload
 
@@ -136,6 +137,19 @@ def register_size_routes(app):
 
         size.name = name
         size.kind = kind
+
+        # Same as a colour: the measurement's name lives in each
+        # product's search_text, and a neck size is written in twice --
+        # bare, and as "رقبة 28/410", because both are searched for.
+        refresh_search_text_for(
+            Product.query.filter(
+                db.or_(
+                    Product.size_id == size.id,
+                    Product.neck_size_id == size.id
+                )
+            ).all()
+        )
+
         db.session.commit()
 
         flash("تم تعديل الحجم بنجاح", "success")
