@@ -127,7 +127,7 @@
                     <td>
                         <span
                             class="d-inline-block rounded-circle border align-middle me-2"
-                            style="width:16px; height:16px; background:{{ color.hex_code or '#e2e8f0' }};"
+                            style="width:16px; height:16px; background:{{ color.hex_code|swatch }};"
                             title="{{ color.hex_code or 'بدون لون محدد' }}"
                         ></span>
                         {{ color.name }}
@@ -146,7 +146,7 @@
                             class="btn btn-warning btn-sm"
                             data-id="{{ color.id }}"
                             data-name="{{ color.name }}"
-                            data-hex="{{ color.hex_code or '#94A3B8' }}"
+                            data-hex="{{ color.hex_code|swatch }}"
                             onclick="openColorModal(this)"
                         >
                             <i class="bi bi-pencil"></i> تعديل
@@ -261,7 +261,10 @@
 <!-- ================= JS ================= -->
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    setupColorNameSuggestion("newColorName", "newColorHex", "newColorHexText");
+    setupColorNameSuggestion(
+        "newColorName", "newColorHex", "newColorHexText",
+        "{{ url_for('suggest_color_hex') }}"
+    );
 });
 
 function openColorModal(btn) {

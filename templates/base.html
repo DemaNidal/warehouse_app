@@ -526,6 +526,10 @@ function setupQuantityCalculator(exprInputId, hiddenInputId, resultTextId, expre
 // COLOR SWATCH PREVIEW (mirrors a <select>'s chosen option's
 // data-hex attribute onto a small preview dot)
 // ==============================
+// The one grey that means "no colour code recorded", rendered from
+// utils/color_names.py so the page and the server cannot disagree.
+const EMPTY_SWATCH = "{{ empty_swatch }}";
+
 function updateColorSwatch(selectId, previewId) {
     const select = document.getElementById(selectId);
     const preview = document.getElementById(previewId);
@@ -534,71 +538,28 @@ function updateColorSwatch(selectId, previewId) {
     const option = select.options[select.selectedIndex];
     const hex = option ? option.dataset.hex : "";
 
-    preview.style.background = hex || "#e2e8f0";
+    preview.style.background = hex || EMPTY_SWATCH;
 }
 
 // ==============================
-// AUTO-SUGGEST HEX FROM COLOR NAME (used only on the add-color
-// form, where the picker starts unset — stops suggesting the
-// moment the user manually touches the picker themselves)
+// AUTO-SUGGEST HEX FROM COLOR NAME
+//
+// The names and the rule used to live here, in a 35-entry object beside a
+// second hand-written copy of the Arabic normaliser. They are in
+// utils/color_names.py now, for the same reason the category suggestion is
+// server-side: one place to fix, and nothing to drift against.
 // ==============================
-const COLOR_NAME_HEX_MAP = {
-    "ابيض": "#F8FAFC",
-    "احمر": "#DC2626",
-    "اخضر": "#16A34A",
-    "ازرق": "#2563EB",
-    "اسود": "#111827",
-    "اصفر": "#FACC15",
-    "برتقالي": "#F97316",
-    "بني": "#92400E",
-    "ثلجي": "#DBEAFE",
-    "ذهبي": "#D4AF37",
-    "زهري": "#EC4899",
-    "وردي": "#EC4899",
-    "سكني": "#9CA3AF",
-    "رمادي": "#9CA3AF",
-    "شفاف": "#E5E7EB",
-    "فضي": "#C0C0C0",
-    "فوشي": "#D946EF",
-    "كحلي": "#1E293B",
-    "بحري": "#1E3A5F",
-    "بنفسجي": "#7C3AED",
-    "خزامي": "#C4B5FD",
-    "موف": "#B784A7",
-    "تركواز": "#14B8A6",
-    "فيروزي": "#14B8A6",
-    "زيتي": "#6B7C3A",
-    "كريمي": "#F5E6C8",
-    "بيج": "#E8DCC4",
-    "عنابي": "#7C1F2E",
-    "خمري": "#7C1F2E",
-    "نحاسي": "#B87333",
-    "برونزي": "#CD7F32",
-    "سماوي": "#38BDF8",
-    "نيلي": "#4338CA",
-    "ليموني": "#D9E021",
-    "قرمزي": "#DC143C"
-};
-
-function normalizeColorNameJS(text) {
-    return text
-        .trim()
-        .replace(/[إأآا]/g, "ا")
-        .replace(/ى/g, "ي")
-        .replace(/ة/g, "ه")
-        .replace(/\s+/g, " ")
-        .toLowerCase();
-}
-
-function setupColorNameSuggestion(nameInputId, hexInputId, hexTextId) {
+function setupColorNameSuggestion(nameInputId, hexInputId, hexTextId, endpoint) {
     const nameInput = document.getElementById(nameInputId);
     const hexInput = document.getElementById(hexInputId);
     // the text box is the field that actually submits; suggesting into the
     // picker alone would save whatever the box still held
     const hexText = hexTextId ? document.getElementById(hexTextId) : null;
-    if (!nameInput || !hexInput) return;
+    if (!nameInput || !hexInput || !endpoint) return;
 
     let hexTouched = false;
+    let timer = null;
+
     const markTouched = function () { hexTouched = true; };
     hexInput.addEventListener("input", markTouched);
     if (hexText) hexText.addEventListener("input", markTouched);
@@ -606,20 +567,29 @@ function setupColorNameSuggestion(nameInputId, hexInputId, hexTextId) {
     nameInput.addEventListener("input", function () {
         if (hexTouched) return;
 
-        const normalized = normalizeColorNameJS(nameInput.value);
-        for (const key in COLOR_NAME_HEX_MAP) {
-            if (normalized.includes(key)) {
-                hexInput.value = COLOR_NAME_HEX_MAP[key];
-                if (hexText) hexText.value = COLOR_NAME_HEX_MAP[key].toUpperCase();
-                break;
+        clearTimeout(timer);
+        timer = setTimeout(async function () {
+            if (hexTouched) return;
+
+            try {
+                const response = await fetch(
+                    endpoint + "?name=" + encodeURIComponent(nameInput.value)
+                );
+                const data = await response.json();
+
+                // no suggestion means the name is not one we know — leave
+                // the picker exactly where the person left it
+                if (!data.hex_code || hexTouched) return;
+
+                hexInput.value = data.hex_code;
+                if (hexText) hexText.value = data.hex_code;
+
+            } catch (err) {
+                /* a suggestion is a convenience — stay quiet and let them pick */
             }
-        }
+        }, 250);
     });
 }
-
-
-
-
 
 
 document.addEventListener("DOMContentLoaded", function () {

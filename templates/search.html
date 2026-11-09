@@ -53,7 +53,7 @@
 
           {% if filters.color %}{% for col in colors %}{% if col.id == filters.color %}
           <a href="{{ url_with(color=None) }}" class="badge text-decoration-none d-inline-flex align-items-center gap-1 bg-light text-dark">
-            <span class="d-inline-block rounded-circle border" style="width:10px;height:10px;background:{{ col.hex_code or '#ccc' }};"></span>
+            <span class="d-inline-block rounded-circle border" style="width:10px;height:10px;background:{{ col.hex_code|swatch }};"></span>
             {{ col.name }} <i class="bi bi-x"></i></a>
           {% endif %}{% endfor %}{% endif %}
 
@@ -121,7 +121,7 @@
             <a href="{{ url_with(color=None if filters.color == col.id else col.id, page=None) }}"
                title="{{ col.name }}"
                class="d-inline-block rounded-circle border"
-               style="width:26px; height:26px; background:{{ col.hex_code or '#ccc' }};
+               style="width:26px; height:26px; background:{{ col.hex_code|swatch }};
                       {% if filters.color == col.id %}box-shadow:0 0 0 2px #fff,0 0 0 4px #1E3A5F;{% endif %}"></a>
             {% endfor %}
           </div>
@@ -205,12 +205,12 @@
             {% if product.color %}
             <span class="catalogue-colour">
                 <span class="catalogue-swatch"
-                      style="background: {{ product.color.hex_code or '#cccccc' }}"></span>
+                      style="background: {{ product.color.hex_code|swatch }}"></span>
                 {{ product.color.name }}
                 {% if product.secondary_color %}
                 <span class="catalogue-colour-sep">/</span>
                 <span class="catalogue-swatch"
-                      style="background: {{ product.secondary_color.hex_code or '#cccccc' }}"></span>
+                      style="background: {{ product.secondary_color.hex_code|swatch }}"></span>
                 {{ product.secondary_color.name }}
                 {% endif %}
             </span>

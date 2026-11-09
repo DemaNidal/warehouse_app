@@ -57,11 +57,11 @@
           {% endif %}
 
           <span class="badge-color d-inline-flex align-items-center gap-1">
-            <span class="d-inline-block rounded-circle border" style="width:10px; height:10px; background:{{ product.color.hex_code or '#ccc' }};"></span>
+            <span class="d-inline-block rounded-circle border" style="width:10px; height:10px; background:{{ product.color.hex_code|swatch }};"></span>
             {{ product.color.name }}
             {% if product.secondary_color %}
             <span class="mx-1">/</span>
-            <span class="d-inline-block rounded-circle border" style="width:10px; height:10px; background:{{ product.secondary_color.hex_code or '#ccc' }};"></span>
+            <span class="d-inline-block rounded-circle border" style="width:10px; height:10px; background:{{ product.secondary_color.hex_code|swatch }};"></span>
             {{ product.secondary_color.name }}
             {% endif %}
           </span>
@@ -93,11 +93,11 @@
           <div class="meta-item">
             <span class="label">اللون</span>
             <div class="value d-flex align-items-center justify-content-center gap-1">
-              <span class="d-inline-block rounded-circle border" style="width:10px; height:10px; background:{{ product.color.hex_code or '#ccc' }};"></span>
+              <span class="d-inline-block rounded-circle border" style="width:10px; height:10px; background:{{ product.color.hex_code|swatch }};"></span>
               {{ product.color.name }}
               {% if product.secondary_color %}
               <span class="mx-1">/</span>
-              <span class="d-inline-block rounded-circle border" style="width:10px; height:10px; background:{{ product.secondary_color.hex_code or '#ccc' }};"></span>
+              <span class="d-inline-block rounded-circle border" style="width:10px; height:10px; background:{{ product.secondary_color.hex_code|swatch }};"></span>
               {{ product.secondary_color.name }}
               {% endif %}
             </div>

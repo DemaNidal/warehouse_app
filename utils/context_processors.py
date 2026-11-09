@@ -2,6 +2,7 @@ from flask_login import current_user
 
 from models import Notification, StockRequest
 from utils.clock import to_local
+from utils.color_names import EMPTY_SWATCH, swatch
 
 
 def register_context_processors(app):
@@ -12,6 +13,19 @@ def register_context_processors(app):
     @app.template_filter("local")
     def _local(value):
         return to_local(value)
+
+
+    # Four templates had each chosen their own grey for a colour with no
+    # code — #e2e8f0, #94A3B8, #ccc and #cccccc — so the same state drew
+    # differently depending on which page you were on.
+    @app.template_filter("swatch")
+    def _swatch(hex_code):
+        return swatch(hex_code)
+
+
+    @app.context_processor
+    def inject_swatch_default():
+        return {"empty_swatch": EMPTY_SWATCH}
 
 
     @app.context_processor

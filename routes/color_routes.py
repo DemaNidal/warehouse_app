@@ -14,6 +14,7 @@ from utils.permissions import admin_required, manager_required
 from utils.system_guard import ensure_system_ready
 from utils.validation.color import validate_color_name
 from utils.search_text import refresh_search_text_for
+from utils.color_names import suggest_hex
 from sqlalchemy.exc import IntegrityError
 
 def register_color_routes(app):
@@ -35,9 +36,25 @@ def register_color_routes(app):
 
         if request.method == "POST":
 
+            submitted_hex = request.form.get("hex_code", "").strip()
+
+            # The quick-add modal on the product form sends a name and
+            # nothing else, so a colour added from there was stored with no
+            # code and drew as the same grey as every colour missing one.
+            # Only if the suggestion is free, though: the validator refuses a
+            # code another colour already carries, and a suggestion nobody
+            # asked for must not become the reason a colour is rejected.
+            if not submitted_hex:
+                suggested = suggest_hex(request.form.get("name", ""))
+
+                if suggested and not Color.query.filter(
+                    Color.hex_code.ilike(suggested)
+                ).first():
+                    submitted_hex = suggested
+
             result = validate_color_name(
                 request.form.get("name", ""),
-                request.form.get("hex_code", "")
+                submitted_hex
             )
 
             if not result.valid:
@@ -90,6 +107,23 @@ def register_color_routes(app):
                 usage_counts[row[0]] = usage_counts.get(row[0], 0) + row[1]
 
         return render_template("add_color.html", colors=colors, usage_counts=usage_counts)
+
+
+    # =========================
+    # SUGGEST A HEX (AJAX, used by the add-colour form)
+    # =========================
+    @app.route("/colors/suggest-hex")
+    @login_required
+    @manager_required
+    def suggest_color_hex():
+        """What colour an Arabic colour name means.
+
+        Server-side on purpose, the same as the category suggestion: the
+        names live in one module, so the form, the quick-add and anything
+        else that needs them cannot drift apart.
+        """
+
+        return jsonify(success=True, hex_code=suggest_hex(request.args.get("name", "")))
 
 
     # =========================
