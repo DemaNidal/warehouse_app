@@ -122,10 +122,21 @@ migrate = Migrate(app, db)
 @login_manager.user_loader
 def load_user(user_id):
 
-    return db.session.get(
+    user = db.session.get(
         User,
         int(user_id)
     )
+
+    # Disabling an account has to end the session it is already holding, not
+    # just refuse the next login. Flask-Login checks `is_active` when
+    # `login_user` runs and never again, so a session restored from the
+    # cookie would otherwise keep every permission its owner had until the
+    # cookie expired eight hours later. Returning None makes the request
+    # anonymous, and @login_required sends it to the login page.
+    if user is None or not user.is_active_user:
+        return None
+
+    return user
     
 @app.errorhandler(404)
 def not_found(error):
@@ -195,9 +206,18 @@ def add_no_cache_headers(response):
 
     # Prevent the browser from serving cached/bfcache copies of
     # authenticated pages after logout (back-button data exposure).
-    if not request.path.startswith("/static/") and not request.path.startswith("/uploads/"):
-        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-        response.headers["Pragma"] = "no-cache"
+    if request.path.startswith("/static/"):
+        return response
+
+    # An uploaded image is cached hard on purpose (see below), but only once
+    # it has actually been served. The redirect that an unauthenticated
+    # request gets instead must not be cached in the file's place, or the
+    # browser keeps replaying it after the person signs in.
+    if request.path.startswith("/uploads/") and response.status_code == 200:
+        return response
+
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
 
     return response
 
@@ -230,6 +250,7 @@ UPLOAD_CACHE_SECONDS = 60 * 60 * 24 * 30  # 30 days
 
 
 @app.route("/uploads/<filename>")
+@login_required
 def uploaded_file(filename):
 
     response = send_from_directory(

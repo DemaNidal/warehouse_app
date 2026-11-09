@@ -97,9 +97,15 @@ def register_notifications_routes(app):
             notif.is_read = True
             db.session.commit()
 
-        # go to target_url if exists
-        if notif.target_url:
-            return redirect(notif.target_url)
+        # Only ever a path on this site. Everything that writes this column
+        # today builds it with url_for, but a stored redirect target that is
+        # followed without looking is an open redirect the moment anything
+        # else writes one — and a link that came from the system is exactly
+        # the link someone trusts.
+        target = notif.target_url or ""
+
+        if target.startswith("/") and not target.startswith(("//", "/\\")):
+            return redirect(target)
 
         # fallback to product
         if notif.product_id:

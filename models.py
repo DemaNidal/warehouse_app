@@ -474,6 +474,16 @@ class User( UserMixin, db.Model):
             self.password_hash,
             password
         )
+
+    @property
+    def is_active(self):
+        """Whether Flask-Login should treat this account as usable.
+
+        UserMixin supplies an `is_active` that is always True, and the real
+        flag is a column with a different name — so without this override
+        nothing outside the login form ever consults it.
+        """
+        return bool(self.is_active_user)
     
 class ActivityLog(db.Model):
 

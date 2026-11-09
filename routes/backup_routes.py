@@ -28,6 +28,7 @@ from utils.backup import (
 from utils.permissions import admin_required
 from utils.activity_logger import log_activity
 from utils.validation.backup import validate_restore
+from extensions import limiter
 import config
 
 
@@ -137,6 +138,12 @@ def register_backup_routes(app):
     @app.route("/backup/restore", methods=["POST"])
     @login_required
     @admin_required
+    # Below the permission checks on purpose, so only a request that is
+    # already an admin's spends from the allowance — otherwise anyone could
+    # use up the quota and leave the real admin unable to restore. What it
+    # bounds is guessing at RESTORE_SECRET, which is the only thing standing
+    # between a signed-in admin and replacing the whole database.
+    @limiter.limit("5 per hour")
     def restore_backup():
 
         secret = request.form.get("restore_secret")
