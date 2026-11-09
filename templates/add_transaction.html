@@ -223,9 +223,17 @@ function renderCustomerList(matches = currentCustomerMatches) {
   if (!matches.length) {
     pickerList.innerHTML = '<div class="searchable-picker-empty">لا يوجد عميل مطابق، استخدم زر + للإضافة</div>';
   } else {
-    pickerList.innerHTML = matches.map((c, i) =>
-      `<div class="searchable-picker-item" data-index="${i}">${c.name}</div>`
-    ).join("");
+    // Built as nodes with textContent, never as an interpolated HTML string.
+    // A customer name is stored exactly as it was typed, so a name carrying
+    // markup would run as script here — and this list is read by admins,
+    // while anyone who can add a customer is only a store manager.
+    pickerList.replaceChildren(...matches.map(function (c, i) {
+      const item = document.createElement("div");
+      item.className = "searchable-picker-item";
+      item.dataset.index = i;
+      item.textContent = c.name;
+      return item;
+    }));
   }
 
   pickerList.classList.add("show");
