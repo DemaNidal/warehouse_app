@@ -145,17 +145,6 @@ python wsgi.py
 
 The app serves on `http://localhost:5000` through waitress.
 
-### Deployment
-
-`docker-compose.yml` brings up PostgreSQL, the application and Caddy, which
-obtains and renews the HTTPS certificate itself.
-
-```bash
-docker compose up -d --build
-```
-
-Full walkthrough in [DEPLOY.md](DEPLOY.md).
-
 ---
 
 ## Design notes
