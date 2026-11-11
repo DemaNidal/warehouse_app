@@ -15,6 +15,22 @@ produced, and two places used to trust it completely:
 Both are covered here, along with the thing that fixing the first one also
 fixed: an archive taken before a column was dropped used to abort the whole
 restore, at the one moment a restore cannot be allowed to fail.
+
+One more fault has no test of its own, and the reason is worth writing down.
+Clearing and restoring switch foreign keys off for the duration, which they
+must: the rows come back in an order that would otherwise be refused. They
+used to do it with a plain SET, which belongs to the connection rather than
+the transaction, so the connection went back into the pool still carrying it
+and the next request to borrow it had foreign keys silently disabled. It is
+`SET LOCAL` now, which cannot outlive the transaction either way.
+
+It could not be reproduced in a test of its own: on its own the pool hands
+the same connection straight back and the old reset found it. What catches it
+is the suite as a whole — once anything here calls clear_database,
+test_product_images::test_a_failed_save_takes_the_photo_back_out fails,
+because the application stops refusing a product whose colour does not exist.
+That test is three files away and knows nothing about backups, which is
+exactly why it was believed.
 """
 
 import json
@@ -184,3 +200,62 @@ class TestOnlyImagesAreRestored:
         empty.mkdir()
 
         assert restore_uploads(str(empty)) is None
+
+
+class TestClearingSparesWhatTheRestoreCannotRefill:
+    """clear_database used to empty every table in the database, while
+    restore_database refills only the tables that have a model. Two tables
+    have no model — alembic_version and the marker written by
+    scripts/fix_timestamp_timezone.py — so a restore quietly destroyed both.
+
+    The sixteen tests above never caught it: every table they restore has a
+    model. It took restoring a real archive into an empty database and
+    comparing the result against production, table by table.
+    """
+
+    def test_the_migration_level_survives(self, db_session):
+        before = db_session.execute(
+            text("select version_num from alembic_version")
+        ).fetchall()
+
+        assert before, "the test database should know its migration level"
+
+        backup.clear_database()
+
+        after = db_session.execute(
+            text("select version_num from alembic_version")
+        ).fetchall()
+
+        assert after == before, (
+            "a restored database that has forgotten its migration level "
+            "cannot be upgraded afterwards"
+        )
+
+    def test_a_table_with_no_model_keeps_its_rows(self, db_session):
+        # stands in for timestamp_timezone_fixed: a marker another script
+        # writes, whose absence re-arms a correction already made
+        db_session.execute(text("CREATE TABLE IF NOT EXISTS a_marker (note text)"))
+        db_session.execute(text("INSERT INTO a_marker VALUES ('already done')"))
+        db_session.commit()
+
+        try:
+            backup.clear_database()
+
+            rows = db_session.execute(text("select note from a_marker")).fetchall()
+            assert [r[0] for r in rows] == ["already done"]
+
+        finally:
+            db_session.execute(text("DROP TABLE a_marker"))
+            db_session.commit()
+
+    def test_the_tables_it_does_refill_are_still_emptied(self, db_session, make_product):
+        make_product(name="منتج قبل المسح")
+        db_session.commit()
+
+        from models import Product
+        assert Product.query.count() == 1
+
+        backup.clear_database()
+
+        assert Product.query.count() == 0, \
+            "clearing must still empty the tables the restore replaces"

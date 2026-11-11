@@ -272,21 +272,56 @@ def get_backup_files(folder=BACKUP_FOLDER):
 
 
 def clear_database():
-    tables = get_all_tables()
+    """Empty the tables the restore is going to refill, and only those.
 
-    db.session.execute(text("SET session_replication_role = replica;"))
+    get_all_tables() lists every table the database has, but restore_database
+    puts back only the ones that have a model. Truncating the rest emptied two
+    tables that nothing would ever refill:
 
-    try:
-        for table in tables:
-            db.session.execute(
-                text(f'TRUNCATE TABLE "{table}" RESTART IDENTITY CASCADE;')
-            )
+      * alembic_version, which is how the database knows which migrations it
+        has already had. Without it `flask db upgrade` starts from the first
+        migration and fails on a CREATE TABLE for a table that is already
+        there, so a restored database cannot be upgraded without hand repair;
+      * the marker table scripts/fix_timestamp_timezone.py writes, whose only
+        job is to stop that script shifting the same timestamps a second time.
+        Removing it silently re-arms a correction that has already been made.
 
-        db.session.commit()
+    Neither belongs to the backup. A restore swaps the rows inside a schema it
+    did not build, so the schema's own bookkeeping is not its to throw away.
 
-    finally:
-        db.session.execute(text("SET session_replication_role = DEFAULT;"))
-        db.session.commit()
+    Found by restoring a real archive into an empty database and comparing it
+    against production table by table — the sixteen tests over this code all
+    passed, because every table they restore has a model.
+    """
+
+    restorable = {table.name for table in db.metadata.sorted_tables}
+
+    present = get_all_tables()
+    tables = [name for name in present if name in restorable]
+    spared = sorted(set(present) - restorable)
+
+    if spared:
+        logger.info(
+            "Leaving %d table(s) alone that the restore does not refill: %s",
+            len(spared), ", ".join(spared)
+        )
+
+    # SET LOCAL, not SET. A plain SET belongs to the connection, not to the
+    # transaction: the commit below hands that connection back to the pool
+    # still carrying it, and the reset that used to follow ran on whichever
+    # connection the session picked up next — not necessarily the same one.
+    # Whoever borrowed the first one afterwards had foreign keys silently
+    # disabled, so a row pointing at a product that does not exist would be
+    # written without complaint. SET LOCAL cannot outlive this transaction,
+    # whether it ends in a commit or a rollback.
+    db.session.execute(text("SET LOCAL session_replication_role = replica;"))
+
+    for table in tables:
+        db.session.execute(
+            text(f'TRUNCATE TABLE "{table}" RESTART IDENTITY CASCADE;')
+        )
+
+    db.session.commit()
 
 
 def _schema_columns(table_name):
@@ -361,19 +396,16 @@ def restore_database(data_dir):
 
     tables = [table.name for table in reversed(db.metadata.sorted_tables)]
 
-    db.session.execute(text("SET session_replication_role = replica;"))
+    # SET LOCAL for the same reason as in clear_database: the relaxed foreign
+    # keys must not survive this transaction and ride a pooled connection into
+    # somebody else's request. A failure here leaves the transaction to be
+    # rolled back, which clears the setting just as the commit does.
+    db.session.execute(text("SET LOCAL session_replication_role = replica;"))
 
-    try:
+    for table in tables:
+        restore_table(table, data_dir)
 
-        for table in tables:
-            restore_table(table, data_dir)
-
-        db.session.commit()
-
-    finally:
-
-        db.session.execute(text("SET session_replication_role = DEFAULT;"))
-        db.session.commit()
+    db.session.commit()
 
     reset_sequences()
 
