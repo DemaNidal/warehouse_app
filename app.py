@@ -83,6 +83,13 @@ if not config.SECRET_KEY:
 app.secret_key = config.SECRET_KEY
 csrf.init_app(app)
 limiter.init_app(app)
+
+# Headers that refuse what the application never does anyway, plus a
+# Content-Security-Policy that reports rather than blocks while the inline
+# scripts it would refuse are still there. See utils/security_headers.py.
+from utils.security_headers import init_security_headers
+
+init_security_headers(app, csrf, limiter)
 app.config["SQLALCHEMY_DATABASE_URI"] = config.DATABASE_URL
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["UPLOAD_FOLDER"] = "uploads"
@@ -121,10 +128,19 @@ migrate = Migrate(app, db)
 @login_manager.user_loader
 def load_user(user_id):
 
-    user = db.session.get(
-        User,
-        int(user_id)
-    )
+    # User.get_id() writes "<id>-<auth_version>". A cookie without the dash
+    # was written before this existed, and there is no way to tell whether
+    # the password has changed since, so it is not honoured: everyone signs
+    # in once more after this is deployed, and from then on it is exact.
+    identifier, _, version = str(user_id).partition("-")
+
+    if not version:
+        return None
+
+    try:
+        user = db.session.get(User, int(identifier))
+    except (TypeError, ValueError):
+        return None
 
     # Disabling an account has to end the session it is already holding, not
     # just refuse the next login. Flask-Login checks `is_active` when
@@ -133,6 +149,12 @@ def load_user(user_id):
     # cookie expired eight hours later. Returning None makes the request
     # anonymous, and @login_required sends it to the login page.
     if user is None or not user.is_active_user:
+        return None
+
+    # The same reasoning for the password. Changing it has to end the
+    # sessions somebody else may be holding -- that is most of the point of
+    # changing it -- and the cookie is the only place those sessions live.
+    if version != str(user.auth_version or 1):
         return None
 
     return user

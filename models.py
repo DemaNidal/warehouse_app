@@ -444,6 +444,17 @@ class User( UserMixin, db.Model):
         default=True,
         nullable=False
     )
+
+    # Bumped every time the password changes, and carried inside the session
+    # cookie. A cookie holding an older number no longer loads this user, so
+    # changing a password ends every session except the one that changed it.
+    auth_version = db.Column(
+        db.Integer,
+        default=1,
+        nullable=False,
+        server_default="1"
+    )
+
     notifications = db.relationship(
         "Notification",
         back_populates="user",
@@ -457,6 +468,23 @@ class User( UserMixin, db.Model):
         self.password_hash = generate_password_hash(
             password
         )
+
+        # Here rather than in the routes, because it is a property of the
+        # password changing, not of any one way of changing it. Three places
+        # set a password today -- a person changing their own, an admin
+        # resetting somebody else's, and the account form -- and whatever is
+        # added next gets this without having to remember it.
+        self.auth_version = (self.auth_version or 0) + 1
+
+    def get_id(self):
+        """What goes in the session cookie.
+
+        Flask-Login stores this and hands it back to the user loader on every
+        request. Carrying the password's version in it is what lets the loader
+        tell a session opened before a password change from one opened after.
+        """
+
+        return "%s-%s" % (self.id, self.auth_version or 1)
 
     def check_password(
         self,

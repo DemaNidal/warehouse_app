@@ -159,7 +159,10 @@ class TestLoginHardening:
 
         with client.session_transaction() as session:
             assert "planted" not in session, "قيمة ما قبل الدخول عبرت للجلسة المصادَقة"
-            assert session.get("_user_id") == str(user.id)
+            # get_id(), not the bare id: the cookie carries the password's
+            # version alongside it, so that changing a password closes the
+            # sessions the old one opened.
+            assert session.get("_user_id") == user.get_id()
 
     def test_a_disabled_account_cannot_log_in(self, client, make_user, db_session):
         user = make_user(username="disabled-one", role="ADMIN", password="a-long-password")

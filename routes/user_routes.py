@@ -6,7 +6,7 @@ from flask import (
     flash
 )
 
-from flask_login import login_required, current_user
+from flask_login import login_required, login_user, current_user
 
 from models import db, User
 from utils.activity_logger import log_activity
@@ -251,6 +251,13 @@ def register_user_routes(app):
 
             current_user.set_password(new_password)
             db.session.commit()
+
+            # Changing the password ends every session the old one opened,
+            # which now includes this one: the cookie carries the old
+            # auth_version. Signing this browser in again rewrites it, so
+            # the person who just chose a new password stays where they are
+            # and only the other sessions are closed.
+            login_user(current_user._get_current_object())
 
             log_activity(
                 current_user.id,

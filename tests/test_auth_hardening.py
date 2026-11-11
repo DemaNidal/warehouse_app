@@ -159,3 +159,94 @@ class TestSessionLifetime:
 
         cookie = response.headers.get("Set-Cookie", "")
         assert "Max-Age=" not in cookie, "a failed attempt left a lasting session"
+
+
+class TestChangingAPasswordClosesTheOtherSessions:
+    """Changing a password used to leave every session it had opened running.
+
+    Flask-Login puts the user's id in the cookie and nothing else, so a
+    browser already signed in stayed signed in for the rest of the eight
+    hours — the new password simply did not concern it. Somebody changing
+    their password because they think another person is inside their account
+    was not achieving the one thing they were trying to achieve.
+
+    The cookie carries the password's version now. These cover both halves:
+    the other session must end, and the one doing the changing must not.
+    """
+
+    def test_another_session_is_closed(self, app, make_user, db_session):
+        user = make_user(username="hana", role="STORE_MANAGER")
+        db_session.commit()
+
+        elsewhere = app.test_client()
+        with elsewhere.session_transaction() as session:
+            session["_user_id"] = user.get_id()
+            session["_fresh"] = True
+
+        assert elsewhere.get("/products").status_code == 200, \
+            "the second browser should start out signed in"
+
+        user.set_password("a-different-password")
+        db_session.commit()
+
+        # db_session holds one app context open for the whole test and
+        # Flask-Login caches the loaded user on `g`, which lives there — so
+        # without this the second request answers from the cache and never
+        # consults the loader. Each real request gets a context of its own.
+        from flask import g
+        for cached in ("_login_user", "_cached_user"):
+            g.pop(cached, None)
+
+        response = elsewhere.get("/products")
+
+        assert response.status_code == 302
+        assert "/login" in response.headers["Location"], \
+            "a session opened with the old password must not survive it"
+
+    def test_the_browser_that_changed_it_stays(self, client, login, make_user, db_session):
+        user = make_user(username="rami", role="STORE_MANAGER", password="old-password-here")
+        db_session.commit()
+        login(user)
+
+        response = client.post("/profile/change-password", data={
+            "current_password": "old-password-here",
+            "new_password": "brand-new-password",
+            "confirm_password": "brand-new-password",
+        }, follow_redirects=False)
+
+        assert response.status_code == 302
+
+        assert client.get("/products").status_code == 200, \
+            "the person who chose the new password should not be thrown out"
+
+    def test_a_cookie_from_before_this_existed_is_refused(self, app, make_user, db_session):
+        # sessions already open when this is deployed hold a bare id, and
+        # there is no way to tell whether the password changed since
+        user = make_user(username="older", role="STORE_MANAGER")
+        db_session.commit()
+
+        stale = app.test_client()
+        with stale.session_transaction() as session:
+            session["_user_id"] = str(user.id)
+            session["_fresh"] = True
+
+        from flask import g
+        for cached in ("_login_user", "_cached_user"):
+            g.pop(cached, None)
+
+        response = stale.get("/products")
+
+        assert response.status_code == 302
+        assert "/login" in response.headers["Location"]
+
+    def test_the_version_moves_with_every_change(self, make_user, db_session):
+        user = make_user(username="counter")
+        db_session.commit()
+
+        first = user.auth_version
+        user.set_password("second-password")
+        db_session.commit()
+        second = user.auth_version
+
+        assert second == first + 1
+        assert user.get_id() == "%s-%s" % (user.id, second)

@@ -228,7 +228,9 @@ def login(client):
 
     def _login(user):
         with client.session_transaction() as session:
-            session["_user_id"] = str(user.id)
+            # get_id(), not the bare id: the cookie carries the password's
+            # version too, and the loader refuses one without it.
+            session["_user_id"] = user.get_id()
             session["_fresh"] = True
 
         for cached in ("_login_user", "_cached_user"):
