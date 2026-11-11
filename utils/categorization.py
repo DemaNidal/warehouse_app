@@ -34,18 +34,20 @@ def normalize(text):
 
 # ---------------------------------------------------------------- definitions
 
-# (name, slug, icon, sort_order) — seeded on first run, editable afterwards
+# (name, icon, sort_order) — seeded on first run, editable afterwards.
+# There was a slug here too, for URLs of the shape /category/pumps that
+# were never built; categories are addressed by id and shown by name.
 DEFAULT_CATEGORIES = [
-    ("بمبات وبخاخات", "pumps", "bi-moisture", 1),
-    ("أغطية", "caps", "bi-disc", 2),
-    ("جارات وعلب", "jars", "bi-box", 3),
-    ("زجاج", "glass", "bi-cup-straw", 4),
-    ("تيوبات وايرلس", "tubes", "bi-eyedropper", 5),
-    ("بريفورم وسدادات", "preforms", "bi-capsule", 6),
-    ("عبوات غذائية", "food", "bi-basket", 7),
-    ("جلنات", "gallons", "bi-bucket", 8),
-    ("كبسولات", "capsules", "bi-capsule-pill", 9),
-    ("مستلزمات طبية", "medical", "bi-bandaid", 10),
+    ("بمبات وبخاخات", "bi-moisture", 1),
+    ("أغطية", "bi-disc", 2),
+    ("جارات وعلب", "bi-box", 3),
+    ("زجاج", "bi-cup-straw", 4),
+    ("تيوبات وايرلس", "bi-eyedropper", 5),
+    ("بريفورم وسدادات", "bi-capsule", 6),
+    ("عبوات غذائية", "bi-basket", 7),
+    ("جلنات", "bi-bucket", 8),
+    ("كبسولات", "bi-capsule-pill", 9),
+    ("مستلزمات طبية", "bi-bandaid", 10),
 ]
 
 # (category, keywords, exclusions) — first rule whose keyword matches and whose

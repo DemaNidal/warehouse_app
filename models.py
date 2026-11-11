@@ -126,12 +126,6 @@ class Category(db.Model):
         nullable=False
     )
 
-    slug = db.Column(
-        db.String(120),
-        unique=True,
-        nullable=True
-    )
-
     icon = db.Column(
         db.String(50),
         nullable=True

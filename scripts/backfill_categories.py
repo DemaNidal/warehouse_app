@@ -37,11 +37,11 @@ def seed_categories(commit):
     created = []
     effective = list(existing.values())
 
-    for name, slug, icon, order in DEFAULT_CATEGORIES:
+    for name, icon, order in DEFAULT_CATEGORIES:
         if normalize(name) in existing:
             continue
 
-        category = Category(name=name, slug=slug, icon=icon, sort_order=order)
+        category = Category(name=name, icon=icon, sort_order=order)
         created.append(name)
         effective.append(category)
 
