@@ -19,10 +19,15 @@ find, a number that no longer matched the shelf. I built this to replace that.
   and every movement is recorded and reversible.
 - **Arabic-first search** — the whole interface is Arabic and right-to-left.
   Search handles the spelling variation that Arabic text actually has.
-- **Roles** — admin, store manager and staff see and can do different things.
+- **Roles** — an admin runs the place, a store manager moves stock, and staff
+  read: products, their details, search and notifications, and nothing that
+  changes a number. That is deliberate, not a gap. Anyone outside the
+  warehouse is meant to be served by a separate site rather than an account
+  here.
 - **Low-stock alerts** — a product below its minimum raises a notification.
-- **Stock requests** — staff request stock, a manager approves, and approval
-  performs the movement.
+- **Stock requests** — a store manager who cannot complete a movement raises
+  a request instead, an admin approves it, and approval performs the
+  movement.
 - **Nightly backups** — the database is archived and shipped to object storage.
 
 ---
