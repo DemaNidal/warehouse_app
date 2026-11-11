@@ -8,7 +8,7 @@ I work at the company, first in accounting. Tracking stock on spreadsheets kept
 producing the same problems — a product counted twice, a shelf nobody could
 find, a number that no longer matched the shelf. I built this to replace that.
 
-**Stack:** Python · Flask · PostgreSQL · SQLAlchemy · Docker · Cloudflare R2
+**Stack:** Python · Flask · PostgreSQL · SQLAlchemy · Waitress · Cloudflare R2
 
 ---
 
@@ -111,7 +111,7 @@ and the old file is deleted only after the replacement is committed.
 
 ## Testing
 
-273 tests with pytest, run against a real PostgreSQL database built by the same
+508 tests with pytest, run against a real PostgreSQL database built by the same
 migrations production uses — a SQLite stand-in would silently skip the indexes
 and CHECK constraints that some of the behaviour depends on.
 

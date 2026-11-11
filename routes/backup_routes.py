@@ -46,7 +46,6 @@ def _safe_extract(zip_ref, target_dir):
 
 BACKUP_FOLDER = "backups"
 UPLOAD_FOLDER = "uploads"
-DB_PATH = os.path.join("instance", "warehouse.db")
 TEMP_DIR = "restore_temp"
 
 

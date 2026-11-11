@@ -3,7 +3,6 @@ from flask import (
     request,
     redirect,
     url_for,
-    abort,
     flash,
     current_app
 )
@@ -16,14 +15,13 @@ from models import (
     User,
     Customer,
     StockRequest,
-    Notification,
     InventoryLocation,
     InventoryTransaction,
     TRANSACTION_TYPES,
     TRANSACTION_LABELS
 )
 
-from utils.permissions import admin_required, manager_required
+from utils.permissions import manager_required
 from utils.system_guard import ensure_system_ready
 from utils.validation.transaction import validate_transaction
 from utils.notifications import (

@@ -12,16 +12,13 @@ from models import (
     Size,
     Warehouse,
     SIZE_KIND_CAPACITY,
-    SIZE_KIND_NECK,
-    STOCK_NORMAL,
-    STOCK_LOW,
-    STOCK_CRITICAL
+    SIZE_KIND_NECK
 )
 from sqlalchemy.orm import joinedload
 from sqlalchemy import func
 from flask_login import login_required, current_user
 from utils.activity_logger import log_activity
-from utils.permissions import admin_required, manager_required
+from utils.permissions import manager_required
 from utils.system_guard import ensure_system_ready
 from utils.validation.product import validate_product_form
 from utils.images import optimize_upload, ImageError

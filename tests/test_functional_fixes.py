@@ -17,7 +17,7 @@ from datetime import datetime
 import pytest
 from sqlalchemy import text
 
-from models import Color, Product, Size, SIZE_KIND_NECK, db
+from models import Color, Product, Size, SIZE_KIND_NECK
 from utils.clock import local_day_bounds, local_to_utc
 from utils.validation.transaction import validate_transaction
 

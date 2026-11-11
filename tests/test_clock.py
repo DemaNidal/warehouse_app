@@ -12,9 +12,7 @@ once, at display.
 
 from datetime import datetime, timezone
 
-import pytest
-
-from utils.clock import utcnow, to_local, local_to_utc, LOCAL_TZ
+from utils.clock import utcnow, to_local, local_to_utc
 
 
 class TestUtcnow:
@@ -133,7 +131,6 @@ class TestTemplateFilter:
 
     def test_pages_show_local_time(self, db_session, make_product, make_user, login):
         """End to end: a row written now must read back as the wall clock."""
-        import re
 
         product = make_product(name="منتج عرض")
         db_session.commit()

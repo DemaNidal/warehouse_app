@@ -1,5 +1,5 @@
 import config
-from flask import flash, redirect, url_for
+from flask import flash
 
 def ensure_system_ready():
     """

@@ -7,7 +7,6 @@ from datetime import datetime
 from sqlalchemy import text
 from sqlalchemy.inspection import inspect
 from models import db
-from datetime import datetime, date
 
 logger = logging.getLogger(__name__)
 

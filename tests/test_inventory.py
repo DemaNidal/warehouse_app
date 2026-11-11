@@ -10,7 +10,7 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
 
-from models import db, InventoryLocation, InventoryTransaction, Customer
+from models import InventoryLocation, InventoryTransaction, Customer
 
 
 @pytest.fixture()

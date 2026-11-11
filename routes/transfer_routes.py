@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from flask import (
     render_template,
     request,
@@ -18,7 +16,7 @@ from models import (
     InventoryTransaction
 )
 from utils.activity_logger import log_activity
-from utils.permissions import admin_required, manager_required
+from utils.permissions import manager_required
 from utils.system_guard import ensure_system_ready
 from utils.validation.transfer import validate_transfer
 
