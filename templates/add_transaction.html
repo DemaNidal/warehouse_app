@@ -382,7 +382,20 @@ document.addEventListener("DOMContentLoaded", function () {
     const quantityExprInput = document.getElementById("quantityExprInput");
     const quantityHiddenInput = document.getElementById("quantityHiddenInput");
 
-    if (!quantityHiddenInput.value || parseInt(quantityHiddenInput.value, 10) <= 0) {
+    // The same rule the server keeps: an adjustment is the count found on the
+    // shelf, and a stock take that finds an empty shelf is an ordinary
+    // morning, so zero is a real answer there. Every other movement is an
+    // amount that moved, and zero means nothing happened.
+    //
+    // This check used to refuse zero for all three. The validator and the
+    // database CHECK were both relaxed to allow it; this was not, so the form
+    // still would not submit and the one way to record an empty shelf stayed
+    // shut. Nothing said why: it cancelled the submit and marked the field.
+    const isAdjustment = checked && checked.value === "ADJUSTMENT";
+    const quantity = parseInt(quantityHiddenInput.value, 10);
+    const tooSmall = isAdjustment ? quantity < 0 : quantity <= 0;
+
+    if (quantityHiddenInput.value === "" || isNaN(quantity) || tooSmall) {
       e.preventDefault();
       quantityExprInput.classList.add("is-invalid");
       quantityExprInput.focus();
