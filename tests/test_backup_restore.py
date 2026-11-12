@@ -259,3 +259,66 @@ class TestClearingSparesWhatTheRestoreCannotRefill:
 
         assert Product.query.count() == 0, \
             "clearing must still empty the tables the restore replaces"
+
+
+class TestClearingRefusesRatherThanReachFurther:
+    """The sparing above was only half true, and the log line said so anyway.
+
+    clear_database truncates with RESTART IDENTITY CASCADE, and CASCADE is not
+    filtered by the list of tables it was given: it follows foreign keys. A
+    table with no model that merely *points* at one -- which is what a second
+    application sharing this database would have -- was emptied along with the
+    products it referenced, while the log recorded "Leaving 1 table(s) alone".
+
+    Proven on a throwaway database before it was fixed: two rows in a table
+    referencing `product`, one TRUNCATE ... CASCADE on `product`, zero rows
+    left. A restore is also the one moment somebody is least able to notice.
+    """
+
+    def test_a_table_pointing_at_the_warehouse_keeps_its_rows(self, db_session):
+        db_session.execute(text("""
+            CREATE TABLE IF NOT EXISTS a_second_app_order (
+                id serial PRIMARY KEY,
+                product_id integer REFERENCES product(id),
+                note text
+            )
+        """))
+        db_session.commit()
+
+        try:
+            db_session.execute(
+                text("INSERT INTO a_second_app_order (note) VALUES ('طلبية'), ('طلبية تانية')")
+            )
+            db_session.commit()
+
+            try:
+                backup.clear_database()
+            except Exception as refusal:
+                db_session.rollback()
+                complaint = str(refusal)
+            else:
+                complaint = None
+
+            surviving = db_session.execute(
+                text("select count(*) from a_second_app_order")
+            ).scalar()
+
+            assert surviving == 2, (
+                "two orders belonging to another application went with the "
+                "warehouse's products, and nobody was told"
+            )
+
+            assert complaint is not None, (
+                "a clear that cannot be done without emptying somebody "
+                "else's table has to stop, not proceed quietly"
+            )
+
+            assert "a_second_app_order" in complaint, (
+                "the refusal has to name the table, or whoever reads it has "
+                "no idea what to do next: %s" % complaint
+            )
+
+        finally:
+            db_session.rollback()
+            db_session.execute(text("DROP TABLE IF EXISTS a_second_app_order"))
+            db_session.commit()

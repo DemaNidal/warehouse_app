@@ -20,6 +20,7 @@ from werkzeug.utils import secure_filename
 
 from models import db
 from utils.backup import (
+    CannotClearSafely,
     create_backup_zip,
     get_backup_files,
     restore_database,
@@ -192,6 +193,23 @@ def register_backup_routes(app):
             )
 
             flash("تم استرجاع النسخة الاحتياطية بنجاح", "success")
+
+        except CannotClearSafely:
+
+            # Its own branch because this one is not a failure: nothing was
+            # written, and the generic message would send somebody looking for
+            # a broken archive when what is actually needed is a decision
+            # about another application's tables. The names are in the log.
+            db.session.rollback()
+
+            current_app.logger.exception("Restore refused before clearing")
+
+            flash(
+                "تم إيقاف الاسترجاع قبل أن يبدأ: في جداول تانية بهاي القاعدة "
+                "مرتبطة بجداول المستودع، والاسترجاع كان رح يفضّيها كمان. ما "
+                "تغيّر إشي. التفاصيل بسجل الأخطاء.",
+                "danger"
+            )
 
         except Exception:
 

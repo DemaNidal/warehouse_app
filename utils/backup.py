@@ -271,6 +271,66 @@ def get_backup_files(folder=BACKUP_FOLDER):
     return files
 
 
+class CannotClearSafely(RuntimeError):
+    """Emptying the restorable tables would have emptied another one too.
+
+    Raised before anything is written, so the database is untouched. It names
+    the tables involved; see _tables_that_would_be_taken_along.
+    """
+
+
+def _tables_that_would_be_taken_along(restorable):
+    """Tables outside the restore that emptying it would empty as well.
+
+    A foreign key pointing INTO the restorable set is the thing that does it.
+    TRUNCATE refuses to leave a dangling reference behind, so it either takes
+    the referencing table with it -- which CASCADE used to do silently -- or
+    refuses outright. Either way the referencing table decides, and it may
+    belong to something else entirely: another application on this database
+    would reference `product` exactly this way.
+
+    Any schema counts, not just this one. A second application keeping its
+    tables in a schema of their own is still reachable through its foreign
+    keys, so searching only the current schema would miss precisely the
+    arrangement most likely to be used.
+
+    Returns a sorted list of "<schema>.<table> -> <referenced>" strings, empty
+    when there is nothing in the way.
+    """
+
+    rows = db.session.execute(text("""
+        SELECT DISTINCT
+               current_schema()     AS here,
+               child_ns.nspname     AS referencing_schema,
+               child.relname        AS referencing,
+               parent.relname       AS referenced
+        FROM pg_constraint c
+        JOIN pg_class     child     ON child.oid  = c.conrelid
+        JOIN pg_namespace child_ns  ON child_ns.oid = child.relnamespace
+        JOIN pg_class     parent    ON parent.oid = c.confrelid
+        JOIN pg_namespace parent_ns ON parent_ns.oid = parent.relnamespace
+        WHERE c.contype = 'f'
+          AND parent_ns.nspname = current_schema()
+    """)).all()
+
+    in_the_way = set()
+
+    for here, child_schema, child, parent in rows:
+
+        if parent not in restorable:
+            continue
+
+        # a restorable table referencing another one is the ordinary case:
+        # both are emptied together, which is what the single statement below
+        # is for
+        if child_schema == here and child in restorable:
+            continue
+
+        in_the_way.add("%s.%s -> %s" % (child_schema, child, parent))
+
+    return sorted(in_the_way)
+
+
 def clear_database():
     """Empty the tables the restore is going to refill, and only those.
 
@@ -292,6 +352,23 @@ def clear_database():
     Found by restoring a real archive into an empty database and comparing it
     against production table by table — the sixteen tests over this code all
     passed, because every table they restore has a model.
+
+    Sparing them took two goes. The list above was right and the log line said
+    the right thing, but the truncate was written one table at a time with
+    RESTART IDENTITY CASCADE, and CASCADE is not filtered by the list it was
+    given: it follows foreign keys. alembic_version and the timezone marker
+    survived because neither references anything, which is the only reason the
+    first fix looked like it worked. A table that merely points at `product` —
+    which is what a second application sharing this database would have — was
+    emptied along with the products, underneath a log line reading "Leaving 1
+    table(s) alone". Measured on a throwaway database: two rows before, none
+    after.
+
+    So the tables go in one statement without CASCADE. Postgres allows that
+    for a group of tables that only reference each other, and refuses as soon
+    as something outside the group is involved — which is the safe way round.
+    The refusal is raised here instead, before anything is written, because
+    the message Postgres gives names no table.
     """
 
     restorable = {table.name for table in db.metadata.sorted_tables}
@@ -299,6 +376,18 @@ def clear_database():
     present = get_all_tables()
     tables = [name for name in present if name in restorable]
     spared = sorted(set(present) - restorable)
+
+    in_the_way = _tables_that_would_be_taken_along(restorable)
+
+    if in_the_way:
+        raise CannotClearSafely(
+            "Refusing to clear: %d foreign key(s) from outside the backup "
+            "point into it, and emptying these tables would empty theirs as "
+            "well: %s. Nothing has been changed. Either those tables belong "
+            "in the backup, or the reference has to go (a plain id column "
+            "instead of a foreign key), or they belong in a database of "
+            "their own." % (len(in_the_way), "; ".join(in_the_way))
+        )
 
     if spared:
         logger.info(
@@ -316,10 +405,16 @@ def clear_database():
     # whether it ends in a commit or a rollback.
     db.session.execute(text("SET LOCAL session_replication_role = replica;"))
 
-    for table in tables:
-        db.session.execute(
-            text(f'TRUNCATE TABLE "{table}" RESTART IDENTITY CASCADE;')
-        )
+    # One statement, and no CASCADE. The warehouse's tables reference each
+    # other, so none of them can be truncated alone -- but naming them all
+    # together satisfies Postgres without giving it licence to look further.
+    # The check above has already established that nothing outside the list
+    # references it, so this cannot fail on that account.
+    if tables:
+        db.session.execute(text(
+            'TRUNCATE TABLE %s RESTART IDENTITY;'
+            % ", ".join('"%s"' % table for table in tables)
+        ))
 
     db.session.commit()
 
