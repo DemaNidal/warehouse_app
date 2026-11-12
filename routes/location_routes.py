@@ -69,7 +69,13 @@ def register_location_routes(app):
             )
 
             db.session.add(location)
-            db.session.commit()
+
+            # flush, not commit: the id is needed for the movement below, and
+            # a commit here would let the shelf stand on its own. Stock on a
+            # shelf and the movement that explains it are one act -- a shelf
+            # holding 400 pieces that no movement accounts for cannot be
+            # reconciled against anything, and nobody would see it happen.
+            db.session.flush()
 
             if location.quantity > 0:
                 db.session.add(InventoryTransaction(
@@ -81,7 +87,8 @@ def register_location_routes(app):
                     notes=f"إضافة موقع جديد: {location.location or 'بدون موقع'}",
                     user_id=current_user.id
                 ))
-                db.session.commit()
+
+            db.session.commit()
 
             log_activity(
                 current_user.id,
