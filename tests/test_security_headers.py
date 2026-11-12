@@ -16,6 +16,51 @@ import pytest
 from utils.security_headers import ALWAYS, REPORT_ONLY, build_policy
 
 
+@pytest.fixture()
+def written(monkeypatch):
+    """Every line the recorder wrote, formatted, in order.
+
+    Watching the logger directly rather than through caplog: what matters is
+    which violations reach the log at all, and this says exactly that.
+    """
+
+    from utils import security_headers
+
+    security_headers._seen.clear()
+
+    lines = []
+
+    def capture(*args, **kwargs):
+        lines.append(args[0] % args[1:] if len(args) > 1 else args[0])
+
+    monkeypatch.setattr(security_headers.logger, "warning", capture)
+
+    return lines
+
+
+@pytest.fixture()
+def report(client):
+    """Post a violation the way a browser does."""
+
+    def send(document, directive="script-src-elem", blocked="inline", line=None):
+        violation = {
+            "document-uri": document,
+            "effective-directive": directive,
+            "blocked-uri": blocked,
+        }
+
+        if line is not None:
+            violation["line-number"] = line
+
+        return client.post(
+            "/csp-report",
+            data=json.dumps({"csp-report": violation}),
+            content_type="application/csp-report",
+        )
+
+    return send
+
+
 class TestTheHeadersThatCannotBreakAnything:
 
     @pytest.mark.parametrize("header,value", sorted(ALWAYS.items()))
@@ -136,50 +181,82 @@ class TestTheReportEndpoint:
 
         assert response.status_code == 204
 
-    def test_a_report_is_written_once_not_on_every_page_load(self, client, monkeypatch):
-        from utils import security_headers
 
-        security_headers._seen.clear()
+class TestTheLogStaysReadable:
+    """What the log is for is a list of the templates that have to change.
 
-        # Watching the logger directly rather than through caplog: what
-        # matters is that the same violation is written once however many
-        # times the browser sends it, and this says exactly that.
-        written = []
-        monkeypatch.setattr(
-            security_headers.logger, "warning",
-            lambda *args, **kwargs: written.append(args[0])
-        )
+    Repeated on every page load, or once per filter and once per line number,
+    it is a list of nothing. These say what counts as the same violation, and
+    they exist because the first version of this got it wrong in production:
+    six pages arrived as fifty-nine lines.
+    """
 
-        body = json.dumps({"csp-report": {
-            "document-uri": "http://localhost/dashboard",
-            "violated-directive": "script-src",
-            "blocked-uri": "inline",
-            "line-number": 7,
-        }})
-
+    def test_a_violation_is_written_once_not_on_every_page_load(self, report, written):
         for _ in range(5):
-            client.post("/csp-report", data=body,
-                        content_type="application/csp-report")
+            report("http://localhost/dashboard", line=7)
 
         assert len(written) == 1,             "the same violation on every page load would bury the new ones"
 
-    def test_a_different_violation_is_written_too(self, client, monkeypatch):
-        from utils import security_headers
+    def test_the_same_page_under_a_filter_is_not_a_new_violation(self, report, written):
+        report("http://localhost/products", line=1886)
+        report("http://localhost/products?sort=recent&category=4&page=2", line=901)
+        report("http://localhost/products?sort=recent&category=5", line=1463)
 
-        security_headers._seen.clear()
+        assert len(written) == 1,             "one template reported once per filter is a log nobody can read"
 
-        written = []
-        monkeypatch.setattr(
-            security_headers.logger, "warning",
-            lambda *args, **kwargs: written.append(args[0])
-        )
+    def test_a_line_number_that_moved_is_not_a_new_violation(self, report, written):
+        # the number is counted in the rendered page, so a shorter product
+        # list moves the same script up a thousand lines
+        report("http://localhost/products", line=1886)
+        report("http://localhost/products", line=901)
 
-        for line in (7, 31):
-            client.post("/csp-report", data=json.dumps({"csp-report": {
-                "document-uri": "http://localhost/dashboard",
-                "violated-directive": "script-src",
-                "blocked-uri": "inline",
-                "line-number": line,
-            }}), content_type="application/csp-report")
+        assert len(written) == 1
+
+    def test_the_way_in_does_not_make_it_new(self, report, written):
+        report("http://192.168.0.5:5000/dashboard", line=1019)
+        report("http://213.6.239.66:5000/dashboard", line=1019)
+        report("http://localhost:5000/dashboard", line=1019)
+
+        assert len(written) == 1,             "the same page from the shop and from outside is still one page"
+
+    def test_the_same_template_with_another_product_in_it_is_not_new(self, report, written):
+        report("http://localhost/product/141", line=1046)
+        report("http://localhost/product/229", line=846)
+        report("http://localhost/product/56", line=846)
+
+        assert len(written) == 1,             "one product page per product is a list of the catalogue, not of the work"
+
+    def test_the_id_is_not_dropped_from_the_path_altogether(self, report, written):
+        report("http://localhost/product/141")
+        report("http://localhost/products")
+
+        assert len(written) == 2
+        pages = " ".join(written)
+        assert "/product/<id>" in pages
+        assert "/products" in pages
+
+    def test_a_different_page_is_written_too(self, report, written):
+        report("http://localhost/dashboard")
+        report("http://localhost/products")
 
         assert len(written) == 2,             "deduplicating must not swallow a violation nobody has seen yet"
+
+    def test_both_kinds_of_inline_on_one_page_are_written(self, report, written):
+        # an inline <script> and an onclick= are two separate pieces of work
+        report("http://localhost/dashboard", directive="script-src-elem")
+        report("http://localhost/dashboard", directive="script-src-attr")
+
+        assert len(written) == 2
+
+    def test_the_line_number_is_still_in_the_message(self, report, written):
+        report("http://localhost/products?sort=recent", line=1886)
+
+        assert "line 1886" in written[0]
+        assert "/products" in written[0]
+        assert "sort=recent" not in written[0],             "the query says nothing about which template has to change"
+
+    def test_a_report_without_a_page_does_not_land_on_the_root(self, report, written):
+        report("")
+        report("http://localhost/")
+
+        assert len(written) == 2,             "a report that names no page is not a report about the home page"

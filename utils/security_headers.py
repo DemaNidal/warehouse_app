@@ -18,6 +18,8 @@ Switching it on afterwards is one word, REPORT_ONLY below.
 import json
 import logging
 import os
+import re
+from urllib.parse import urlsplit
 
 from flask import request
 
@@ -99,13 +101,43 @@ _seen = set()
 _SEEN_LIMIT = 500
 
 
+# Every id in this application is a number, in its own path segment:
+# /product/141, /category/3/delete.
+_ID_SEGMENT = re.compile(r"/\d+(?=/|$)")
+
+
+def _page(document_uri):
+    """The template a violation came from, with nothing that varies by visit.
+
+    A violation belongs to a template, so what identifies it has to as well,
+    and the document-uri does not. /products and
+    /products?sort=recent&category=4&page=2 render the same file; so do
+    /product/141 and /product/229, with a different row in them. The host
+    changes with the way in -- 192.168.x from inside the shop, the public
+    address from outside. Keeping any of that turned a dozen templates into
+    fifty-nine lines in the log, which is the opposite of the point, and would
+    have spent _SEEN_LIMIT on the same handful of facts.
+    """
+
+    if not document_uri or document_uri == "?":
+        return "?"
+
+    path = urlsplit(document_uri).path or "/"
+
+    return _ID_SEGMENT.sub("/<id>", path)[:200]
+
+
 def _record(report):
     directive = report.get("effective-directive") or report.get("violated-directive", "?")
     blocked = (report.get("blocked-uri") or "?")[:120]
-    document = (report.get("document-uri") or "?")[:200]
+    page = _page(report.get("document-uri"))
     line = report.get("line-number", "")
 
-    key = (directive, blocked, document, line)
+    # The line number is not part of the key either, and cannot be: it is
+    # counted in the rendered HTML, so one `<script>` sits at line 1886 on a
+    # full product list and line 901 on a short one. It stays in the message,
+    # where it points at roughly the right place, but it identifies nothing.
+    key = (directive, blocked, page)
 
     if key in _seen:
         return False
@@ -115,7 +147,7 @@ def _record(report):
 
     logger.warning(
         "CSP would have blocked %s on %s%s (%s)",
-        blocked, document, (" line %s" % line) if line else "", directive
+        blocked, page, (" line %s" % line) if line else "", directive
     )
 
     return True
